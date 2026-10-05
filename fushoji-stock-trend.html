@@ -15,6 +15,7 @@
     --series-soft: rgba(42, 120, 214, 0.12);
     --pre: #9aa1b0;
     --chip: #e8ecf3;
+    --company: #d12a2a;
     --font-body: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
     --font-head: "Zen Kaku Gothic New", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
     color-scheme: light;
@@ -32,6 +33,7 @@
       --series-soft: rgba(57, 135, 229, 0.16);
       --pre: #6a7180;
       --chip: #232730;
+      --company: #ff6b6b;
       color-scheme: dark;
     }
   }
@@ -47,6 +49,7 @@
     --series-soft: rgba(57, 135, 229, 0.16);
     --pre: #6a7180;
     --chip: #232730;
+    --company: #ff6b6b;
     color-scheme: dark;
   }
 
@@ -85,7 +88,7 @@
   /* 比較バー */
   .bars { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
   .brow { display: grid; grid-template-columns: minmax(96px, 168px) 1fr; gap: 12px; align-items: center; }
-  .bname { font-size: 13.5px; line-height: 1.35; min-width: 0; }
+  .bname { font-size: 13.5px; line-height: 1.35; min-width: 0; color: var(--company); }
   .bname small { display: block; color: var(--ink-3); font-size: 11.5px; }
   .btrack { position: relative; height: 26px; margin-inline: 76px; }
   .bzero { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); opacity: 0.55; }
@@ -98,7 +101,7 @@
   /* カード */
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 20px; }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-  .card h3 { font-size: 19px; line-height: 1.35; }
+  .card h3 { font-size: 19px; line-height: 1.35; color: var(--company); }
   .head { display: flex; flex-direction: column; gap: 6px; }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; }
   .tag { font-size: 12px; line-height: 1; padding: 6px 9px; border-radius: 6px; background: var(--chip); color: var(--ink-2); }

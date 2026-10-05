@@ -1,0 +1,437 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>不祥事銘柄の株価推移 2025年10〜12月期</title></head><body style="margin:0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+  /* レイアウト: 上に全社の騰落率の比較、その下に会社ごとのカード(事案の説明、日足チャート、数値) */
+  :root {
+    --bg: #f1f3f6;
+    --surface: #fcfcfd;
+    --ink: #14171c;
+    --ink-2: #4a5160;
+    --ink-3: #6f7686;
+    --line: #dde1e8;
+    --grid: #e7eaf0;
+    --series: #2a78d6;
+    --series-soft: rgba(42, 120, 214, 0.12);
+    --pre: #9aa1b0;
+    --chip: #e8ecf3;
+    --company: #d12a2a;
+    --font-body: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+    --font-head: "Zen Kaku Gothic New", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1014;
+      --surface: #171a20;
+      --ink: #f0f2f5;
+      --ink-2: #b6bcc9;
+      --ink-3: #8b92a1;
+      --line: #2a2e37;
+      --grid: #232730;
+      --series: #3987e5;
+      --series-soft: rgba(57, 135, 229, 0.16);
+      --pre: #6a7180;
+      --chip: #232730;
+      --company: #ff6b6b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1014;
+    --surface: #171a20;
+    --ink: #f0f2f5;
+    --ink-2: #b6bcc9;
+    --ink-3: #8b92a1;
+    --line: #2a2e37;
+    --grid: #232730;
+    --series: #3987e5;
+    --series-soft: rgba(57, 135, 229, 0.16);
+    --pre: #6a7180;
+    --chip: #232730;
+    --company: #ff6b6b;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 15px/1.7 var(--font-body);
+    padding-inline: 16px;
+    padding-block: 32px 56px;
+  }
+  .wrap { max-width: 1120px; margin-inline: auto; display: flex; flex-direction: column; gap: 28px; }
+  h1, h2, h3 { font-family: var(--font-head); font-weight: 700; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+  p { margin: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .top { display: flex; flex-direction: column; gap: 10px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.08em; color: var(--ink-3); }
+  h1 { font-size: clamp(26px, 4.2vw, 38px); line-height: 1.25; }
+  .lead { color: var(--ink-2); max-width: 62ch; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .controls .label { font-size: 13px; color: var(--ink-3); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  .seg button {
+    font: 500 13px/1 var(--font-body); color: var(--ink-2); background: transparent;
+    border: 0; padding: 9px 14px; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--series); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--series); outline-offset: -2px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .panel > h2 { font-size: 18px; }
+  .panel > .sub { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+
+  /* 比較バー */
+  .bars { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .brow { display: grid; grid-template-columns: minmax(96px, 168px) 1fr; gap: 12px; align-items: center; }
+  .bname { font-size: 13.5px; line-height: 1.35; min-width: 0; color: var(--company); }
+  .bname small { display: block; color: var(--ink-3); font-size: 11.5px; }
+  .btrack { position: relative; height: 26px; margin-inline: 76px; }
+  .bzero { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); opacity: 0.55; }
+  .bbar { position: absolute; top: 3px; height: 20px; background: var(--series); border-radius: 4px; }
+  .bbar.neg { border-radius: 4px 0 0 4px; }
+  .bbar.pos { border-radius: 0 4px 4px 0; }
+  .bval.l { transform: none; }
+  .bval { position: absolute; top: 0; line-height: 26px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+
+  /* カード */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .card h3 { font-size: 19px; line-height: 1.35; color: var(--company); }
+  .head { display: flex; flex-direction: column; gap: 6px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 12px; line-height: 1; padding: 6px 9px; border-radius: 6px; background: var(--chip); color: var(--ink-2); }
+  .tag.code { font-weight: 700; color: var(--ink); }
+  .when { font-size: 12.5px; color: var(--ink-3); }
+  .body { font-size: 14px; color: var(--ink-2); }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: var(--font-body); }
+  .tip {
+    position: absolute; pointer-events: none; z-index: 2; min-width: 124px;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.5;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  }
+  .tip b { font-weight: 700; }
+  .tip .m { color: var(--ink-3); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .stat { min-width: 0; }
+  .stat .k { font-size: 11.5px; color: var(--ink-3); }
+  .stat .v { font-size: 17px; font-weight: 700; line-height: 1.4; }
+  .stat .d { font-size: 11.5px; color: var(--ink-3); }
+  .notes { display: flex; flex-direction: column; gap: 6px; }
+  .note { font-size: 12.5px; color: var(--ink-2); padding: 8px 10px; border-radius: 8px; background: var(--chip); }
+
+  details { font-size: 13px; }
+  summary { cursor: pointer; color: var(--ink-2); width: fit-content; }
+  summary:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; border-radius: 4px; }
+  .tablewrap { overflow-x: auto; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-weight: 500; color: var(--ink-3); }
+  tr.evrow td { font-weight: 700; }
+
+  .back { font-size: 13px; color: var(--ink-2); width: fit-content; text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .src { font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .src a { color: var(--ink-2); }
+  .foot { color: var(--ink-3); font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; }
+
+  @media (max-width: 520px) {
+    .panel, .card { padding: 16px; }
+    .brow { grid-template-columns: 1fr; gap: 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <a class="back" href="index.html">← 不祥事銘柄の株価推移 トップへ</a>
+    <div class="eyebrow" id="asof"></div>
+    <h1 id="h1"></h1>
+    <p class="lead" id="lead"></p>
+  </header>
+
+  <div class="controls">
+    <span class="label">チャートの表示期間</span>
+    <div class="seg" role="group" aria-label="チャートの表示期間">
+      <button type="button" data-range="1m" aria-pressed="false">直近1か月</button>
+      <button type="button" data-range="3m" aria-pressed="true">3か月</button>
+      <button type="button" data-range="6m" aria-pressed="false">6か月</button>
+      <button type="button" data-range="1y" aria-pressed="false">1年</button>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="sum-h">
+    <h2 id="sum-h">発生前日の終値からの騰落率</h2>
+    <p class="sub">最新の終値までの変化。発生日の新しい順。名前の下に、基準日と最新日、発生日以降で基準から最も上がった日と最も下がった日(基準比)を記載しています。</p>
+    <div class="bars" id="bars"></div>
+  </section>
+
+  <section class="grid" id="cards" aria-label="会社別の詳細"></section>
+
+  <footer class="foot">
+    <p>株価は Yahoo Finance の日足終値(配当・分割の調整なし)を2026年10月5日に取得したものです。最新の終値は2026年10月5日までです。</p>
+    <p>不祥事の内容と発生日は、各カードに記載した出典(ニュース記事や適時開示)を要約したものです。独自の事実確認は行っていません。</p>
+    <p>株価の変動には不祥事以外の要因も含まれます。投資の助言ではありません。</p>
+  </footer>
+</div>
+
+<script>
+const PRICES = {"7971.T":[["2025-07-23",492],["2025-07-24",496],["2025-07-25",498],["2025-07-28",508],["2025-07-29",507],["2025-07-30",540],["2025-07-31",563],["2025-08-01",571],["2025-08-04",569],["2025-08-05",571],["2025-08-06",573],["2025-08-07",579],["2025-08-08",584],["2025-08-12",572],["2025-08-13",566],["2025-08-14",579],["2025-08-15",582],["2025-08-18",588],["2025-08-19",584],["2025-08-20",581],["2025-08-21",585],["2025-08-22",589],["2025-08-25",595],["2025-08-26",585],["2025-08-27",582],["2025-08-28",586],["2025-08-29",585],["2025-09-01",578],["2025-09-02",582],["2025-09-03",577],["2025-09-04",577],["2025-09-05",583],["2025-09-08",590],["2025-09-09",592],["2025-09-10",593],["2025-09-11",586],["2025-09-12",586],["2025-09-16",596],["2025-09-17",598],["2025-09-18",595],["2025-09-19",596],["2025-09-22",595],["2025-09-24",597],["2025-09-25",597],["2025-09-26",595],["2025-09-29",593],["2025-09-30",584],["2025-10-01",569],["2025-10-02",566],["2025-10-03",571],["2025-10-06",573],["2025-10-07",570],["2025-10-08",566],["2025-10-09",566],["2025-10-10",556],["2025-10-14",555],["2025-10-15",569],["2025-10-16",574],["2025-10-17",572],["2025-10-20",584],["2025-10-21",581],["2025-10-22",588],["2025-10-23",589],["2025-10-24",589],["2025-10-27",596],["2025-10-28",584],["2025-10-29",579],["2025-10-30",585],["2025-10-31",624],["2025-11-04",628],["2025-11-05",637],["2025-11-06",654],["2025-11-07",653],["2025-11-10",655],["2025-11-11",656],["2025-11-12",663],["2025-11-13",684],["2025-11-14",709],["2025-11-17",707],["2025-11-18",691],["2025-11-19",680],["2025-11-20",700],["2025-11-21",702],["2025-11-25",703],["2025-11-26",716],["2025-11-27",711],["2025-11-28",714],["2025-12-01",710],["2025-12-02",689],["2025-12-03",699],["2025-12-04",707],["2025-12-05",711],["2025-12-08",707],["2025-12-09",720],["2025-12-10",732],["2025-12-11",725],["2025-12-12",742],["2025-12-15",733],["2025-12-16",725],["2025-12-17",718],["2025-12-18",724],["2025-12-19",729],["2025-12-22",721],["2025-12-23",725],["2025-12-24",720],["2025-12-25",733],["2025-12-26",735],["2025-12-29",739],["2025-12-30",742],["2026-01-05",740],["2026-01-06",742],["2026-01-07",740],["2026-01-08",738],["2026-01-09",741],["2026-01-13",748],["2026-01-14",758],["2026-01-15",777],["2026-01-16",783],["2026-01-19",778],["2026-01-20",772],["2026-01-21",770],["2026-01-22",780],["2026-01-23",789],["2026-01-26",778],["2026-01-27",782],["2026-01-28",771],["2026-01-29",756],["2026-01-30",762],["2026-02-02",762],["2026-02-03",778],["2026-02-04",780],["2026-02-05",809],["2026-02-06",795],["2026-02-09",787],["2026-02-10",785],["2026-02-12",782],["2026-02-13",777],["2026-02-16",774],["2026-02-17",772],["2026-02-18",775],["2026-02-19",776],["2026-02-20",770],["2026-02-24",770],["2026-02-25",773],["2026-02-26",774],["2026-02-27",788],["2026-03-02",784],["2026-03-03",757],["2026-03-04",727],["2026-03-05",758],["2026-03-06",751],["2026-03-09",735],["2026-03-10",745],["2026-03-11",741],["2026-03-12",719],["2026-03-13",714],["2026-03-16",704],["2026-03-17",706],["2026-03-18",717],["2026-03-19",691],["2026-03-23",672],["2026-03-24",688],["2026-03-25",700],["2026-03-26",690],["2026-03-27",691],["2026-03-30",656],["2026-03-31",659],["2026-04-01",667],["2026-04-02",659],["2026-04-03",662],["2026-04-06",664],["2026-04-07",667],["2026-04-08",679],["2026-04-09",677],["2026-04-10",666],["2026-04-13",657],["2026-04-14",649],["2026-04-15",658],["2026-04-16",655],["2026-04-17",650],["2026-04-20",666],["2026-04-21",660],["2026-04-22",643],["2026-04-23",646],["2026-04-24",652],["2026-04-27",641],["2026-04-28",651],["2026-04-30",643],["2026-05-01",640],["2026-05-07",642],["2026-05-08",632],["2026-05-11",640],["2026-05-12",641],["2026-05-13",627],["2026-05-14",620],["2026-05-15",617],["2026-05-18",610],["2026-05-19",607],["2026-05-20",586],["2026-05-21",599],["2026-05-22",597],["2026-05-25",601],["2026-05-26",610],["2026-05-27",613],["2026-05-28",606],["2026-05-29",618],["2026-06-01",601],["2026-06-02",596],["2026-06-03",608],["2026-06-04",605],["2026-06-05",614],["2026-06-08",603],["2026-06-09",606],["2026-06-10",610],["2026-06-11",601],["2026-06-12",612],["2026-06-15",631],["2026-06-16",622],["2026-06-17",628],["2026-06-18",628],["2026-06-19",641],["2026-06-22",664],["2026-06-23",656],["2026-06-24",648],["2026-06-25",658],["2026-06-26",665],["2026-06-29",675],["2026-06-30",674],["2026-07-01",653],["2026-07-02",663],["2026-07-03",658],["2026-07-06",663],["2026-07-07",668],["2026-07-08",655],["2026-07-09",654],["2026-07-10",656],["2026-07-13",657],["2026-07-14",662],["2026-07-15",658],["2026-07-16",649],["2026-07-17",636],["2026-07-21",654],["2026-07-22",656],["2026-07-23",655],["2026-07-24",651],["2026-07-27",659],["2026-07-28",656],["2026-07-29",662],["2026-07-30",695],["2026-07-31",668],["2026-08-03",659],["2026-08-04",664],["2026-08-05",676],["2026-08-06",682],["2026-08-07",663],["2026-08-10",682],["2026-08-12",679],["2026-08-13",680],["2026-08-14",693],["2026-08-17",692],["2026-08-18",697],["2026-08-19",688],["2026-08-20",702],["2026-08-21",706],["2026-08-24",712],["2026-08-25",705],["2026-08-26",711],["2026-08-27",705],["2026-08-28",708],["2026-08-31",715],["2026-09-01",720],["2026-09-02",706],["2026-09-03",708],["2026-09-04",709],["2026-09-07",714],["2026-09-08",705],["2026-09-09",700],["2026-09-10",703],["2026-09-11",697],["2026-09-14",700],["2026-09-15",697],["2026-09-16",692],["2026-09-17",699],["2026-09-18",698],["2026-09-24",696],["2026-09-25",691],["2026-09-28",691],["2026-09-29",675],["2026-09-30",680],["2026-10-01",672],["2026-10-02",662],["2026-10-05",654]],"4088.T":[["2025-07-01",2152.5],["2025-07-02",2165],["2025-07-03",2170],["2025-07-04",2172],["2025-07-07",2166.5],["2025-07-08",2191.5],["2025-07-09",2199],["2025-07-10",2188.5],["2025-07-11",2177],["2025-07-14",2198],["2025-07-15",2190],["2025-07-16",2154.5],["2025-07-17",2168.5],["2025-07-18",2158],["2025-07-22",2154.5],["2025-07-23",2182.5],["2025-07-24",2230],["2025-07-25",2235.5],["2025-07-28",2241.5],["2025-07-29",2235],["2025-07-30",2245],["2025-07-31",2243],["2025-08-01",2272.5],["2025-08-04",2282.5],["2025-08-05",2312.5],["2025-08-06",2358.5],["2025-08-07",2387.5],["2025-08-08",2434.5],["2025-08-12",2443],["2025-08-13",2454],["2025-08-14",2441.5],["2025-08-15",2450],["2025-08-18",2457.5],["2025-08-19",2469.5],["2025-08-20",2486],["2025-08-21",2500.5],["2025-08-22",2528.5],["2025-08-25",2499.5],["2025-08-26",2478],["2025-08-27",2503],["2025-08-28",2550],["2025-08-29",2577.5],["2025-09-01",2594.5],["2025-09-02",2611],["2025-09-03",2630.5],["2025-09-04",2622.5],["2025-09-05",2634.5],["2025-09-08",2645],["2025-09-09",2616],["2025-09-10",2600.5],["2025-09-11",2623],["2025-09-12",2610],["2025-09-16",2656.5],["2025-09-17",2620],["2025-09-18",2629.5],["2025-09-19",2579],["2025-09-22",2586],["2025-09-24",2574],["2025-09-25",2587],["2025-09-26",2615],["2025-09-29",2553.5],["2025-09-30",2545],["2025-10-01",2511],["2025-10-02",2494],["2025-10-03",2524],["2025-10-06",2547],["2025-10-07",2563],["2025-10-08",2562],["2025-10-09",2576.5],["2025-10-10",2076.5],["2025-10-14",2110],["2025-10-15",2262],["2025-10-16",2252.5],["2025-10-17",2219.5],["2025-10-20",2269],["2025-10-21",2306],["2025-10-22",2308],["2025-10-23",2334.5],["2025-10-24",2318],["2025-10-27",2318],["2025-10-28",2185],["2025-10-29",2189.5],["2025-10-30",2168],["2025-10-31",2155],["2025-11-04",2193],["2025-11-05",2207.5],["2025-11-06",2224],["2025-11-07",2262.5],["2025-11-10",2299],["2025-11-11",2288],["2025-11-12",2300],["2025-11-13",2313.5],["2025-11-14",2249],["2025-11-17",2194.5],["2025-11-18",2143.5],["2025-11-19",2137.5],["2025-11-20",2156],["2025-11-21",2176.5],["2025-11-25",2151],["2025-11-26",2184.5],["2025-11-27",2179],["2025-11-28",2202],["2025-12-01",2195.5],["2025-12-02",2170],["2025-12-03",2163],["2025-12-04",2158],["2025-12-05",2142],["2025-12-08",2144.5],["2025-12-09",2156.5],["2025-12-10",2168],["2025-12-11",2131.5],["2025-12-12",2167.5],["2025-12-15",2200],["2025-12-16",2169],["2025-12-17",2166],["2025-12-18",2194],["2025-12-19",2214.5],["2025-12-22",2233],["2025-12-23",2271],["2025-12-24",2260.5],["2025-12-25",2278],["2025-12-26",2268],["2025-12-29",2273],["2025-12-30",2257],["2026-01-05",2262.5],["2026-01-06",2291.5],["2026-01-07",2299],["2026-01-08",2280.5],["2026-01-09",2301.5],["2026-01-13",2331],["2026-01-14",2362],["2026-01-15",2357.5],["2026-01-16",2344.5],["2026-01-19",2369.5],["2026-01-20",2363.5],["2026-01-21",2340],["2026-01-22",2380.5],["2026-01-23",2379.5],["2026-01-26",2344.5],["2026-01-27",2364],["2026-01-28",2313],["2026-01-29",2329],["2026-01-30",2344.5],["2026-02-02",2319.5],["2026-02-03",2358.5],["2026-02-04",2400.5],["2026-02-05",2406.5],["2026-02-06",2421.5],["2026-02-09",2434],["2026-02-10",2465],["2026-02-12",2524.5],["2026-02-13",2463.5],["2026-02-16",2080],["2026-02-17",2105.5],["2026-02-18",2062],["2026-02-19",2134.5],["2026-02-20",2101.5],["2026-02-24",2066.5],["2026-02-25",2103],["2026-02-26",2117.5],["2026-02-27",2169.5],["2026-03-02",2130],["2026-03-03",2107],["2026-03-04",2031],["2026-03-05",2070.5],["2026-03-06",2093.5],["2026-03-09",2030],["2026-03-10",2042],["2026-03-11",2066],["2026-03-12",2058.5],["2026-03-13",2102.5],["2026-03-16",2134.5],["2026-03-17",2152],["2026-03-18",2182],["2026-03-19",2085.5],["2026-03-23",2056.5],["2026-03-24",2098],["2026-03-25",2145],["2026-03-26",2149.5],["2026-03-27",2173],["2026-03-30",2139],["2026-03-31",2124.5],["2026-04-01",2200],["2026-04-02",2161.5],["2026-04-03",2199],["2026-04-06",2221.5],["2026-04-07",2275],["2026-04-08",2297.5],["2026-04-09",2259.5],["2026-04-10",2235.5],["2026-04-13",2233.5],["2026-04-14",2258.5],["2026-04-15",2293.5],["2026-04-16",2309.5],["2026-04-17",2263.5],["2026-04-20",2257],["2026-04-21",2254],["2026-04-22",2223.5],["2026-04-23",2207],["2026-04-24",2236],["2026-04-27",2231],["2026-04-28",2260],["2026-04-30",2218.5],["2026-05-01",1895.5],["2026-05-07",1913.5],["2026-05-08",1938.5],["2026-05-11",1965],["2026-05-12",2066],["2026-05-13",2101],["2026-05-14",2179],["2026-05-15",2283],["2026-05-18",2302],["2026-05-19",2489],["2026-05-20",2481],["2026-05-21",2546],["2026-05-22",2579],["2026-05-25",2516],["2026-05-26",2627],["2026-05-27",2625],["2026-05-28",2594],["2026-05-29",2599],["2026-06-01",2464],["2026-06-02",2462],["2026-06-03",2490],["2026-06-04",2488],["2026-06-05",2464],["2026-06-08",2470],["2026-06-09",2431],["2026-06-10",2440],["2026-06-11",2419],["2026-06-12",2441],["2026-06-15",2552],["2026-06-16",2520],["2026-06-17",2490],["2026-06-18",2478],["2026-06-19",2471],["2026-06-22",2495],["2026-06-23",2660],["2026-06-24",2694],["2026-06-25",2860],["2026-06-26",2778],["2026-06-29",2781],["2026-06-30",2767],["2026-07-01",2756],["2026-07-02",2758],["2026-07-03",2777],["2026-07-06",2767],["2026-07-07",2715],["2026-07-08",2665],["2026-07-09",2628],["2026-07-10",2555],["2026-07-13",2522],["2026-07-14",2571],["2026-07-15",2574],["2026-07-16",2530],["2026-07-17",2527],["2026-07-21",2553],["2026-07-22",2558],["2026-07-23",2561],["2026-07-24",2591],["2026-07-27",2650],["2026-07-28",2620],["2026-07-29",2610],["2026-07-30",2554],["2026-07-31",2517],["2026-08-03",2534],["2026-08-04",2543],["2026-08-05",2548],["2026-08-06",2614],["2026-08-07",2576],["2026-08-10",2553],["2026-08-12",2550],["2026-08-13",2518],["2026-08-14",2534],["2026-08-17",2549],["2026-08-18",2571],["2026-08-19",2495],["2026-08-20",2500],["2026-08-21",2497],["2026-08-24",2488],["2026-08-25",2501],["2026-08-26",2481],["2026-08-27",2512],["2026-08-28",2505],["2026-08-31",2625],["2026-09-01",2703],["2026-09-02",2690],["2026-09-03",2841],["2026-09-04",3010],["2026-09-07",3015],["2026-09-08",3015],["2026-09-09",2920],["2026-09-10",2980],["2026-09-11",2990],["2026-09-14",2972],["2026-09-15",3000],["2026-09-16",3040],["2026-09-17",2968],["2026-09-18",2953],["2026-09-24",2964],["2026-09-25",2911],["2026-09-28",2818],["2026-09-29",2824],["2026-09-30",2920],["2026-10-01",2914],["2026-10-02",2899],["2026-10-05",2904]]};
+
+const STOCKS = [{"id":"toli","name":"東リ","code":"7971","sym":"7971.T","market":"東証","cur":"JPY","tags":["東証","子会社の不正会計"],"eventDate":"2025-10-31","eventLabel":"2025年10月31日","body":"連結子会社リックの従業員による不正会計行為が判明。2023年3月期以降、担当工事で採算割れが見込まれた際に、取引業者に架空の請求書を作らせて引き出した資金を工事の売上に計上し、黒字のように見せていた。損失額は約1億1,500万円。第三者委員会による調査が行われた。","notes":[],"sources":[{"label":"適時開示(10/31)","url":"https://www.nikkei.com/nkd/disclosure/tdnr/20251030583680/"},{"label":"神戸新聞NEXT","url":"https://www.kobe-np.co.jp/news/economy/202510/0019655087.shtml"}]},{"id":"airwater","name":"エア・ウォーター","code":"4088","sym":"4088.T","market":"東証","cur":"JPY","tags":["東証","不適切会計"],"eventDate":"2025-10-09","eventLabel":"2025年10月9日","body":"2025年7月に連結子会社の日本ヘリウムで、在庫を巡る不適切な会計処理(損失の先送り)を発見。その後、ほかの子会社やプラントガス部でも同様の処理を確認し、10月9日に特別調査委員会の設置を決定。2026年2月の中間報告では、過去の決算への影響額が営業利益ベースで計332億円(2020年3月期〜2025年3月期、グループ37社)とされ、最終の調査報告書は4月3日に公表された。","notes":[],"sources":[{"label":"適時開示(10/9)","url":"https://www.awi.co.jp/ja/ir/news/auto_20251008570441/pdfFile.pdf"},{"label":"日本経済新聞(調査報告書の受領)","url":"https://www.nikkei.com/article/DGXZQOUF316LO0R30C26A3000000/"}]}];
+
+for (const s of STOCKS) s.rows = PRICES[s.sym];
+
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
+const mdw = (d) => `${md(d)}(${WD[new Date(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)).getDay()]})`;
+const money = (v, cur) =>
+  cur === 'USD'
+    ? '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : v.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) + '円';
+const axisNum = (v, cur) =>
+  cur === 'USD' ? v.toFixed(0) : v.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+const endNum = (v, cur) => (cur === 'USD' ? v.toFixed(2) : v.toLocaleString('ja-JP', { maximumFractionDigits: 1 }));
+const pctText = (p) => (p > 0 ? '▲ +' : p < 0 ? '▼ −' : '') + Math.abs(p).toFixed(1) + '%';
+const pctPlain = (p) => (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p).toFixed(1) + '%';
+
+function metrics(s) {
+  const rows = s.rows;
+  const idx = rows.findIndex((r) => r[0] >= s.eventDate);
+  const base = rows[idx - 1];
+  const last = rows[rows.length - 1];
+  let prior = null;
+  for (let i = Math.max(1, idx - 5); i < idx; i++) {
+    const p = (rows[i][1] / rows[i - 1][1] - 1) * 100;
+    if (Math.abs(p) >= 10 && (!prior || Math.abs(p) > Math.abs(prior.p))) prior = { d: rows[i][0], p };
+  }
+  // 発生日以降で、基準(発生前日の終値)に対して最も上がった日と最も下がった日
+  let up = null;
+  let down = null;
+  for (let i = idx; i < rows.length; i++) {
+    const p = (rows[i][1] / base[1] - 1) * 100;
+    if (!up || p > up.p) up = { d: rows[i][0], p, v: rows[i][1] };
+    if (!down || p < down.p) down = { d: rows[i][0], p, v: rows[i][1] };
+  }
+  if (up.p <= 0) up = null;
+  if (down.p >= 0) down = null;
+  return { idx, base, last, pct: (last[1] / base[1] - 1) * 100, post: rows.length - idx, prior, up, down };
+}
+for (const s of STOCKS) s.m = metrics(s);
+
+document.getElementById('asof').textContent = '2026年10月5日時点 · 日足終値';
+document.getElementById('h1').textContent = '不祥事銘柄の株価推移 2025年10〜12月期';
+document.getElementById('lead').textContent = `不祥事が公表された${STOCKS.length}社について、公表前後の日足終値を並べました。基準は、各社の発生日の前営業日の終値です。`;
+
+/* 比較バー */
+function renderBars() {
+  const list = [...STOCKS].sort((a, b) => (a.eventDate < b.eventDate ? 1 : a.eventDate > b.eventDate ? -1 : 0));
+  const negMax = Math.max(0, ...list.map((s) => -s.m.pct));
+  const posMax = Math.max(0, ...list.map((s) => s.m.pct));
+  const total = negMax + posMax || 1;
+  const zero = (negMax / total) * 100;
+  const html = list
+    .map((s) => {
+      const w = (Math.abs(s.m.pct) / total) * 100;
+      const neg = s.m.pct < 0;
+      const bar = `<div class="bbar ${neg ? 'neg' : 'pos'}" style="width:${w}%;${neg ? `right:${100 - zero}%` : `left:${zero}%`}"></div>`;
+      const lab = `<div class="bval num" style="${neg ? `right:calc(${100 - zero}% + ${w}% + 8px)` : `left:calc(${zero}% + ${w}% + 8px)`}">${pctText(s.m.pct)}</div>`;
+      const note = s.barNote ? s.barNote + ' · ' : '';
+      return `<div class="brow"><div class="bname">${s.name}<small class="num">${note}${md(s.m.base[0])} ${money(s.m.base[1], s.cur)} → ${md(s.m.last[0])} ${money(s.m.last[1], s.cur)}</small><small class="num">最大上昇 ${s.m.up ? `${md(s.m.up.d)} ${pctPlain(s.m.up.p)}` : 'なし'}</small><small class="num">最大下落 ${s.m.down ? `${md(s.m.down.d)} ${pctPlain(s.m.down.p)}` : 'なし'}</small></div><div class="btrack"><div class="bzero" style="left:${zero}%"></div>${bar}${lab}</div></div>`;
+    })
+    .join('');
+  document.getElementById('bars').innerHTML = html;
+}
+
+/* カード */
+function cardHtml(s) {
+  const m = s.m;
+  const tags = [`<span class="tag code">${s.code} · ${s.market}</span>`, ...s.tags.map((t) => `<span class="tag">${t}</span>`)].join('');
+  const notes = [...s.notes];
+  if (m.prior) notes.unshift(`発生日の前の5営業日に、${mdw(m.prior.d)}の終値が前日比 ${pctPlain(m.prior.p)} と大きく動いています。発生日を基準にした騰落率には、この動きが含まれていません。`);
+  const tbl = s.rows.slice(Math.max(0, m.idx - 3)).map((r, i, arr) => {
+      const gi = Math.max(0, m.idx - 3) + i;
+      const prev = gi > 0 ? s.rows[gi - 1][1] : null;
+      const day = prev ? pctPlain((r[1] / prev - 1) * 100) : '—';
+      const vb = pctPlain((r[1] / m.base[1] - 1) * 100);
+      return `<tr class="${r[0] === s.eventDate ? 'evrow' : ''}"><td>${mdw(r[0])}${r[0] === s.eventDate ? ' 発生日' : ''}</td><td>${money(r[1], s.cur)}</td><td>${day}</td><td>${gi >= m.idx ? vb : '—'}</td></tr>`;
+    }).join('');
+  return `<article class="card" id="c-${s.id}">
+    <div class="head"><h3>${s.name}</h3><div class="tags">${tags}</div><div class="when">発生・発表: ${s.eventLabel}</div></div>
+    <p class="body">${s.body}</p>
+    <div class="chart" data-id="${s.id}"></div>
+    <div class="stats">
+      <div class="stat"><div class="k">基準の終値</div><div class="v num">${money(m.base[1], s.cur)}</div><div class="d">${mdw(m.base[0])}</div></div>
+      <div class="stat"><div class="k">最新の終値</div><div class="v num">${money(m.last[1], s.cur)}</div><div class="d">${mdw(m.last[0])}</div></div>
+      <div class="stat"><div class="k">基準からの騰落率</div><div class="v num">${pctText(m.pct)}</div><div class="d">発生後 ${m.post} 営業日</div></div>
+    </div>
+    ${notes.length ? `<div class="notes">${notes.map((n) => `<p class="note">${n}</p>`).join('')}</div>` : ''}
+    ${(s.sources || []).length ? `<div class="src"><span>出典:</span>${s.sources.map((x) => `<a href="${x.url}" target="_blank" rel="noopener noreferrer">${x.label}</a>`).join('')}</div>` : ''}
+    <details><summary>日次の終値を表で見る</summary><div class="tablewrap"><table><thead><tr><th>日付</th><th>終値</th><th>前日比</th><th>基準比</th></tr></thead><tbody>${tbl}</tbody></table></div></details>
+  </article>`;
+}
+
+/* チャート */
+let range = '3m';
+const RANGE_M = { '1m': 1, '3m': 3, '6m': 6, '1y': 12 };
+function pickRows(s) {
+  const rows = s.rows;
+  const last = new Date(rows[rows.length - 1][0]);
+  const cut = new Date(last.getFullYear(), last.getMonth() - RANGE_M[range], last.getDate());
+  const cutStr = `${cut.getFullYear()}-${String(cut.getMonth() + 1).padStart(2, '0')}-${String(cut.getDate()).padStart(2, '0')}`;
+  let start = rows.findIndex((r) => r[0] >= cutStr);
+  if (start < 0) start = 0;
+  // 基準日の5営業日前までは必ず含める(古い事案でも発生前の動きが見える)
+  start = Math.min(start, Math.max(0, s.m.idx - 1 - 5));
+  return rows.slice(start);
+}
+function niceTicks(lo, hi, n) {
+  const span = hi - lo;
+  const raw = span / n;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / pow;
+  const step = (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * pow;
+  const out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+  return out;
+}
+
+function drawChart(el) {
+  const s = STOCKS.find((x) => x.id === el.dataset.id);
+  const rows = pickRows(s);
+  const W = Math.max(280, el.clientWidth);
+  const H = W < 420 ? 230 : 250;
+  const m = { l: 44, r: 62, t: 22, b: 26 };
+  const pw = W - m.l - m.r;
+  const ph = H - m.t - m.b;
+  const vals = rows.map((r) => r[1]);
+  const baseV = s.m.base[1];
+  let lo = Math.min(...vals, baseV);
+  let hi = Math.max(...vals, baseV);
+  const pad = (hi - lo || hi * 0.02) * 0.1;
+  lo -= pad;
+  hi += pad;
+  const x = (i) => m.l + (rows.length === 1 ? pw / 2 : (i / (rows.length - 1)) * pw);
+  const y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * ph;
+  const evI = rows.findIndex((r) => r[0] >= s.eventDate);
+  const baseI = evI - 1;
+  const pts = rows.map((r, i) => [x(i), y(r[1])]);
+  const path = (a, b) => pts.slice(a, b + 1).map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+
+  const ticks = niceTicks(lo, hi, 3);
+  const grid = ticks.map((t) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/><text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)" class="num">${axisNum(t, s.cur)}</text>`).join('');
+
+  // x 軸: 約5個の日付
+  const nx = W < 420 ? 4 : 6;
+  const xl = [];
+  for (let k = 0; k < nx; k++) xl.push(Math.round((k / (nx - 1)) * (rows.length - 1)));
+  const xlab = [...new Set(xl)].map((i, k, a) => `<text x="${x(i)}" y="${H - 6}" text-anchor="${k === 0 ? 'start' : k === a.length - 1 ? 'end' : 'middle'}" font-size="11" fill="var(--ink-3)" class="num">${md(rows[i][0])}</text>`).join('');
+
+  const baseY = y(baseV);
+  const lastP = pts[pts.length - 1];
+  const lastY = lastP[1];
+  const gap = lastY - baseY;
+  // 基準ラベルと最新ラベルが重ならないようにずらす
+  const baseLabY = Math.abs(gap) < 16 ? baseY + (gap >= 0 ? -9 : 15) : baseY + 4;
+  const baseLine = `<line x1="${m.l}" x2="${W - m.r}" y1="${baseY}" y2="${baseY}" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 4" opacity="0.7"/><text x="${W - m.r + 6}" y="${baseLabY}" font-size="10.5" fill="var(--ink-3)">基準</text>`;
+
+  let ev = '';
+  if (evI >= 0) {
+    const ex = pts[evI][0];
+    const anchor = ex > W - m.r - 70 ? 'end' : 'start';
+    const tx = anchor === 'end' ? ex - 6 : ex + 6;
+    ev = `<line x1="${ex}" x2="${ex}" y1="${m.t - 4}" y2="${H - m.b}" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${tx}" y="${m.t + 6}" text-anchor="${anchor}" font-size="11.5" font-weight="700" fill="var(--ink)" stroke="var(--surface)" stroke-width="4" paint-order="stroke" stroke-linejoin="round">発生 ${md(s.eventDate)}</text>`;
+  }
+  const preSeg = baseI >= 1 ? `<path d="${path(0, baseI)}" fill="none" stroke="var(--pre)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : '';
+  const postFrom = Math.max(0, baseI);
+  const area = `<path d="${path(postFrom, rows.length - 1)} L${lastP[0].toFixed(1)} ${H - m.b} L${pts[postFrom][0].toFixed(1)} ${H - m.b} Z" fill="var(--series-soft)"/>`;
+  const postSeg = `<path d="${path(postFrom, rows.length - 1)}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const end = `<circle cx="${lastP[0]}" cy="${lastY}" r="4.5" fill="var(--series)" stroke="var(--surface)" stroke-width="2"/><text x="${lastP[0] + 9}" y="${lastY + 4}" font-size="12" font-weight="700" fill="var(--ink)" class="num">${endNum(rows[rows.length - 1][1], s.cur)}</text>`;
+
+  // 発生日以降の最大上昇日・最大下落日(基準比)を点とラベルで示す
+  const mark = (e, isUp) => {
+    if (!e) return '';
+    const i = rows.findIndex((r) => r[0] === e.d);
+    if (i < 0) return '';
+    const [px, py] = pts[i];
+    const anchor = px > W - m.r - 90 ? 'end' : px < m.l + 90 ? 'start' : 'middle';
+    const ly = Math.min(H - m.b - 4, Math.max(m.t + 28, isUp ? py - 10 : py + 18));
+    return `<circle cx="${px}" cy="${py}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><text x="${px}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="var(--ink)" stroke="var(--surface)" stroke-width="4" paint-order="stroke" stroke-linejoin="round" class="num">${isUp ? '▲ 最大上昇' : '▼ 最大下落'} ${md(e.d)} ${money(e.v, s.cur)}</text>`;
+  };
+  const marks = mark(s.m.up, true) + mark(s.m.down, false);
+
+  const label = `${s.name}の日足終値。${md(rows[0][0])}から${md(rows[rows.length - 1][0])}まで。発生日前日の終値${money(baseV, s.cur)}に対して最新は${pctPlain(s.m.pct)}。${s.m.up ? `発生日以降の最大上昇は${md(s.m.up.d)}の${money(s.m.up.v, s.cur)}。` : ''}${s.m.down ? `最大下落は${md(s.m.down.d)}の${money(s.m.down.v, s.cur)}。` : ''}`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">${grid}${xlab}${baseLine}${area}${preSeg}${postSeg}${ev}${marks}${end}<g class="hov" style="display:none"><line y1="${m.t}" y2="${H - m.b}" stroke="var(--ink-3)" stroke-width="1"/><circle r="4.5" fill="var(--series)" stroke="var(--surface)" stroke-width="2"/></g><rect class="hit" x="${m.l}" y="0" width="${pw}" height="${H}" fill="transparent"/></svg><div class="tip" hidden></div>`;
+
+  const svg = el.querySelector('svg');
+  const hov = svg.querySelector('.hov');
+  const line = hov.querySelector('line');
+  const dot = hov.querySelector('circle');
+  const tip = el.querySelector('.tip');
+  const hit = svg.querySelector('.hit');
+  const move = (e) => {
+    const box = svg.getBoundingClientRect();
+    const px = ((e.clientX - box.left) / box.width) * W;
+    let i = Math.round(((px - m.l) / pw) * (rows.length - 1));
+    i = Math.max(0, Math.min(rows.length - 1, i));
+    const [cx, cy] = pts[i];
+    hov.style.display = '';
+    line.setAttribute('x1', cx);
+    line.setAttribute('x2', cx);
+    dot.setAttribute('cx', cx);
+    dot.setAttribute('cy', cy);
+    const vb = (rows[i][1] / baseV - 1) * 100;
+    const prev = i > 0 ? (rows[i][1] / rows[i - 1][1] - 1) * 100 : null;
+    tip.innerHTML = `<b>${mdw(rows[i][0])}</b>${rows[i][0] === s.eventDate ? ' <span class="m">発生日</span>' : ''}<br>終値 <b class="num">${money(rows[i][1], s.cur)}</b><br><span class="m">基準比</span> <span class="num">${pctPlain(vb)}</span>${prev === null ? '' : `<br><span class="m">前日比</span> <span class="num">${pctPlain(prev)}</span>`}`;
+    tip.hidden = false;
+    const scale = box.width / W;
+    const tw = tip.offsetWidth;
+    let left = cx * scale + 14;
+    if (left + tw > box.width) left = cx * scale - tw - 14;
+    tip.style.left = Math.max(0, left) + 'px';
+    tip.style.top = Math.max(0, cy * scale - tip.offsetHeight - 10) + 'px';
+  };
+  const leave = () => {
+    hov.style.display = 'none';
+    tip.hidden = true;
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', leave);
+}
+
+function drawAll() {
+  document.querySelectorAll('.chart').forEach(drawChart);
+}
+
+renderBars();
+STOCKS.sort((a, b) => (a.eventDate < b.eventDate ? 1 : a.eventDate > b.eventDate ? -1 : 0));
+document.getElementById('cards').innerHTML = STOCKS.map(cardHtml).join('');
+drawAll();
+let lastW = 0;
+new ResizeObserver(() => {
+  const w = document.querySelector('.chart').clientWidth;
+  if (w !== lastW) {
+    lastW = w;
+    drawAll();
+  }
+}).observe(document.querySelector('.chart'));
+
+document.querySelectorAll('[data-range]').forEach((b) => {
+  b.addEventListener('click', () => {
+    range = b.dataset.range;
+    document.querySelectorAll('[data-range]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    drawAll();
+  });
+});
+</script>
+</body></html>

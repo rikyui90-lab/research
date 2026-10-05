@@ -1,0 +1,179 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>不祥事銘柄の株価推移</title></head><body style="margin:0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+  /* レイアウト: 上に全社の騰落率の比較、その下に会社ごとのカード(事案の説明、日足チャート、数値) */
+  :root {
+    --bg: #f1f3f6;
+    --surface: #fcfcfd;
+    --ink: #14171c;
+    --ink-2: #4a5160;
+    --ink-3: #6f7686;
+    --line: #dde1e8;
+    --grid: #e7eaf0;
+    --series: #2a78d6;
+    --series-soft: rgba(42, 120, 214, 0.12);
+    --pre: #9aa1b0;
+    --chip: #e8ecf3;
+    --company: #d12a2a;
+    --font-body: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+    --font-head: "Zen Kaku Gothic New", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1014;
+      --surface: #171a20;
+      --ink: #f0f2f5;
+      --ink-2: #b6bcc9;
+      --ink-3: #8b92a1;
+      --line: #2a2e37;
+      --grid: #232730;
+      --series: #3987e5;
+      --series-soft: rgba(57, 135, 229, 0.16);
+      --pre: #6a7180;
+      --chip: #232730;
+      --company: #ff6b6b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1014;
+    --surface: #171a20;
+    --ink: #f0f2f5;
+    --ink-2: #b6bcc9;
+    --ink-3: #8b92a1;
+    --line: #2a2e37;
+    --grid: #232730;
+    --series: #3987e5;
+    --series-soft: rgba(57, 135, 229, 0.16);
+    --pre: #6a7180;
+    --chip: #232730;
+    --company: #ff6b6b;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 15px/1.7 var(--font-body);
+    padding-inline: 16px;
+    padding-block: 32px 56px;
+  }
+  .wrap { max-width: 1120px; margin-inline: auto; display: flex; flex-direction: column; gap: 28px; }
+  h1, h2, h3 { font-family: var(--font-head); font-weight: 700; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+  p { margin: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .top { display: flex; flex-direction: column; gap: 10px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.08em; color: var(--ink-3); }
+  h1 { font-size: clamp(26px, 4.2vw, 38px); line-height: 1.25; }
+  .lead { color: var(--ink-2); max-width: 62ch; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .controls .label { font-size: 13px; color: var(--ink-3); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  .seg button {
+    font: 500 13px/1 var(--font-body); color: var(--ink-2); background: transparent;
+    border: 0; padding: 9px 14px; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--series); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--series); outline-offset: -2px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .panel > h2 { font-size: 18px; }
+  .panel > .sub { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+
+  /* 比較バー */
+  .bars { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .brow { display: grid; grid-template-columns: minmax(96px, 168px) 1fr; gap: 12px; align-items: center; }
+  .bname { font-size: 13.5px; line-height: 1.35; min-width: 0; color: var(--company); }
+  .bname small { display: block; color: var(--ink-3); font-size: 11.5px; }
+  .btrack { position: relative; height: 26px; margin-inline: 76px; }
+  .bzero { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); opacity: 0.55; }
+  .bbar { position: absolute; top: 3px; height: 20px; background: var(--series); border-radius: 4px; }
+  .bbar.neg { border-radius: 4px 0 0 4px; }
+  .bbar.pos { border-radius: 0 4px 4px 0; }
+  .bval.l { transform: none; }
+  .bval { position: absolute; top: 0; line-height: 26px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+
+  /* カード */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .card h3 { font-size: 19px; line-height: 1.35; color: var(--company); }
+  .head { display: flex; flex-direction: column; gap: 6px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 12px; line-height: 1; padding: 6px 9px; border-radius: 6px; background: var(--chip); color: var(--ink-2); }
+  .tag.code { font-weight: 700; color: var(--ink); }
+  .when { font-size: 12.5px; color: var(--ink-3); }
+  .body { font-size: 14px; color: var(--ink-2); }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: var(--font-body); }
+  .tip {
+    position: absolute; pointer-events: none; z-index: 2; min-width: 124px;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.5;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  }
+  .tip b { font-weight: 700; }
+  .tip .m { color: var(--ink-3); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .stat { min-width: 0; }
+  .stat .k { font-size: 11.5px; color: var(--ink-3); }
+  .stat .v { font-size: 17px; font-weight: 700; line-height: 1.4; }
+  .stat .d { font-size: 11.5px; color: var(--ink-3); }
+  .notes { display: flex; flex-direction: column; gap: 6px; }
+  .note { font-size: 12.5px; color: var(--ink-2); padding: 8px 10px; border-radius: 8px; background: var(--chip); }
+
+  details { font-size: 13px; }
+  summary { cursor: pointer; color: var(--ink-2); width: fit-content; }
+  summary:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; border-radius: 4px; }
+  .tablewrap { overflow-x: auto; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-weight: 500; color: var(--ink-3); }
+  tr.evrow td { font-weight: 700; }
+
+  .back { font-size: 13px; color: var(--ink-2); width: fit-content; text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .src { font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .src a { color: var(--ink-2); }
+  .foot { color: var(--ink-3); font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; }
+
+  @media (max-width: 520px) {
+    .panel, .card { padding: 16px; }
+    .brow { grid-template-columns: 1fr; gap: 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<style>
+  .qs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
+  a.q { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; color: inherit; text-decoration: none; display: flex; flex-direction: column; gap: 12px; }
+  a.q:hover { border-color: var(--series); }
+  a.q:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; }
+  a.q h2 { font-size: 18px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  a.q h2 span { font: 500 13px var(--font-body); color: var(--ink-3); }
+  a.q ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  a.q li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 14px; }
+  a.q .nm { color: var(--company); min-width: 0; }
+  a.q .nm small { display: block; color: var(--ink-3); font-size: 11.5px; }
+  a.q .pc { font-weight: 700; white-space: nowrap; }
+</style>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">2026年10月5日時点 · 日足終値</div>
+    <h1>不祥事銘柄の株価推移</h1>
+    <p class="lead">過去1年に不祥事が公表された上場企業11社を、四半期ごとにまとめました。四半期を選ぶと、公表前後の日足終値の推移を見られます。数字は、発生日の前営業日の終値から最新の終値までの騰落率です。</p>
+  </header>
+  <section class="qs" aria-label="四半期別"><a class="q" href="2026-q4.html"><h2>2026年10〜12月期<span>1社 →</span></h2><ul><li><span class="nm">大和証券グループ本社<small>8601 · 2026年10月5日</small></span><span class="pc num ">+0.1%</span></li></ul></a><a class="q" href="2026-q3.html"><h2>2026年7〜9月期<span>5社 →</span></h2><ul><li><span class="nm">タイムカー(パーク24グループ)<small>4666 · 2026年9月30日</small></span><span class="pc num dn">−6.8%</span></li><li><span class="nm">株式会社IDホールディングス<small>4709 · 2026年9月30日</small></span><span class="pc num dn">−4.1%</span></li><li><span class="nm">ニデック(旧日本電産)<small>6594 · 2026年9月29日</small></span><span class="pc num dn">−6.5%</span></li><li><span class="nm">イリソ電子工業<small>6908 · 2026年9月28日</small></span><span class="pc num dn">−3.5%</span></li><li><span class="nm">株式会社REVOLUTION<small>8894 · 2026年9月17日</small></span><span class="pc num dn">−15.8%</span></li></ul></a><a class="q" href="2026-q2.html"><h2>2026年4〜6月期<span>1社 →</span></h2><ul><li><span class="nm">サンリオ<small>8136 · 2026年5月1日</small></span><span class="pc num ">+29.0%</span></li></ul></a><a class="q" href="2026-q1.html"><h2>2026年1〜3月期<span>2社 →</span></h2><ul><li><span class="nm">KDDI<small>9433 · 2026年2月6日</small></span><span class="pc num ">+4.3%</span></li><li><span class="nm">中部電力<small>9502 · 2026年1月5日</small></span><span class="pc num ">+8.9%</span></li></ul></a><a class="q" href="2025-q4.html"><h2>2025年10〜12月期<span>2社 →</span></h2><ul><li><span class="nm">東リ<small>7971 · 2025年10月31日</small></span><span class="pc num ">+11.8%</span></li><li><span class="nm">エア・ウォーター<small>4088 · 2025年10月9日</small></span><span class="pc num ">+13.3%</span></li></ul></a></section>
+  <footer class="foot">
+    <p>株価は Yahoo Finance の日足終値(配当・分割の調整なし)を2026年10月5日に取得したものです。最新の終値は2026年10月5日までです。</p>
+    <p>非上場の会社は対象外です。不祥事の内容と発生日は、各ページに記載した出典を要約したものです。独自の事実確認は行っていません。</p>
+    <p>株価の変動には不祥事以外の要因も含まれます。投資の助言ではありません。</p>
+  </footer>
+</div>
+</body></html>

@@ -133,8 +133,7 @@ def main():
         items = sorted(q["items"], key=lambda c: c["eventDate"], reverse=True)
         # 会社名を押すと、その会社だけのページ(?c=会社ID)が開く。見出しは四半期の全社
         rows = "".join(
-            f'<li><a class="nm" href="{q["file"]}?c={c["id"]}">{c["name"]}<small>{c["code"]} · {jp(c["eventDate"])}</small></a>'
-            f'<span class="pc num {"dn" if summary[c["id"]][2] < 0 else ""}">{pct_text(summary[c["id"]][2])}</span></li>'
+            f'<li><a class="nm" href="{q["file"]}?c={c["id"]}">{c["name"]}<small>{c["code"]} · {jp(c["eventDate"])}</small></a></li>'
             for c in items
         )
         sections.append(
@@ -162,7 +161,7 @@ def main():
   <header class="top">
     <div class="eyebrow">{jp(latest)}時点 · 日足終値</div>
     <h1>不祥事銘柄の株価推移</h1>
-    <p class="lead">過去1年に不祥事が公表された上場企業{len(companies)}社を、四半期ごとにまとめました。四半期を選ぶとその四半期の全社、会社名を選ぶとその会社だけの、公表前後の日足終値の推移を見られます。数字は、発生日の前営業日の終値から最新の終値までの騰落率です。</p>
+    <p class="lead">過去1年に不祥事が公表された上場企業{len(companies)}社を、四半期ごとにまとめました。四半期を選ぶとその四半期の全社、会社名を選ぶとその会社だけの、公表前後の日足終値の推移を見られます。</p>
   </header>
   <section class="qs" aria-label="四半期別">{"".join(sections)}</section>
   <footer class="foot">

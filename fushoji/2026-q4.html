@@ -85,7 +85,10 @@
   .panel > h2 { font-size: 18px; }
   .panel > .sub { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
 
-  /* 比較バー */
+  /* 最大上昇・最大下落の行。発生日と同じ日は表示しない */
+const exLine = (e, label) => (e && e.ev ? '' : `<small class="num">${label} ${e ? `${md(e.d)} ${pctPlain(e.p)}` : 'なし'}</small>`);
+
+/* 比較バー */
   .bars { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
   .brow { display: grid; grid-template-columns: minmax(96px, 168px) 1fr; gap: 12px; align-items: center; }
   .bname { font-size: 13.5px; line-height: 1.35; min-width: 0; color: var(--company); }
@@ -185,7 +188,7 @@
 </div>
 
 <script>
-const PRICES = {"8601.T":[["2026-06-29",1588.5],["2026-06-30",1595.5],["2026-07-01",1631.5],["2026-07-02",1647],["2026-07-03",1684],["2026-07-06",1713.5],["2026-07-07",1762.5],["2026-07-08",1777.5],["2026-07-09",1739.5],["2026-07-10",1768.5],["2026-07-13",1777],["2026-07-14",1802],["2026-07-15",1879],["2026-07-16",1875.5],["2026-07-17",1779.5],["2026-07-21",1847],["2026-07-22",1852.5],["2026-07-23",1867.5],["2026-07-24",1857],["2026-07-27",1871.5],["2026-07-28",1836],["2026-07-29",1838.5],["2026-07-30",1792.5],["2026-07-31",1807],["2026-08-03",1812],["2026-08-04",1765.5],["2026-08-05",1811],["2026-08-06",1825.5],["2026-08-07",1818.5],["2026-08-10",1788.5],["2026-08-12",1806.5],["2026-08-13",1818],["2026-08-14",1801],["2026-08-17",1778.5],["2026-08-18",1771],["2026-08-19",1735],["2026-08-20",1757],["2026-08-21",1779],["2026-08-24",1786.5],["2026-08-25",1813.5],["2026-08-26",1814],["2026-08-27",1823],["2026-08-28",1863],["2026-08-31",1843.5],["2026-09-01",1860.5],["2026-09-02",1818.5],["2026-09-03",1856],["2026-09-04",1867],["2026-09-07",1866.5],["2026-09-08",1834.5],["2026-09-09",1797],["2026-09-10",1837],["2026-09-11",1842],["2026-09-14",1873],["2026-09-15",1836.5],["2026-09-16",1831],["2026-09-17",1830],["2026-09-18",1845.5],["2026-09-24",1800.5],["2026-09-25",1845.5],["2026-09-28",1850.5],["2026-09-29",1786],["2026-09-30",1809],["2026-10-01",1802.5],["2026-10-02",1751],["2026-10-05",1752.5]]};
+const PRICES = {"8601.T":[["2026-06-29",1588.5],["2026-06-30",1595.5],["2026-07-01",1631.5],["2026-07-02",1647],["2026-07-03",1684],["2026-07-06",1713.5],["2026-07-07",1762.5],["2026-07-08",1777.5],["2026-07-09",1739.5],["2026-07-10",1768.5],["2026-07-13",1777],["2026-07-14",1802],["2026-07-15",1879],["2026-07-16",1875.5],["2026-07-17",1779.5],["2026-07-21",1847],["2026-07-22",1852.5],["2026-07-23",1867.5],["2026-07-24",1857],["2026-07-27",1871.5],["2026-07-28",1836],["2026-07-29",1838.5],["2026-07-30",1792.5],["2026-07-31",1807],["2026-08-03",1812],["2026-08-04",1765.5],["2026-08-05",1811],["2026-08-06",1825.5],["2026-08-07",1818.5],["2026-08-10",1788.5],["2026-08-12",1806.5],["2026-08-13",1818],["2026-08-14",1801],["2026-08-17",1778.5],["2026-08-18",1771],["2026-08-19",1735],["2026-08-20",1757],["2026-08-21",1779],["2026-08-24",1786.5],["2026-08-25",1813.5],["2026-08-26",1814],["2026-08-27",1823],["2026-08-28",1863],["2026-08-31",1843.5],["2026-09-01",1860.5],["2026-09-02",1818.5],["2026-09-03",1856],["2026-09-04",1867],["2026-09-07",1866.5],["2026-09-08",1834.5],["2026-09-09",1797],["2026-09-10",1837],["2026-09-11",1842],["2026-09-14",1873],["2026-09-15",1836.5],["2026-09-16",1831],["2026-09-17",1830],["2026-09-18",1845.5],["2026-09-24",1800.5],["2026-09-25",1845.5],["2026-09-28",1850.5],["2026-09-29",1786],["2026-09-30",1809],["2026-10-01",1802.5],["2026-10-02",1751],["2026-10-05",1755.5]]};
 
 const STOCKS = [{"id":"daiwa","name":"大和証券グループ本社","code":"8601","sym":"8601.T","market":"東証","cur":"JPY","tags":["東証","顧客情報の漏えい"],"eventDate":"2026-10-05","eventLabel":"2026年10月5日","body":"傘下の大和証券が、約11万人の顧客の氏名、メールアドレス、口座番号などの情報が漏えいした可能性があると発表。","notes":["発表の当日が最新日のため、終値は取引が終わるまで確定しません。"],"sources":[{"label":"日本経済新聞(10/5)","url":"https://www.nikkei.com/article/DGXZQOFL053140V01C26A0000000/"}]}];
 
@@ -224,6 +227,9 @@ function metrics(s) {
   }
   if (up.p <= 0) up = null;
   if (down.p >= 0) down = null;
+  // 発生日そのものが最大になった場合は表示しない(ev フラグで判別する)
+  if (up && up.d === rows[idx][0]) up.ev = true;
+  if (down && down.d === rows[idx][0]) down.ev = true;
   return { idx, base, last, pct: (last[1] / base[1] - 1) * 100, post: rows.length - idx, prior, up, down };
 }
 for (const s of STOCKS) s.m = metrics(s);
@@ -246,7 +252,7 @@ function renderBars() {
       const bar = `<div class="bbar ${neg ? 'neg' : 'pos'}" style="width:${w}%;${neg ? `right:${100 - zero}%` : `left:${zero}%`}"></div>`;
       const lab = `<div class="bval num" style="${neg ? `right:calc(${100 - zero}% + ${w}% + 8px)` : `left:calc(${zero}% + ${w}% + 8px)`}">${pctText(s.m.pct)}</div>`;
       const note = s.barNote ? s.barNote + ' · ' : '';
-      return `<div class="brow"><div class="bname">${s.name}<small class="num">${note}${md(s.m.base[0])} ${money(s.m.base[1], s.cur)} → ${md(s.m.last[0])} ${money(s.m.last[1], s.cur)}</small><small class="num">最大上昇 ${s.m.up ? `${md(s.m.up.d)} ${pctPlain(s.m.up.p)}` : 'なし'}</small><small class="num">最大下落 ${s.m.down ? `${md(s.m.down.d)} ${pctPlain(s.m.down.p)}` : 'なし'}</small></div><div class="btrack"><div class="bzero" style="left:${zero}%"></div>${bar}${lab}</div></div>`;
+      return `<div class="brow"><div class="bname">${s.name}<small class="num">${note}${md(s.m.base[0])} ${money(s.m.base[1], s.cur)} → ${md(s.m.last[0])} ${money(s.m.last[1], s.cur)}</small>${exLine(s.m.up, '最大上昇')}${exLine(s.m.down, '最大下落')}</div><div class="btrack"><div class="bzero" style="left:${zero}%"></div>${bar}${lab}</div></div>`;
     })
     .join('');
   document.getElementById('bars').innerHTML = html;
@@ -359,7 +365,7 @@ function drawChart(el) {
 
   // 発生日以降の最大上昇日・最大下落日(基準比)を点とラベルで示す
   const mark = (e, isUp) => {
-    if (!e) return '';
+    if (!e || e.ev) return '';
     const i = rows.findIndex((r) => r[0] === e.d);
     if (i < 0) return '';
     const [px, py] = pts[i];
@@ -369,7 +375,7 @@ function drawChart(el) {
   };
   const marks = mark(s.m.up, true) + mark(s.m.down, false);
 
-  const label = `${s.name}の日足終値。${md(rows[0][0])}から${md(rows[rows.length - 1][0])}まで。発生日前日の終値${money(baseV, s.cur)}に対して最新は${pctPlain(s.m.pct)}。${s.m.up ? `発生日以降の最大上昇は${md(s.m.up.d)}の${money(s.m.up.v, s.cur)}。` : ''}${s.m.down ? `最大下落は${md(s.m.down.d)}の${money(s.m.down.v, s.cur)}。` : ''}`;
+  const label = `${s.name}の日足終値。${md(rows[0][0])}から${md(rows[rows.length - 1][0])}まで。発生日前日の終値${money(baseV, s.cur)}に対して最新は${pctPlain(s.m.pct)}。${s.m.up && !s.m.up.ev ? `発生日以降の最大上昇は${md(s.m.up.d)}の${money(s.m.up.v, s.cur)}。` : ''}${s.m.down && !s.m.down.ev ? `最大下落は${md(s.m.down.d)}の${money(s.m.down.v, s.cur)}。` : ''}`;
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">${grid}${xlab}${baseLine}${area}${preSeg}${postSeg}${ev}${marks}${end}<g class="hov" style="display:none"><line y1="${m.t}" y2="${H - m.b}" stroke="var(--ink-3)" stroke-width="1"/><circle r="4.5" fill="var(--series)" stroke="var(--surface)" stroke-width="2"/></g><rect class="hit" x="${m.l}" y="0" width="${pw}" height="${H}" fill="transparent"/></svg><div class="tip" hidden></div>`;
 
   const svg = el.querySelector('svg');

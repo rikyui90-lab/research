@@ -85,10 +85,7 @@
   .panel > h2 { font-size: 18px; }
   .panel > .sub { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
 
-  /* 最大上昇・最大下落の行。発生日と同じ日は表示しない */
-const exLine = (e, label) => (e && e.ev ? '' : `<small class="num">${label} ${e ? `${md(e.d)} ${pctPlain(e.p)}` : 'なし'}</small>`);
-
-/* 比較バー */
+  /* 比較バー */
   .bars { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
   .brow { display: grid; grid-template-columns: minmax(96px, 168px) 1fr; gap: 12px; align-items: center; }
   .bname { font-size: 13.5px; line-height: 1.35; min-width: 0; color: var(--company); }

@@ -217,8 +217,8 @@ function metrics(s) {
   let down = null;
   for (let i = idx; i < rows.length; i++) {
     const p = (rows[i][1] / base[1] - 1) * 100;
-    if (!up || p > up.p) up = { d: rows[i][0], p };
-    if (!down || p < down.p) down = { d: rows[i][0], p };
+    if (!up || p > up.p) up = { d: rows[i][0], p, v: rows[i][1] };
+    if (!down || p < down.p) down = { d: rows[i][0], p, v: rows[i][1] };
   }
   if (up.p <= 0) up = null;
   if (down.p >= 0) down = null;
@@ -355,8 +355,20 @@ function drawChart(el) {
   const postSeg = `<path d="${path(postFrom, rows.length - 1)}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   const end = `<circle cx="${lastP[0]}" cy="${lastY}" r="4.5" fill="var(--series)" stroke="var(--surface)" stroke-width="2"/><text x="${lastP[0] + 9}" y="${lastY + 4}" font-size="12" font-weight="700" fill="var(--ink)" class="num">${endNum(rows[rows.length - 1][1], s.cur)}</text>`;
 
-  const label = `${s.name}の日足終値。${md(rows[0][0])}から${md(rows[rows.length - 1][0])}まで。発生日前日の終値${money(baseV, s.cur)}に対して最新は${pctPlain(s.m.pct)}。`;
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">${grid}${xlab}${baseLine}${area}${preSeg}${postSeg}${ev}${end}<g class="hov" style="display:none"><line y1="${m.t}" y2="${H - m.b}" stroke="var(--ink-3)" stroke-width="1"/><circle r="4.5" fill="var(--series)" stroke="var(--surface)" stroke-width="2"/></g><rect class="hit" x="${m.l}" y="0" width="${pw}" height="${H}" fill="transparent"/></svg><div class="tip" hidden></div>`;
+  // 発生日以降の最大上昇日・最大下落日(基準比)を点とラベルで示す
+  const mark = (e, isUp) => {
+    if (!e) return '';
+    const i = rows.findIndex((r) => r[0] === e.d);
+    if (i < 0) return '';
+    const [px, py] = pts[i];
+    const anchor = px > W - m.r - 90 ? 'end' : px < m.l + 90 ? 'start' : 'middle';
+    const ly = Math.min(H - m.b - 4, Math.max(m.t + 28, isUp ? py - 10 : py + 18));
+    return `<circle cx="${px}" cy="${py}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><text x="${px}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="var(--ink)" stroke="var(--surface)" stroke-width="4" paint-order="stroke" stroke-linejoin="round" class="num">${isUp ? '▲ 最大上昇' : '▼ 最大下落'} ${md(e.d)} ${money(e.v, s.cur)}</text>`;
+  };
+  const marks = mark(s.m.up, true) + mark(s.m.down, false);
+
+  const label = `${s.name}の日足終値。${md(rows[0][0])}から${md(rows[rows.length - 1][0])}まで。発生日前日の終値${money(baseV, s.cur)}に対して最新は${pctPlain(s.m.pct)}。${s.m.up ? `発生日以降の最大上昇は${md(s.m.up.d)}の${money(s.m.up.v, s.cur)}。` : ''}${s.m.down ? `最大下落は${md(s.m.down.d)}の${money(s.m.down.v, s.cur)}。` : ''}`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">${grid}${xlab}${baseLine}${area}${preSeg}${postSeg}${ev}${marks}${end}<g class="hov" style="display:none"><line y1="${m.t}" y2="${H - m.b}" stroke="var(--ink-3)" stroke-width="1"/><circle r="4.5" fill="var(--series)" stroke="var(--surface)" stroke-width="2"/></g><rect class="hit" x="${m.l}" y="0" width="${pw}" height="${H}" fill="transparent"/></svg><div class="tip" hidden></div>`;
 
   const svg = el.querySelector('svg');
   const hov = svg.querySelector('.hov');

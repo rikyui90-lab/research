@@ -5,7 +5,7 @@ description: 不祥事を起こした会社の株価推移ページ(単一 HTML)
 
 # 不祥事会社の株価推移ページを作る
 
-発生日の前営業日の終値を基準に、最新終値までの騰落率を会社ごとに見せる単一 HTML(`fushoji-stock-trend.html`)を作る。
+発生日の前営業日の終値を基準に、最新終値までの動きを会社ごとに見せるページを、四半期ごとに作る(`fushoji/` フォルダに、トップ `index.html` と四半期ページ)。リポジトリ直下の `fushoji-stock-trend.html` は旧版の単一ページで、いまは使わない。
 ひな形は `assets/template.html`。構成は、会社ごとのカード(事案の説明・SVG 日足チャート・統計・日次表)とフッター。騰落率の比較バーは置かない。
 
 ## 元データの収集(ニュース)
@@ -50,7 +50,10 @@ description: 不祥事を起こした会社の株価推移ページ(単一 HTML)
    - 四半期は発生日の暦年の四半期で分ける。ページ内の並びは発生日の新しい順。
    - 配当・分割の調整はしない。取引中は最新日の値が確定前になる。取得は市場が引けた後に行う。
    - 市場が引ける前は `--until <前営業日>` を付けて、確定した終値だけを使う。発生日の終値がまだない会社は載らず、警告が出る。
-3. ブラウザで開き、次を確認する。
+3. ブラウザで開き、次を確認する。**構文チェック(`node --check`)だけでは足りない**。実行時のエラー(未定義の関数など)は、ページを実際に開かないと分からない。
+   - 確認の例(Chrome のヘッドレス): `chrome.exe --headless --disable-gpu --enable-logging=stderr --v=0 --virtual-time-budget=4000 --dump-dom <ページの URL>` を実行し、出力に `CONSOLE` が出ないこと(JavaScript のエラーが 0 件)と、`<article class="card"` の数が会社数と合うことを見る。ひな形のスクリプトにも同じ文字列が1つ含まれるので、数は「会社数 + 1」になる。
+   - `--screenshot=<png>` で画像にして、見た目も確かめる(幅 500px 未満には縮められないので、スマホ幅は実機か開発者ツールで見る)。
+   - 絞り込み表示は `2026-q3.html?c=<会社のid>` で確かめる。
    - `index.html` から四半期のページと、会社名の絞り込み表示(`?c=`)に移れて、戻るリンクも動く。
    - 全カードにチャートが出ている。
    - 1か月/3か月/6か月/1年の切り替えで崩れない。
@@ -58,17 +61,26 @@ description: 不祥事を起こした会社の株価推移ページ(単一 HTML)
    - ホバーのツールチップが出る。
    - スマホ幅(約375px)で横スクロールが出ない。
 
-## 自動更新(タスクスケジューラ)
+## 公開と自動更新(GitHub Actions)
 
-平日16時に、Windows のタスク `fushoji-update-pages` が `scripts/update_pages.ps1` を実行し、株価を取得し直して `fushoji/` の全ページを作り直す。
+- リポジトリ: `https://github.com/rikyui90-lab/research`(**公開**)。GitHub Pages は `main` のルートから公開していて、ページは次の URL で見られる。
+  `https://rikyui90-lab.github.io/research/fushoji/`(ルート直下に `index.html` は置いていない)
+- `.github/workflows/update-pages.yml` が、**平日16:30(日本時間)**に `build_pages.py` を実行し、株価を取得し直して `fushoji/` を作り直す。差分があれば `github-actions[bot]` が「株価を自動更新 YYYY-MM-DD」というコミットを `main` に push し、公開ページが更新される。差分がなければ「変更なし」でコミットは作られない。
+- 手動で今すぐ実行する: `gh workflow run update-pages.yml --ref main`(結果は `gh run list --workflow update-pages.yml`)。
+- 会社を足すときは `fushoji/companies.json` に追記して `main` に入れる。次の自動更新、または手動実行でページに反映される。
+- 失敗したとき(Yahoo Finance の API が非公式のため、取得できなくなることがある)は、実行が失敗するだけで、ページは前日のまま残る。
+- 公開リポジトリは、60日間更新がないと、定期実行が自動で止まることがある。
+- cron は UTC で書く(`30 7 * * 1-5` が日本時間の16:30)。実行は数分から数十分遅れることがある。
+- **パソコンのタスクスケジューラ `fushoji-update-pages` は停止している**(Actions と同じファイルを別々に書き換えて、`git pull` で食い違うため)。再開するときだけ `Enable-ScheduledTask`。スクリプトは `scripts/update_pages.ps1`(UTF-8 の BOM 付きで保存すること。BOM がないと、Windows PowerShell 5.1 で日本語が文字化けして実行できない)。
 
-- ログは `fushoji/update.log`(Git には入れない)。終了コードが 0 でなければ失敗。
-- 取得に失敗したときは、既存のページを書き換えずに止まる。
-- コミットは自動では行わない。更新後の差分は、必要なときに手でコミットする。
-- 会社を足すときは `fushoji/companies.json` に追記する。次の自動更新で、ページに反映される。
-- 手動で今すぐ実行する: `powershell -File <このスキルのパス>/scripts/update_pages.ps1`
-- タスクの確認・停止: `Get-ScheduledTask fushoji-update-pages` / `Unregister-ScheduledTask fushoji-update-pages`
-- Yahoo Finance の API は非公式。急に取得できなくなる可能性がある。
+## 変更の入れ方
+
+- `main` に直接コミットしない。ブランチを作って push し、プルリクエストを作って、`main` にマージする。
+- プルリクエストの作成とマージには、GitHub CLI(`C:\Program Files\GitHub CLI\gh.exe`、ログイン済み)を使う。PowerShell では、パスの前に `&` を付ける。`gh pr merge` は、`.claude/settings.local.json`(Git には入れない)で許可してある。
+- 日本語の説明文は、UTF-8 のファイルに書いて `--body-file` で渡す。
+- コミットメッセージの末尾に、Co-Authored-By の行を付ける。プルリクエストの説明の末尾には、Claude Code の生成表示を付ける。
+- マージ済みの作業ブランチは、手元と GitHub の両方から消す。
+- 手元で作業を始める前に、`git pull`(bot のコミットを取り込む)。手元で生成したファイルを、コミットしないまま残さない。
 
 ひな形(`assets/template.html`)を直すときは、`__TITLE__` などのプレースホルダを消さない。
 
@@ -85,3 +97,6 @@ description: 不祥事を起こした会社の株価推移ページ(単一 HTML)
 - チャートの印は、最大上昇が赤丸、最大下落が黒丸。発生日と同じ日は出さない。
 - 会社名は赤字(CSS 変数 `--company`)。デザインを変える依頼がない限り維持する。
 - 外部ライブラリは使わず、チャートは自前の SVG で描く。
+- 取引中の値(確定前の終値)でページを作って公開しない。引け後に取得するか、`--until` で前営業日までにする。
+- 公開リポジトリなので、個人情報や認証情報を `companies.json` などに入れない。
+- 古い単一ページ `fushoji-stock-trend.html` は直さない。

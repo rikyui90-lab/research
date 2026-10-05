@@ -131,13 +131,14 @@ def main():
     sections = []
     for key, q in sorted(quarters.items(), reverse=True):
         items = sorted(q["items"], key=lambda c: c["eventDate"], reverse=True)
+        # 会社名を押すと、その会社だけのページ(?c=会社ID)が開く。見出しは四半期の全社
         rows = "".join(
-            f'<li><span class="nm">{c["name"]}<small>{c["code"]} · {jp(c["eventDate"])}</small></span>'
+            f'<li><a class="nm" href="{q["file"]}?c={c["id"]}">{c["name"]}<small>{c["code"]} · {jp(c["eventDate"])}</small></a>'
             f'<span class="pc num {"dn" if summary[c["id"]][2] < 0 else ""}">{pct_text(summary[c["id"]][2])}</span></li>'
             for c in items
         )
         sections.append(
-            f'<a class="q" href="{q["file"]}"><h2>{q["label"]}<span>{len(items)}社 →</span></h2><ul>{rows}</ul></a>'
+            f'<section class="q"><h2><a href="{q["file"]}">{q["label"]}</a><span>{len(items)}社</span></h2><ul>{rows}</ul></section>'
         )
     index = f"""<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>不祥事銘柄の株価推移</title></head><body style="margin:0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -145,22 +146,23 @@ def main():
 {style}
 <style>
   .qs {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }}
-  a.q {{ background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; color: inherit; text-decoration: none; display: flex; flex-direction: column; gap: 12px; }}
-  a.q:hover {{ border-color: var(--series); }}
-  a.q:focus-visible {{ outline: 2px solid var(--series); outline-offset: 2px; }}
-  a.q h2 {{ font-size: 18px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }}
-  a.q h2 span {{ font: 500 13px var(--font-body); color: var(--ink-3); }}
-  a.q ul {{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }}
-  a.q li {{ display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 14px; }}
-  a.q .nm {{ color: var(--company); min-width: 0; }}
-  a.q .nm small {{ display: block; color: var(--ink-3); font-size: 11.5px; }}
-  a.q .pc {{ font-weight: 700; white-space: nowrap; }}
+  section.q {{ background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }}
+  section.q h2 {{ font-size: 18px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }}
+  section.q h2 a {{ color: inherit; text-decoration: none; }}
+  section.q h2 a:hover, section.q .nm:hover {{ text-decoration: underline; }}
+  section.q h2 span {{ font: 500 13px var(--font-body); color: var(--ink-3); }}
+  section.q a:focus-visible {{ outline: 2px solid var(--series); outline-offset: 2px; border-radius: 4px; }}
+  section.q ul {{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }}
+  section.q li {{ display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 14px; }}
+  section.q .nm {{ color: var(--company); min-width: 0; text-decoration: none; }}
+  section.q .nm small {{ display: block; color: var(--ink-3); font-size: 11.5px; }}
+  section.q .pc {{ font-weight: 700; white-space: nowrap; }}
 </style>
 <div class="wrap">
   <header class="top">
     <div class="eyebrow">{jp(latest)}時点 · 日足終値</div>
     <h1>不祥事銘柄の株価推移</h1>
-    <p class="lead">過去1年に不祥事が公表された上場企業{len(companies)}社を、四半期ごとにまとめました。四半期を選ぶと、公表前後の日足終値の推移を見られます。数字は、発生日の前営業日の終値から最新の終値までの騰落率です。</p>
+    <p class="lead">過去1年に不祥事が公表された上場企業{len(companies)}社を、四半期ごとにまとめました。四半期を選ぶとその四半期の全社、会社名を選ぶとその会社だけの、公表前後の日足終値の推移を見られます。数字は、発生日の前営業日の終値から最新の終値までの騰落率です。</p>
   </header>
   <section class="qs" aria-label="四半期別">{"".join(sections)}</section>
   <footer class="foot">

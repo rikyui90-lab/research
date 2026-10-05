@@ -138,6 +138,8 @@
   th { font-weight: 500; color: var(--ink-3); }
   tr.evrow td { font-weight: 700; }
 
+  .navrow { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+  .back[hidden] { display: none; }
   .back { font-size: 13px; color: var(--ink-2); width: fit-content; text-decoration: none; }
   .back:hover { text-decoration: underline; }
   .src { font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 12px; }
@@ -152,24 +154,25 @@
 </style>
 <style>
   .qs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
-  a.q { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; color: inherit; text-decoration: none; display: flex; flex-direction: column; gap: 12px; }
-  a.q:hover { border-color: var(--series); }
-  a.q:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; }
-  a.q h2 { font-size: 18px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  a.q h2 span { font: 500 13px var(--font-body); color: var(--ink-3); }
-  a.q ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-  a.q li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 14px; }
-  a.q .nm { color: var(--company); min-width: 0; }
-  a.q .nm small { display: block; color: var(--ink-3); font-size: 11.5px; }
-  a.q .pc { font-weight: 700; white-space: nowrap; }
+  section.q { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  section.q h2 { font-size: 18px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  section.q h2 a { color: inherit; text-decoration: none; }
+  section.q h2 a:hover, section.q .nm:hover { text-decoration: underline; }
+  section.q h2 span { font: 500 13px var(--font-body); color: var(--ink-3); }
+  section.q a:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; border-radius: 4px; }
+  section.q ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  section.q li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 14px; }
+  section.q .nm { color: var(--company); min-width: 0; text-decoration: none; }
+  section.q .nm small { display: block; color: var(--ink-3); font-size: 11.5px; }
+  section.q .pc { font-weight: 700; white-space: nowrap; }
 </style>
 <div class="wrap">
   <header class="top">
     <div class="eyebrow">2026年10月5日時点 · 日足終値</div>
     <h1>不祥事銘柄の株価推移</h1>
-    <p class="lead">過去1年に不祥事が公表された上場企業11社を、四半期ごとにまとめました。四半期を選ぶと、公表前後の日足終値の推移を見られます。数字は、発生日の前営業日の終値から最新の終値までの騰落率です。</p>
+    <p class="lead">過去1年に不祥事が公表された上場企業11社を、四半期ごとにまとめました。四半期を選ぶとその四半期の全社、会社名を選ぶとその会社だけの、公表前後の日足終値の推移を見られます。数字は、発生日の前営業日の終値から最新の終値までの騰落率です。</p>
   </header>
-  <section class="qs" aria-label="四半期別"><a class="q" href="2026-q4.html"><h2>2026年10〜12月期<span>1社 →</span></h2><ul><li><span class="nm">大和証券グループ本社<small>8601 · 2026年10月5日</small></span><span class="pc num ">+0.3%</span></li></ul></a><a class="q" href="2026-q3.html"><h2>2026年7〜9月期<span>5社 →</span></h2><ul><li><span class="nm">タイムカー(パーク24グループ)<small>4666 · 2026年9月30日</small></span><span class="pc num dn">−6.4%</span></li><li><span class="nm">株式会社IDホールディングス<small>4709 · 2026年9月30日</small></span><span class="pc num dn">−4.1%</span></li><li><span class="nm">ニデック(旧日本電産)<small>6594 · 2026年9月29日</small></span><span class="pc num dn">−6.8%</span></li><li><span class="nm">イリソ電子工業<small>6908 · 2026年9月28日</small></span><span class="pc num dn">−3.7%</span></li><li><span class="nm">株式会社REVOLUTION<small>8894 · 2026年9月17日</small></span><span class="pc num dn">−15.8%</span></li></ul></a><a class="q" href="2026-q2.html"><h2>2026年4〜6月期<span>1社 →</span></h2><ul><li><span class="nm">サンリオ<small>8136 · 2026年5月1日</small></span><span class="pc num ">+28.9%</span></li></ul></a><a class="q" href="2026-q1.html"><h2>2026年1〜3月期<span>2社 →</span></h2><ul><li><span class="nm">KDDI<small>9433 · 2026年2月6日</small></span><span class="pc num ">+3.9%</span></li><li><span class="nm">中部電力<small>9502 · 2026年1月5日</small></span><span class="pc num ">+8.9%</span></li></ul></a><a class="q" href="2025-q4.html"><h2>2025年10〜12月期<span>2社 →</span></h2><ul><li><span class="nm">東リ<small>7971 · 2025年10月31日</small></span><span class="pc num ">+11.8%</span></li><li><span class="nm">エア・ウォーター<small>4088 · 2025年10月9日</small></span><span class="pc num ">+13.2%</span></li></ul></a></section>
+  <section class="qs" aria-label="四半期別"><section class="q"><h2><a href="2026-q4.html">2026年10〜12月期</a><span>1社</span></h2><ul><li><a class="nm" href="2026-q4.html?c=daiwa">大和証券グループ本社<small>8601 · 2026年10月5日</small></a><span class="pc num ">+0.3%</span></li></ul></section><section class="q"><h2><a href="2026-q3.html">2026年7〜9月期</a><span>5社</span></h2><ul><li><a class="nm" href="2026-q3.html?c=times">タイムカー(パーク24グループ)<small>4666 · 2026年9月30日</small></a><span class="pc num dn">−6.4%</span></li><li><a class="nm" href="2026-q3.html?c=idhd">株式会社IDホールディングス<small>4709 · 2026年9月30日</small></a><span class="pc num dn">−4.1%</span></li><li><a class="nm" href="2026-q3.html?c=nidec">ニデック(旧日本電産)<small>6594 · 2026年9月29日</small></a><span class="pc num dn">−6.8%</span></li><li><a class="nm" href="2026-q3.html?c=iriso">イリソ電子工業<small>6908 · 2026年9月28日</small></a><span class="pc num dn">−3.7%</span></li><li><a class="nm" href="2026-q3.html?c=revolution">株式会社REVOLUTION<small>8894 · 2026年9月17日</small></a><span class="pc num dn">−15.8%</span></li></ul></section><section class="q"><h2><a href="2026-q2.html">2026年4〜6月期</a><span>1社</span></h2><ul><li><a class="nm" href="2026-q2.html?c=sanrio">サンリオ<small>8136 · 2026年5月1日</small></a><span class="pc num ">+28.9%</span></li></ul></section><section class="q"><h2><a href="2026-q1.html">2026年1〜3月期</a><span>2社</span></h2><ul><li><a class="nm" href="2026-q1.html?c=kddi">KDDI<small>9433 · 2026年2月6日</small></a><span class="pc num ">+3.9%</span></li><li><a class="nm" href="2026-q1.html?c=chubu">中部電力<small>9502 · 2026年1月5日</small></a><span class="pc num ">+8.9%</span></li></ul></section><section class="q"><h2><a href="2025-q4.html">2025年10〜12月期</a><span>2社</span></h2><ul><li><a class="nm" href="2025-q4.html?c=toli">東リ<small>7971 · 2025年10月31日</small></a><span class="pc num ">+11.8%</span></li><li><a class="nm" href="2025-q4.html?c=airwater">エア・ウォーター<small>4088 · 2025年10月9日</small></a><span class="pc num ">+13.2%</span></li></ul></section></section>
   <footer class="foot">
     <p>株価は Yahoo Finance の日足終値(配当・分割の調整なし)を2026年10月5日に取得したものです。最新の終値は2026年10月5日までです。</p>
     <p>非上場の会社は対象外です。不祥事の内容と発生日は、各ページに記載した出典を要約したものです。独自の事実確認は行っていません。</p>

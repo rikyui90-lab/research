@@ -138,6 +138,8 @@
   th { font-weight: 500; color: var(--ink-3); }
   tr.evrow td { font-weight: 700; }
 
+  .navrow { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+  .back[hidden] { display: none; }
   .back { font-size: 13px; color: var(--ink-2); width: fit-content; text-decoration: none; }
   .back:hover { text-decoration: underline; }
   .src { font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 12px; }
@@ -153,7 +155,7 @@
 
 <div class="wrap">
   <header class="top">
-    <a class="back" href="index.html">← 不祥事銘柄の株価推移 トップへ</a>
+    <div class="navrow"><a class="back" href="index.html">← 不祥事銘柄の株価推移 トップへ</a><a class="back" id="all" hidden href="?">この四半期の全社を見る</a></div>
     <div class="eyebrow" id="asof"></div>
     <h1 id="h1"></h1>
     <p class="lead" id="lead"></p>
@@ -169,12 +171,6 @@
     </div>
   </div>
 
-  <section class="panel" aria-labelledby="sum-h">
-    <h2 id="sum-h">発生前日の終値からの騰落率</h2>
-    <p class="sub">最新の終値までの変化。発生日の新しい順。名前の下に、基準日と最新日、発生日以降で基準から最も上がった日と最も下がった日(基準比)を記載しています。</p>
-    <div class="bars" id="bars"></div>
-  </section>
-
   <section class="grid" id="cards" aria-label="会社別の詳細"></section>
 
   <footer class="foot">
@@ -188,6 +184,8 @@
 const PRICES = {"8136.T":[["2026-01-21",901.8],["2026-01-22",911.6],["2026-01-23",945.4],["2026-01-26",953.2],["2026-01-27",968.4],["2026-01-28",959.6],["2026-01-29",950],["2026-01-30",951],["2026-02-02",948.8],["2026-02-03",942.8],["2026-02-04",912],["2026-02-05",928.8],["2026-02-06",946.8],["2026-02-09",950],["2026-02-10",947],["2026-02-12",952.8],["2026-02-13",1092.8],["2026-02-16",1138.4],["2026-02-17",1187.4],["2026-02-18",1171],["2026-02-19",1133.6],["2026-02-20",1059],["2026-02-24",1048],["2026-02-25",1077],["2026-02-26",1094.8],["2026-02-27",1145.2],["2026-03-02",1106.2],["2026-03-03",1067.2],["2026-03-04",1074.6],["2026-03-05",1110.4],["2026-03-06",1163.2],["2026-03-09",1156.8],["2026-03-10",1116.2],["2026-03-11",1127.4],["2026-03-12",1082.6],["2026-03-13",1097.4],["2026-03-16",1096.6],["2026-03-17",1117.2],["2026-03-18",1092],["2026-03-19",1082.8],["2026-03-23",1062.6],["2026-03-24",1048.8],["2026-03-25",1060],["2026-03-26",1040],["2026-03-27",1060.6],["2026-03-30",980.4],["2026-03-31",979.2],["2026-04-01",989],["2026-04-02",990],["2026-04-03",992.4],["2026-04-06",949.2],["2026-04-07",988.7],["2026-04-08",1010],["2026-04-09",984.2],["2026-04-10",966.9],["2026-04-13",981.7],["2026-04-14",1001],["2026-04-15",1014],["2026-04-16",1053],["2026-04-17",1032.5],["2026-04-20",1045.5],["2026-04-21",1051.5],["2026-04-22",994.2],["2026-04-23",983.1],["2026-04-24",952.3],["2026-04-27",961.4],["2026-04-28",971.6],["2026-04-30",915],["2026-05-01",909.9],["2026-05-07",850.7],["2026-05-08",875.7],["2026-05-11",900],["2026-05-12",859.6],["2026-05-13",855.8],["2026-05-14",844.2],["2026-05-15",855.4],["2026-05-18",839],["2026-05-19",923.6],["2026-05-20",871.9],["2026-05-21",869.3],["2026-05-22",864.8],["2026-05-25",860],["2026-05-26",855.1],["2026-05-27",869],["2026-05-28",839.9],["2026-05-29",856.2],["2026-06-01",932.5],["2026-06-02",896],["2026-06-03",909],["2026-06-04",920.7],["2026-06-05",905],["2026-06-08",897],["2026-06-09",863.2],["2026-06-10",887.4],["2026-06-11",876.8],["2026-06-12",864.2],["2026-06-15",845.5],["2026-06-16",870],["2026-06-17",870.5],["2026-06-18",892],["2026-06-19",918],["2026-06-22",945.5],["2026-06-23",938.1],["2026-06-24",932],["2026-06-25",1005.5],["2026-06-26",1092],["2026-06-29",1126.5],["2026-06-30",1100],["2026-07-01",1093],["2026-07-02",1112],["2026-07-03",1087.5],["2026-07-06",1155],["2026-07-07",1151],["2026-07-08",1177.5],["2026-07-09",1130.5],["2026-07-10",1142.5],["2026-07-13",1161],["2026-07-14",1200],["2026-07-15",1178.5],["2026-07-16",1216.5],["2026-07-17",1204.5],["2026-07-21",1180],["2026-07-22",1131.5],["2026-07-23",1143],["2026-07-24",1159.5],["2026-07-27",1245.5],["2026-07-28",1290.5],["2026-07-29",1343],["2026-07-30",1353.5],["2026-07-31",1272.5],["2026-08-03",1292.5],["2026-08-04",1259],["2026-08-05",1274],["2026-08-06",1311.5],["2026-08-07",1397],["2026-08-10",1454.5],["2026-08-12",1191],["2026-08-13",1227],["2026-08-14",1282.5],["2026-08-17",1212],["2026-08-18",1194],["2026-08-19",1163],["2026-08-20",1201.5],["2026-08-21",1176],["2026-08-24",1209.5],["2026-08-25",1214.5],["2026-08-26",1210],["2026-08-27",1248.5],["2026-08-28",1268],["2026-08-31",1286.5],["2026-09-01",1317.5],["2026-09-02",1305],["2026-09-03",1288.5],["2026-09-04",1265.5],["2026-09-07",1263.5],["2026-09-08",1252],["2026-09-09",1192.5],["2026-09-10",1173.5],["2026-09-11",1188.5],["2026-09-14",1236],["2026-09-15",1220],["2026-09-16",1191],["2026-09-17",1238.5],["2026-09-18",1207.5],["2026-09-24",1212],["2026-09-25",1210],["2026-09-28",1177.5],["2026-09-29",1178],["2026-09-30",1187.5],["2026-10-01",1191.5],["2026-10-02",1181],["2026-10-05",1179.5]]};
 
 const STOCKS = [{"id":"sanrio","name":"サンリオ","code":"8136","sym":"8136.T","market":"東証","cur":"JPY","tags":["東証"],"eventDate":"2026-05-01","eventLabel":"2026年5月1日","body":"常務取締役が、指名・報酬諮問委員会で決まった報酬とは別に、自らが執行を担当するグループ子会社から報酬を受け取っていた疑い。社外委員長による特別調査委員会を設置し、2026年3月期の決算発表を延期(期末後50日を超える見込み)。","notes":["会社は、現時点で連結業績への虚偽は確認されておらず、影響は軽微と説明しています。"],"sources":[{"label":"適時開示(5/1)","url":"https://japanir.jp/company/company-8136/ir/8136-20260501-01_wp_general_ir/"},{"label":"GameBiz","url":"https://gamebiz.jp/news/425336"}]}];
+// ?c=会社ID が付いているときは、その会社だけを表示する
+const ONLY = new URLSearchParams(location.search).get('c');
 
 for (const s of STOCKS) s.rows = PRICES[s.sym];
 
@@ -233,29 +231,14 @@ for (const s of STOCKS) s.m = metrics(s);
 
 document.getElementById('asof').textContent = '2026年10月5日時点 · 日足終値';
 document.getElementById('h1').textContent = '不祥事銘柄の株価推移 2026年4〜6月期';
-document.getElementById('lead').textContent = `不祥事が公表された${STOCKS.length}社について、公表前後の日足終値を並べました。基準は、各社の発生日の前営業日の終値です。`;
-
-/* 最大上昇・最大下落の行。発生日と同じ日は表示しない */
-const exLine = (e, label) => (e && e.ev ? '' : `<small class="num">${label} ${e ? `${md(e.d)} ${pctPlain(e.p)}` : 'なし'}</small>`);
-
-/* 比較バー */
-function renderBars() {
-  const list = [...STOCKS].sort((a, b) => (a.eventDate < b.eventDate ? 1 : a.eventDate > b.eventDate ? -1 : 0));
-  const negMax = Math.max(0, ...list.map((s) => -s.m.pct));
-  const posMax = Math.max(0, ...list.map((s) => s.m.pct));
-  const total = negMax + posMax || 1;
-  const zero = (negMax / total) * 100;
-  const html = list
-    .map((s) => {
-      const w = (Math.abs(s.m.pct) / total) * 100;
-      const neg = s.m.pct < 0;
-      const bar = `<div class="bbar ${neg ? 'neg' : 'pos'}" style="width:${w}%;${neg ? `right:${100 - zero}%` : `left:${zero}%`}"></div>`;
-      const lab = `<div class="bval num" style="${neg ? `right:calc(${100 - zero}% + ${w}% + 8px)` : `left:calc(${zero}% + ${w}% + 8px)`}">${pctText(s.m.pct)}</div>`;
-      const note = s.barNote ? s.barNote + ' · ' : '';
-      return `<div class="brow"><div class="bname">${s.name}<small class="num">${note}${md(s.m.base[0])} ${money(s.m.base[1], s.cur)} → ${md(s.m.last[0])} ${money(s.m.last[1], s.cur)}</small>${exLine(s.m.up, '最大上昇')}${exLine(s.m.down, '最大下落')}</div><div class="btrack"><div class="bzero" style="left:${zero}%"></div>${bar}${lab}</div></div>`;
-    })
-    .join('');
-  document.getElementById('bars').innerHTML = html;
+const VIEW = ONLY ? STOCKS.filter((s) => s.id === ONLY) : STOCKS;
+if (ONLY && VIEW.length) {
+  document.getElementById('h1').textContent = VIEW[0].name;
+  document.title = `${VIEW[0].name} | 不祥事銘柄の株価推移`;
+  document.getElementById('lead').textContent = '公表前後の日足終値です。基準は、発生日の前営業日の終値です。';
+  document.getElementById('all').hidden = false;
+} else {
+  document.getElementById('lead').textContent = `不祥事が公表された${STOCKS.length}社について、公表前後の日足終値を並べました。基準は、各社の発生日の前営業日の終値です。`;
 }
 
 /* カード */
@@ -371,7 +354,7 @@ function drawChart(el) {
     const [px, py] = pts[i];
     const anchor = px > W - m.r - 90 ? 'end' : px < m.l + 90 ? 'start' : 'middle';
     const ly = Math.min(H - m.b - 4, Math.max(m.t + 28, isUp ? py - 10 : py + 18));
-    return `<circle cx="${px}" cy="${py}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><text x="${px}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="var(--ink)" stroke="var(--surface)" stroke-width="4" paint-order="stroke" stroke-linejoin="round" class="num">${isUp ? '▲ 最大上昇' : '▼ 最大下落'} ${md(e.d)} ${money(e.v, s.cur)}</text>`;
+    return `<circle cx="${px}" cy="${py}" r="5" fill="${isUp ? '#e5322d' : '#000'}" stroke="var(--surface)" stroke-width="2"/><text x="${px}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="var(--ink)" stroke="var(--surface)" stroke-width="4" paint-order="stroke" stroke-linejoin="round" class="num">${isUp ? '▲ 最大上昇' : '▼ 最大下落'} ${md(e.d)} ${money(e.v, s.cur)}</text>`;
   };
   const marks = mark(s.m.up, true) + mark(s.m.down, false);
 
@@ -419,9 +402,8 @@ function drawAll() {
   document.querySelectorAll('.chart').forEach(drawChart);
 }
 
-renderBars();
-STOCKS.sort((a, b) => (a.eventDate < b.eventDate ? 1 : a.eventDate > b.eventDate ? -1 : 0));
-document.getElementById('cards').innerHTML = STOCKS.map(cardHtml).join('');
+VIEW.sort((a, b) => (a.eventDate < b.eventDate ? 1 : a.eventDate > b.eventDate ? -1 : 0));
+document.getElementById('cards').innerHTML = VIEW.map(cardHtml).join('');
 drawAll();
 let lastW = 0;
 new ResizeObserver(() => {

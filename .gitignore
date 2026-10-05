@@ -1,3 +1,4 @@
 __pycache__/
 *.pyc
 fushoji/update.log
+.claude/settings.local.json

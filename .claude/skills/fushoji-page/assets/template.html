@@ -138,6 +138,8 @@
   th { font-weight: 500; color: var(--ink-3); }
   tr.evrow td { font-weight: 700; }
 
+  .navrow { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+  .back[hidden] { display: none; }
   .back { font-size: 13px; color: var(--ink-2); width: fit-content; text-decoration: none; }
   .back:hover { text-decoration: underline; }
   .src { font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 12px; }
@@ -153,7 +155,7 @@
 
 <div class="wrap">
   <header class="top">
-    <a class="back" href="__BACKHREF__">← 不祥事銘柄の株価推移 トップへ</a>
+    <div class="navrow"><a class="back" href="__BACKHREF__">← 不祥事銘柄の株価推移 トップへ</a><a class="back" id="all" hidden href="?">この四半期の全社を見る</a></div>
     <div class="eyebrow" id="asof"></div>
     <h1 id="h1"></h1>
     <p class="lead" id="lead"></p>
@@ -169,12 +171,6 @@
     </div>
   </div>
 
-  <section class="panel" aria-labelledby="sum-h">
-    <h2 id="sum-h">発生前日の終値からの騰落率</h2>
-    <p class="sub">最新の終値までの変化。発生日の新しい順。名前の下に、基準日と最新日、発生日以降で基準から最も上がった日と最も下がった日(基準比)を記載しています。</p>
-    <div class="bars" id="bars"></div>
-  </section>
-
   <section class="grid" id="cards" aria-label="会社別の詳細"></section>
 
   <footer class="foot">
@@ -186,6 +182,8 @@ __FOOT__
 const PRICES = __PRICES__;
 
 const STOCKS = __STOCKS__;
+// ?c=会社ID が付いているときは、その会社だけを表示する
+const ONLY = new URLSearchParams(location.search).get('c');
 
 for (const s of STOCKS) s.rows = PRICES[s.sym];
 
@@ -231,29 +229,14 @@ for (const s of STOCKS) s.m = metrics(s);
 
 document.getElementById('asof').textContent = '__ASOF__時点 · 日足終値';
 document.getElementById('h1').textContent = '__H1__';
-document.getElementById('lead').textContent = `不祥事が公表された${STOCKS.length}社について、公表前後の日足終値を並べました。基準は、各社の発生日の前営業日の終値です。`;
-
-/* 最大上昇・最大下落の行。発生日と同じ日は表示しない */
-const exLine = (e, label) => (e && e.ev ? '' : `<small class="num">${label} ${e ? `${md(e.d)} ${pctPlain(e.p)}` : 'なし'}</small>`);
-
-/* 比較バー */
-function renderBars() {
-  const list = [...STOCKS].sort((a, b) => (a.eventDate < b.eventDate ? 1 : a.eventDate > b.eventDate ? -1 : 0));
-  const negMax = Math.max(0, ...list.map((s) => -s.m.pct));
-  const posMax = Math.max(0, ...list.map((s) => s.m.pct));
-  const total = negMax + posMax || 1;
-  const zero = (negMax / total) * 100;
-  const html = list
-    .map((s) => {
-      const w = (Math.abs(s.m.pct) / total) * 100;
-      const neg = s.m.pct < 0;
-      const bar = `<div class="bbar ${neg ? 'neg' : 'pos'}" style="width:${w}%;${neg ? `right:${100 - zero}%` : `left:${zero}%`}"></div>`;
-      const lab = `<div class="bval num" style="${neg ? `right:calc(${100 - zero}% + ${w}% + 8px)` : `left:calc(${zero}% + ${w}% + 8px)`}">${pctText(s.m.pct)}</div>`;
-      const note = s.barNote ? s.barNote + ' · ' : '';
-      return `<div class="brow"><div class="bname">${s.name}<small class="num">${note}${md(s.m.base[0])} ${money(s.m.base[1], s.cur)} → ${md(s.m.last[0])} ${money(s.m.last[1], s.cur)}</small>${exLine(s.m.up, '最大上昇')}${exLine(s.m.down, '最大下落')}</div><div class="btrack"><div class="bzero" style="left:${zero}%"></div>${bar}${lab}</div></div>`;
-    })
-    .join('');
-  document.getElementById('bars').innerHTML = html;
+const VIEW = ONLY ? STOCKS.filter((s) => s.id === ONLY) : STOCKS;
+if (ONLY && VIEW.length) {
+  document.getElementById('h1').textContent = VIEW[0].name;
+  document.title = `${VIEW[0].name} | 不祥事銘柄の株価推移`;
+  document.getElementById('lead').textContent = '公表前後の日足終値です。基準は、発生日の前営業日の終値です。';
+  document.getElementById('all').hidden = false;
+} else {
+  document.getElementById('lead').textContent = `不祥事が公表された${STOCKS.length}社について、公表前後の日足終値を並べました。基準は、各社の発生日の前営業日の終値です。`;
 }
 
 /* カード */
@@ -369,7 +352,7 @@ function drawChart(el) {
     const [px, py] = pts[i];
     const anchor = px > W - m.r - 90 ? 'end' : px < m.l + 90 ? 'start' : 'middle';
     const ly = Math.min(H - m.b - 4, Math.max(m.t + 28, isUp ? py - 10 : py + 18));
-    return `<circle cx="${px}" cy="${py}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><text x="${px}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="var(--ink)" stroke="var(--surface)" stroke-width="4" paint-order="stroke" stroke-linejoin="round" class="num">${isUp ? '▲ 最大上昇' : '▼ 最大下落'} ${md(e.d)} ${money(e.v, s.cur)}</text>`;
+    return `<circle cx="${px}" cy="${py}" r="5" fill="${isUp ? '#e5322d' : '#000'}" stroke="var(--surface)" stroke-width="2"/><text x="${px}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="var(--ink)" stroke="var(--surface)" stroke-width="4" paint-order="stroke" stroke-linejoin="round" class="num">${isUp ? '▲ 最大上昇' : '▼ 最大下落'} ${md(e.d)} ${money(e.v, s.cur)}</text>`;
   };
   const marks = mark(s.m.up, true) + mark(s.m.down, false);
 
@@ -417,9 +400,8 @@ function drawAll() {
   document.querySelectorAll('.chart').forEach(drawChart);
 }
 
-renderBars();
-STOCKS.sort((a, b) => (a.eventDate < b.eventDate ? 1 : a.eventDate > b.eventDate ? -1 : 0));
-document.getElementById('cards').innerHTML = STOCKS.map(cardHtml).join('');
+VIEW.sort((a, b) => (a.eventDate < b.eventDate ? 1 : a.eventDate > b.eventDate ? -1 : 0));
+document.getElementById('cards').innerHTML = VIEW.map(cardHtml).join('');
 drawAll();
 let lastW = 0;
 new ResizeObserver(() => {

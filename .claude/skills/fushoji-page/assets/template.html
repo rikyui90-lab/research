@@ -171,7 +171,7 @@
 
   <section class="panel" aria-labelledby="sum-h">
     <h2 id="sum-h">発生前日の終値からの騰落率</h2>
-    <p class="sub">最新の終値までの変化。発生日の新しい順。名前の下に基準日と最新日を記載しています。</p>
+    <p class="sub">最新の終値までの変化。発生日の新しい順。名前の下に、基準日と最新日、発生日以降で基準から最も上がった日と最も下がった日(基準比)を記載しています。</p>
     <div class="bars" id="bars"></div>
   </section>
 
@@ -212,7 +212,17 @@ function metrics(s) {
     const p = (rows[i][1] / rows[i - 1][1] - 1) * 100;
     if (Math.abs(p) >= 10 && (!prior || Math.abs(p) > Math.abs(prior.p))) prior = { d: rows[i][0], p };
   }
-  return { idx, base, last, pct: (last[1] / base[1] - 1) * 100, post: rows.length - idx, prior };
+  // 発生日以降で、基準(発生前日の終値)に対して最も上がった日と最も下がった日
+  let up = null;
+  let down = null;
+  for (let i = idx; i < rows.length; i++) {
+    const p = (rows[i][1] / base[1] - 1) * 100;
+    if (!up || p > up.p) up = { d: rows[i][0], p };
+    if (!down || p < down.p) down = { d: rows[i][0], p };
+  }
+  if (up.p <= 0) up = null;
+  if (down.p >= 0) down = null;
+  return { idx, base, last, pct: (last[1] / base[1] - 1) * 100, post: rows.length - idx, prior, up, down };
 }
 for (const s of STOCKS) s.m = metrics(s);
 
@@ -234,7 +244,7 @@ function renderBars() {
       const bar = `<div class="bbar ${neg ? 'neg' : 'pos'}" style="width:${w}%;${neg ? `right:${100 - zero}%` : `left:${zero}%`}"></div>`;
       const lab = `<div class="bval num" style="${neg ? `right:calc(${100 - zero}% + ${w}% + 8px)` : `left:calc(${zero}% + ${w}% + 8px)`}">${pctText(s.m.pct)}</div>`;
       const note = s.barNote ? s.barNote + ' · ' : '';
-      return `<div class="brow"><div class="bname">${s.name}<small class="num">${note}${md(s.m.base[0])} ${money(s.m.base[1], s.cur)} → ${md(s.m.last[0])} ${money(s.m.last[1], s.cur)}</small></div><div class="btrack"><div class="bzero" style="left:${zero}%"></div>${bar}${lab}</div></div>`;
+      return `<div class="brow"><div class="bname">${s.name}<small class="num">${note}${md(s.m.base[0])} ${money(s.m.base[1], s.cur)} → ${md(s.m.last[0])} ${money(s.m.last[1], s.cur)}</small><small class="num">最大上昇 ${s.m.up ? `${md(s.m.up.d)} ${pctPlain(s.m.up.p)}` : 'なし'}</small><small class="num">最大下落 ${s.m.down ? `${md(s.m.down.d)} ${pctPlain(s.m.down.p)}` : 'なし'}</small></div><div class="btrack"><div class="bzero" style="left:${zero}%"></div>${bar}${lab}</div></div>`;
     })
     .join('');
   document.getElementById('bars').innerHTML = html;

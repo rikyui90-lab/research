@@ -58,6 +58,18 @@ description: 不祥事を起こした会社の株価推移ページ(単一 HTML)
    - ホバーのツールチップが出る。
    - スマホ幅(約375px)で横スクロールが出ない。
 
+## 自動更新(タスクスケジューラ)
+
+平日16時に、Windows のタスク `fushoji-update-pages` が `scripts/update_pages.ps1` を実行し、株価を取得し直して `fushoji/` の全ページを作り直す。
+
+- ログは `fushoji/update.log`(Git には入れない)。終了コードが 0 でなければ失敗。
+- 取得に失敗したときは、既存のページを書き換えずに止まる。
+- コミットは自動では行わない。更新後の差分は、必要なときに手でコミットする。
+- 会社を足すときは `fushoji/companies.json` に追記する。次の自動更新で、ページに反映される。
+- 手動で今すぐ実行する: `powershell -File <このスキルのパス>/scripts/update_pages.ps1`
+- タスクの確認・停止: `Get-ScheduledTask fushoji-update-pages` / `Unregister-ScheduledTask fushoji-update-pages`
+- Yahoo Finance の API は非公式。急に取得できなくなる可能性がある。
+
 ひな形(`assets/template.html`)を直すときは、`__TITLE__` などのプレースホルダを消さない。
 
 ## 守ること

@@ -1089,7 +1089,7 @@ test('問題オブジェクトに難易度が入り、validateQuestion が見る
   assert.ok(L.validateQuestion({ ...q, difficulty: undefined }));
 });
 
-test('モード×難易度の問題数: easy/normal/hard は6問以上で表の数と合う(expert/master は Task 5 で1問以上に直す)', () => {
+test('モード×難易度の問題数: どの組み合わせも1問以上で、表の数と合う', () => {
   const expected = {
     pattern: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
     outlook: { easy: 9, normal: 8, hard: 8, expert: 2, master: 2 },
@@ -1097,16 +1097,47 @@ test('モード×難易度の問題数: easy/normal/hard は6問以上で表の�
     term: { easy: 11, normal: 11, hard: 10, expert: 4, master: 4 },
   };
   for (const mode of L.MODES) {
-    for (const level of L.DIFFICULTY_FILTERS) {
+    for (const level of L.DIFFICULTY_LEVELS) {
       const n = L.buildPool(mode, L.createRng(1), level).length;
-      // expert / master の all モードは、Task 5 で正確な数に直す(ここでは1問以上)
-      if (level === 'expert' || level === 'master') {
-        assert.ok(n >= 1, `${mode}/${level} n=${n}`);
-        if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
-        continue;
-      }
-      assert.ok(n >= 6, `${mode}/${level} n=${n}`);
-      if (expected[mode] && level !== 'all') assert.equal(n, expected[mode][level], `${mode}/${level}`);
+      assert.ok(n >= 1, `${mode}/${level} n=${n}`);
+      if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
+    }
+  }
+  // all モード: expert / master は 用語4 + ローソク足2 + チャート2(形状か値動きの一方)= 8
+  for (const level of ['expert', 'master']) assert.equal(L.buildPool('all', L.createRng(1), level).length, 8, `all/${level}`);
+});
+
+const NEW_IDS = {
+  easy: { term: ['dividend', 'shareholder-benefit', 'listing', 'trading-unit'], candle: ['lower-shadow-bullish', 'upper-shadow-bearish'], pattern: ['ascending-channel', 'descending-channel'] },
+  normal: { term: ['stop-loss', 'take-profit', 'averaging-down', 'shiozuke'], candle: ['gap-up', 'gap-down'], pattern: ['v-bottom', 'v-top'] },
+  hard: { term: ['order-book', 'execution', 'open-and-close', 'trading-sessions'], candle: ['bullish-harami-cross', 'bearish-harami-cross'], pattern: ['bullish-perfect-order', 'bearish-perfect-order'] },
+  expert: { term: ['margin-ratio', 'reverse-fee', 'roa', 'eps'], candle: ['rising-three-methods', 'falling-three-methods'], pattern: ['rounding-top', 'inverted-cup-with-handle'] },
+  master: { term: ['payout-ratio', 'buyback', 'stock-split', 'circuit-breaker'], candle: ['abandoned-baby-bottom', 'abandoned-baby-top'], pattern: ['diamond-top', 'diamond-bottom'] },
+};
+
+test('各難易度に、新しく追加した問題がちょうど10問ある(用語4・ローソク足2・形状2・値動き2)', () => {
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const ids = NEW_IDS[level];
+    const count = (type, list) => L.buildPool(type, L.createRng(1), level).filter((q) => {
+      const [t, ...rest] = q.id.split(':');
+      return t === type && list.includes(rest.join(':'));
+    }).length;
+    assert.equal(count('term', ids.term), 4, `term ${level}`);
+    assert.equal(count('candle', ids.candle), 2, `candle ${level}`);
+    assert.equal(count('pattern', ids.pattern), 2, `pattern ${level}`);
+    assert.equal(count('outlook', ids.pattern), 2, `outlook ${level}`);
+    assert.equal(4 + 2 + 2 + 2, 10);
+  }
+});
+
+test('roundSize: all は easy/normal/hard で10、expert/master で8。どの組み合わせも1〜10', () => {
+  for (const level of ['easy', 'normal', 'hard']) assert.equal(L.roundSize('all', level), 10, `all/${level}`);
+  assert.equal(L.roundSize('all', 'expert'), 8);
+  assert.equal(L.roundSize('all', 'master'), 8);
+  for (const mode of L.MODES) {
+    for (const level of L.DIFFICULTY_FILTERS) {
+      const size = L.roundSize(mode, level);
+      assert.ok(size >= 1 && size <= 10, `${mode}/${level} size=${size}`);
     }
   }
 });
@@ -1116,9 +1147,7 @@ test('buildDeck: 難易度の絞り込みで、問題数・重複・難易度・
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
       assert.equal(size, Math.min(L.ROUND_SIZE, L.buildPool(mode, L.createRng(1), level).length), `${mode}/${level}`);
-      // size が 0 のとき(expert / master で問題がまだない間)は、空の配列を返し、例外を投げない
-      if (size === 0) assert.deepEqual(L.buildDeck(mode, 1, level), [], `${mode}/${level}`);
-      else assert.ok(size >= 1);
+      assert.ok(size >= 1, `${mode}/${level}`);
       for (let seed = 1; seed <= 20; seed++) {
         const deck = L.buildDeck(mode, seed, level);
         assert.equal(deck.length, size, `${mode}/${level} seed=${seed}`);

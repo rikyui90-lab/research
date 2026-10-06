@@ -790,7 +790,8 @@ test('紛らわしいローソク足の組は、同じ問題の選択肢に同�
   const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
   const candleIds = new Set(L.CANDLE_PATTERNS.map((c) => c.id));
   const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => candleIds.has(a) && candleIds.has(b));
-  assert.ok(pairs.length >= 22);
+  // ローソク足どうしの紛らわしい組の数(窓を含む足の6組を足して 27 + 6 = 33)。数が変わったら、意図した変更か確かめること
+  assert.equal(pairs.length, 33);
   for (let seed = 1; seed <= 40; seed++) {
     for (const [a, b] of pairs) {
       for (const [x, y] of [[a, b], [b, a]]) {
@@ -933,11 +934,13 @@ test('強気のはらみ十字 / 弱気のはらみ十字: 1本目の大きな�
   assert.ok(a.c < a.o && bodyOf(a) >= 30, '1本目は大きな陰線');
   assert.equal(b.o, b.c);
   assert.ok(b.o < a.o - 8 && b.o > a.c + 8, '十字線の始値=終値は1本目の実体の中');
+  assert.ok(b.h < a.o - 8 && b.l > a.c + 8, '十字線の高値・安値(ヒゲ)も1本目の実体の中');
   assert.equal(candleOf('bearish-harami-cross').length, 2);
   const [c, d] = candleOf('bearish-harami-cross');
   assert.ok(c.c > c.o && bodyOf(c) >= 30, '1本目は大きな陽線');
   assert.equal(d.o, d.c);
   assert.ok(d.o < c.c - 8 && d.o > c.o + 8);
+  assert.ok(d.h < c.c - 8 && d.l > c.o + 8, '十字線の高値・安値(ヒゲ)も1本目の実体の中');
 });
 
 test('上げ三法 / 下げ三法: 小さな3本が1本目の値幅の内側で少しずつ動き、5本目が1本目の終値を超えて引ける', () => {
@@ -949,6 +952,10 @@ test('上げ三法 / 下げ三法: 小さな3本が1本目の値幅の内側で�
     assert.ok(k.h < r[0].h && k.l > r[0].l, '1本目の値幅の内側');
   }
   assert.ok(r.slice(1, 4).some((k) => k.c < k.o), '陰線を含む');
+  for (const k of r.slice(1, 4)) {
+    assert.ok(k.c < k.o, '小さな足は3本とも陰線(解説で「小さな陰線」と書くため)');
+    assert.ok(Math.max(k.o, k.c) < r[0].c && Math.min(k.o, k.c) > r[0].o, '小さな足の実体は1本目の実体の内側');
+  }
   for (let i = 2; i <= 3; i++) assert.ok(r[i].c < r[i - 1].c && r[i].l < r[i - 1].l, '少しずつ下がる');
   assert.ok(r[4].c > r[4].o && bodyOf(r[4]) >= 30, '5本目は大きな陽線');
   assert.ok(r[4].c > r[0].c + 8, '1本目の終値より上で引ける');
@@ -960,6 +967,10 @@ test('上げ三法 / 下げ三法: 小さな3本が1本目の値幅の内側で�
     assert.ok(k.h < f[0].h && k.l > f[0].l);
   }
   assert.ok(f.slice(1, 4).some((k) => k.c > k.o), '陽線を含む');
+  for (const k of f.slice(1, 4)) {
+    assert.ok(k.c > k.o, '小さな足は3本とも陽線(解説で「小さな陽線」と書くため)');
+    assert.ok(Math.max(k.o, k.c) < f[0].o && Math.min(k.o, k.c) > f[0].c, '小さな足の実体は1本目の実体の内側');
+  }
   for (let i = 2; i <= 3; i++) assert.ok(f[i].c > f[i - 1].c && f[i].h > f[i - 1].h, '少しずつ上がる');
   assert.ok(f[4].c < f[4].o && bodyOf(f[4]) >= 30);
   assert.ok(f[4].c < f[0].c - 8, '1本目の終値より下で引ける');
@@ -984,7 +995,10 @@ test('新規10個のローソク足の紛らわしい組が両方向で isConfus
   const pairs = [['hammer', 'lower-shadow-bullish'], ['shooting-star', 'upper-shadow-bearish'],
     ['bullish-harami', 'bullish-harami-cross'], ['bearish-harami', 'bearish-harami-cross'],
     ['doji', 'bullish-harami-cross'], ['doji', 'bearish-harami-cross'], ['rising-three-methods', 'falling-three-methods'],
-    ['abandoned-baby-bottom', 'morning-star'], ['abandoned-baby-top', 'evening-star'], ['gap-up', 'gap-down']];
+    ['abandoned-baby-bottom', 'morning-star'], ['abandoned-baby-top', 'evening-star'], ['gap-up', 'gap-down'],
+    // 窓を含む足(明けの明星・宵の明星・捨て子線)は、上窓 / 下窓と同じ絵に見えるので、同時に出さない
+    ['gap-down', 'morning-star'], ['gap-up', 'evening-star'], ['gap-up', 'abandoned-baby-bottom'],
+    ['gap-down', 'abandoned-baby-bottom'], ['gap-up', 'abandoned-baby-top'], ['gap-down', 'abandoned-baby-top']];
   for (const [a, b] of pairs) {
     assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
     assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
@@ -992,6 +1006,7 @@ test('新規10個のローソク足の紛らわしい組が両方向で isConfus
       for (const [x, y] of [[a, b], [b, a]]) {
         const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((k) => k.id === x), L.createRng(seed));
         assert.ok(!q.choices.includes(L.CANDLE_PATTERNS.find((k) => k.id === y).name), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null, `${x} vs ${y} seed=${seed}`);
       }
     }
   }
@@ -1003,7 +1018,8 @@ test('新規10個のローソク足: 問題が有効で難易度が表どおり�
   for (const id of NEW) {
     const level = L.DIFFICULTY_LEVELS.find((lv) => LEVEL_TABLE.candles[lv].includes(id));
     const item = L.CANDLE_PATTERNS.find((k) => k.id === id);
-    assert.ok(item.explanation.endsWith('よ。'), id);
+    // はらみ十字は、別名を添える括弧書き「(…とも呼ばれるよ)」で終わる
+    assert.ok(item.explanation.endsWith('よ。') || item.explanation.endsWith('よ)'), id);
     for (let seed = 1; seed <= 10; seed++) {
       const q = L.makeCandleQuestion(item, L.createRng(seed));
       assert.equal(L.validateQuestion(q), null, id);
@@ -1429,5 +1445,16 @@ test('新規チャート: どの難易度でも pattern / outlook / all の出�
         for (const q of L.buildDeck(mode, seed, level)) assert.equal(L.validateQuestion(q), null, `${mode}/${level}`);
       }
     }
+  }
+});
+
+test('三法・はらみ十字の解説: 小さな陰線 / 陽線と書き、はらみ十字には別名がある', () => {
+  const text = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).explanation;
+  assert.ok(text('rising-three-methods').includes('小さな陰線が3本'));
+  assert.ok(text('falling-three-methods').includes('小さな陽線が3本'));
+  assert.ok(text('rising-three-methods').includes('最後の大きな陽線がその高値を上回る'));
+  assert.ok(text('falling-three-methods').includes('最後の大きな陰線がその安値を下回る'));
+  for (const id of ['bullish-harami-cross', 'bearish-harami-cross']) {
+    assert.ok(text(id).endsWith('(「はらみ寄せ線」とも呼ばれるよ)'), id);
   }
 });

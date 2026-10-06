@@ -236,7 +236,9 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['descending-channel', 'falling-wedge'], ['ascending-channel', 'bullish-perfect-order'],
   ['descending-channel', 'bearish-perfect-order'], ['rounding-top', 'inverted-cup-with-handle'],
   ['diamond-top', 'head-shoulders'], ['diamond-bottom', 'inverse-head-shoulders'], ['diamond-top', 'diamond-bottom'],
-  ['inverted-cup-with-handle', 'head-shoulders']];
+  ['inverted-cup-with-handle', 'head-shoulders'],
+  ['gap-down', 'morning-star'], ['gap-up', 'evening-star'], ['gap-up', 'abandoned-baby-bottom'],
+  ['gap-down', 'abandoned-baby-bottom'], ['gap-up', 'abandoned-baby-top'], ['gap-down', 'abandoned-baby-top']];
 const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
 const MODE_LABELS = {
   all: '全部まぜ',
@@ -315,18 +317,18 @@ const CANDLE_PATTERNS = [
     explanation: '前の足の安値より安く始まり、そのまま下で推移して、足と足のあいだにすき間(窓)が空く形。売りの勢いが強いサインとされるよ。' },
   { id: 'bullish-harami-cross', name: '強気のはらみ十字',
     candles: [{ o: 72, h: 74, l: 30, c: 32 }, { o: 52, h: 60, l: 44, c: 52 }],
-    explanation: '大きな陰線の中に、十字線がすっぽり収まる形。下落の勢いが止まったサインで、底で出ると、上昇のサインとされるよ。' },
+    explanation: '大きな陰線の中に、十字線がすっぽり収まる形。下落の勢いが止まったサインで、底で出ると、上昇のサインとされるよ。(「はらみ寄せ線」とも呼ばれるよ)' },
   { id: 'bearish-harami-cross', name: '弱気のはらみ十字',
     candles: [{ o: 30, h: 72, l: 28, c: 70 }, { o: 50, h: 58, l: 42, c: 50 }],
-    explanation: '大きな陽線の中に、十字線がすっぽり収まる形。上昇の勢いが止まったサインで、天井で出ると、下落のサインとされるよ。' },
+    explanation: '大きな陽線の中に、十字線がすっぽり収まる形。上昇の勢いが止まったサインで、天井で出ると、下落のサインとされるよ。(「はらみ寄せ線」とも呼ばれるよ)' },
   { id: 'rising-three-methods', name: '上げ三法',
     candles: [{ o: 30, h: 72, l: 28, c: 70 }, { o: 68, h: 70, l: 58, c: 60 }, { o: 62, h: 64, l: 52, c: 54 },
       { o: 56, h: 58, l: 46, c: 48 }, { o: 50, h: 84, l: 48, c: 82 }],
-    explanation: '大きな陽線のあと、小さな足が3本続いても陽線の値幅の中に収まり、最後に大きな陽線で上に抜ける形。上昇が続くサインとされるよ。' },
+    explanation: '大きな陽線のあと、小さな陰線が3本続いても最初の陽線の値幅の中に収まり、最後の大きな陽線がその高値を上回る形。上昇が続くサインとされるよ。' },
   { id: 'falling-three-methods', name: '下げ三法',
     candles: [{ o: 70, h: 72, l: 28, c: 30 }, { o: 32, h: 42, l: 30, c: 40 }, { o: 38, h: 48, l: 36, c: 46 },
       { o: 44, h: 54, l: 42, c: 52 }, { o: 50, h: 52, l: 16, c: 18 }],
-    explanation: '大きな陰線のあと、小さな足が3本続いても陰線の値幅の中に収まり、最後に大きな陰線で下に抜ける形。下落が続くサインとされるよ。' },
+    explanation: '大きな陰線のあと、小さな陽線が3本続いても最初の陰線の値幅の中に収まり、最後の大きな陰線がその安値を下回る形。下落が続くサインとされるよ。' },
   { id: 'abandoned-baby-bottom', name: '捨て子線(底)',
     candles: [{ o: 80, h: 82, l: 56, c: 58 }, { o: 44, h: 48, l: 40, c: 44 }, { o: 58, h: 84, l: 56, c: 82 }],
     explanation: '大きな陰線のあと、窓を空けて下に十字線が出て、さらに窓を空けて大きな陽線が出る形。十字線が前後から離れて取り残される。下落の底で出ると、上昇のサインとされるよ。' },

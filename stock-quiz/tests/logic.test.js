@@ -1249,6 +1249,11 @@ const NEW_CHART_IDS = ['ascending-channel', 'descending-channel', 'v-bottom', 'v
   'bearish-perfect-order', 'rounding-top', 'inverted-cup-with-handle', 'diamond-top', 'diamond-bottom'];
 
 const rangeOf2 = (a) => Math.max(...a) - Math.min(...a);
+// 山(谷)の数え方で、頂が平らで同じ値が2点ならぶ(同値のタイ)ときは、1つの山として数える。
+// peaks() は窓の中で最大の点を返すので、窓の幅 W 以内に2つ出るのは必ず同値のとき(別々の山ではない)
+const mergeTies = (idxs, W) => idxs.filter((x, k) => k === 0 || x - idxs[k - 1] > W);
+const onePeak = (v, W, prom) => mergeTies(peaks(v, W, prom), W);
+const oneTrough = (v, W, prom) => mergeTies(troughs(v, W, prom), W);
 const sliceAt = (v, r) => v.slice(Math.floor(v.length * r[0]), Math.ceil(v.length * r[1]) + 1);
 // 最小二乗の傾き(1点あたり)
 function slopeOf(idxs, values) {
@@ -1306,14 +1311,14 @@ test('上昇チャネル / 下降チャネル: 高値の列と安値の列が、
   }
 });
 
-test('Vボトム / Vトップ: 底(天井)が中ほどで尖っていて、前後の傾きが急で、左右の差が小さい', () => {
+test('Vボトム / Vトップ: 底(天井)が中ほどで尖っていて、前後の傾きが急で、左右の差が小さい(300シード)', () => {
   for (const [id, sign] of [['v-bottom', 1], ['v-top', -1]]) {
-    for (let seed = 1; seed <= 30; seed++) {
+    for (let seed = 1; seed <= 300; seed++) {
       const v = L.generateSeries(L.findPattern(id), seed).map((x) => x * sign); // 以後は「底」を探す形にそろえる
       const n = v.length;
       const m = v.indexOf(Math.min(...v));
       assert.ok(m > n * 0.4 && m < n * 0.6, `${id} seed=${seed} 位置 ${m}`);
-      assert.equal(troughs(v, 6, 8).length, 1, `${id} seed=${seed} 谷は1つ`);
+      assert.equal(oneTrough(v, 6, 8).length, 1, `${id} seed=${seed} 谷は1つ(同値のタイは1つと数える)`);
       assert.ok(v[0] - v[m] > 50 && v[n - 1] - v[m] > 50, `${id} seed=${seed} 深さ`);
       // 尖っている: 底から8点離れただけで、もう20以上動いている(丸底なら数しか動かない)
       assert.ok(v[m - 8] - v[m] > 20 && v[m + 8] - v[m] > 20, `${id} seed=${seed} 尖り`);
@@ -1367,11 +1372,11 @@ test('パーフェクトオーダーだけが chart.ma を3本返し、ほかの
   }
 });
 
-test('ラウンドトップ: 山が1つで、左右がほぼ対称で、頂点付近がなだらか', () => {
-  for (let seed = 1; seed <= 30; seed++) {
+test('ラウンドトップ: 山が1つで、左右がほぼ対称で、頂点付近がなだらか(300シード)', () => {
+  for (let seed = 1; seed <= 300; seed++) {
     const v = L.generateSeries(L.findPattern('rounding-top'), seed);
     const n = v.length;
-    const ps = peaks(v, 25, 15);
+    const ps = onePeak(v, 25, 15);
     assert.equal(ps.length, 1, `seed=${seed} 山 ${ps}`);
     const m = ps[0];
     assert.ok(m > n * 0.4 && m < n * 0.6, `seed=${seed} 位置 ${m}`);
@@ -1383,8 +1388,8 @@ test('ラウンドトップ: 山が1つで、左右がほぼ対称で、頂点�
   }
 });
 
-test('逆カップウィズハンドル: 左右のふちがそろい、頂は高く、最後に小さな戻り(取っ手)', () => {
-  for (let seed = 1; seed <= 30; seed++) {
+test('逆カップウィズハンドル: 左右のふちがそろい、頂は高く、最後に小さな戻り(取っ手)(300シード)', () => {
+  for (let seed = 1; seed <= 300; seed++) {
     const v = L.generateSeries(L.findPattern('inverted-cup-with-handle'), seed);
     const n = v.length;
     const left = Math.min(...sliceAt(v, [0.04, 0.14]));
@@ -1394,14 +1399,14 @@ test('逆カップウィズハンドル: 左右のふちがそろい、頂は高
     assert.ok(top - left > 30, `seed=${seed} 頂`);
     const handle = Math.max(...sliceAt(v, [0.88, 0.96]));
     assert.ok(handle - right > 4 && handle - right < 20, `seed=${seed} 取っ手`);
-    assert.equal(peaks(v, 25, 15).length, 1, `seed=${seed} 丸い山は1つ`);
+    assert.equal(onePeak(v, 25, 15).length, 1, `seed=${seed} 丸い山は1つ`);
     assert.ok(v[n - 1] < top - 25, `seed=${seed} 頂より下で終わる`);
   }
 });
 
-test('ダイヤモンドトップ / ボトム: 中ほどで振れ幅が最大になり、前後で狭まり、最後に抜ける', () => {
+test('ダイヤモンドトップ / ボトム: 中ほどで振れ幅が最大になり、前後で狭まり、最後に抜ける(500シード)', () => {
   for (const [id, sign] of [['diamond-top', 1], ['diamond-bottom', -1]]) {
-    for (let seed = 1; seed <= 30; seed++) {
+    for (let seed = 1; seed <= 500; seed++) {
       const v = L.generateSeries(L.findPattern(id), seed).map((x) => x * sign); // 以後は「高値圏」にそろえる
       const n = v.length;
       const early = sliceAt(v, [0.12, 0.3]);
@@ -1425,11 +1430,14 @@ test('新規チャートの紛らわしい組が両方向で isConfusable で、
     ['descending-channel', 'falling-wedge'], ['ascending-channel', 'bullish-perfect-order'],
     ['descending-channel', 'bearish-perfect-order'], ['rounding-top', 'inverted-cup-with-handle'],
     ['diamond-top', 'head-shoulders'], ['diamond-bottom', 'inverse-head-shoulders'], ['diamond-top', 'diamond-bottom'],
-    ['inverted-cup-with-handle', 'head-shoulders']];
+    ['inverted-cup-with-handle', 'head-shoulders'],
+    // ゴールデンクロス / デッドクロスの図は、最後がパーフェクトオーダーの並びになる(200シードで確認)。ダイヤモンドの後半は対称三角形
+    ['golden-cross', 'bullish-perfect-order'], ['dead-cross', 'bearish-perfect-order'],
+    ['diamond-top', 'symmetrical-triangle'], ['diamond-bottom', 'symmetrical-triangle']];
   for (const [a, b] of pairs) {
     assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
     assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
-    for (let seed = 1; seed <= 40; seed++) {
+    for (let seed = 1; seed <= 60; seed++) {
       for (const [x, y] of [[a, b], [b, a]]) {
         const q = L.makePatternQuestion(L.findPattern(x), seed);
         assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
@@ -1456,5 +1464,28 @@ test('三法・はらみ十字の解説: 小さな陰線 / 陽線と書き、は
   assert.ok(text('falling-three-methods').includes('最後の大きな陰線がその安値を下回る'));
   for (const id of ['bullish-harami-cross', 'bearish-harami-cross']) {
     assert.ok(text(id).endsWith('(「はらみ寄せ線」とも呼ばれるよ)'), id);
+  }
+});
+
+test('新規チャートの解説: 逆カップは断定せず、パーフェクトオーダーは注意書きつき、丸天井に別名', () => {
+  const text = (id) => L.findPattern(id).explanation;
+  assert.ok(text('rounding-top').includes('ソーサートップ'));
+  for (const id of ['bullish-perfect-order', 'bearish-perfect-order']) {
+    assert.ok(text(id).includes('強いサインとされるよ'), id);
+    assert.ok(text(id).endsWith('ただし、サインが出るのは遅めで、横ばい相場ではダマシも多いよ。'), id);
+  }
+  assert.ok(text('inverted-cup-with-handle').includes('取っ手の安値を割ると'));
+  assert.ok(text('inverted-cup-with-handle').includes('とされるよ'));
+});
+
+test('逆カップウィズハンドル: 取っ手は、カップ(山)の高さの2〜4割ほどの戻りで、丸天井より目立つ(300シード)', () => {
+  // 取っ手を大きくした(事実確認の指摘)。山の高さ = 頂 - 左右のふち、戻り = 取っ手の高値 - 右のふち
+  for (let seed = 1; seed <= 300; seed++) {
+    const v = L.generateSeries(L.findPattern('inverted-cup-with-handle'), seed);
+    const right = Math.min(...sliceAt(v, [0.82, 0.9]));
+    const handle = Math.max(...sliceAt(v, [0.9, 0.96]));
+    const top = Math.max(...sliceAt(v, [0.4, 0.6]));
+    const ratio = (handle - right) / (top - right);
+    assert.ok(ratio > 0.2 && ratio < 0.4, `seed=${seed} 戻りの割合 ${ratio}`);
   }
 });

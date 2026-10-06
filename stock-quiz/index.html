@@ -940,7 +940,7 @@ function showStart() {
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${diffLabels[d]}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
-    <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問(絞り込みで少なくなることがあるよ)だよ。</p>
+    <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <p class="sec">難易度</p>
     <div class="diffs">${diffs}</div>
     <div class="choices">${rows}</div>`;

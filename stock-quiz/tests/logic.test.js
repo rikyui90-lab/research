@@ -55,10 +55,10 @@ test('normalizeRange: 値が1つでも min < max になる', () => {
   assert.ok(r.min < r.max);
 });
 
-test('PATTERNS: 11個あり、id と name が重複せず、定義が正しい', () => {
-  assert.equal(L.PATTERNS.length, 11);
-  assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 11);
-  assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 11);
+test('PATTERNS: 20個あり、id と name が重複せず、定義が正しい', () => {
+  assert.equal(L.PATTERNS.length, 20);
+  assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 20);
+  assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 20);
   for (const p of L.PATTERNS) {
     assert.ok(['up', 'down', 'flat'].includes(p.outlook), p.id);
     assert.ok(p.explanation.length > 0, p.id);
@@ -472,5 +472,154 @@ test('続きの値動きも滑らか: 隣り合う点の差が大きくない', 
       const c = L.generateContinuation(50, outlook, seed);
       for (let i = 1; i < c.length; i++) assert.ok(Math.abs(c[i] - c[i - 1]) < 3, `${outlook} seed=${seed}`);
     }
+  }
+});
+
+test('PATTERNS: 20個で、追加した9個が揃っている', () => {
+  assert.equal(L.PATTERNS.length, 20);
+  for (const id of ['triple-top', 'triple-bottom', 'ascending-triangle', 'descending-triangle',
+    'bear-flag', 'bear-pennant', 'cup-with-handle', 'saucer-bottom', 'box-range']) {
+    assert.ok(L.findPattern(id), id);
+  }
+});
+
+test('追加したパターンの outlook', () => {
+  const want = { 'triple-top': 'down', 'triple-bottom': 'up', 'ascending-triangle': 'up',
+    'descending-triangle': 'down', 'bear-flag': 'down', 'bear-pennant': 'down',
+    'cup-with-handle': 'up', 'saucer-bottom': 'up', 'box-range': 'flat' };
+  for (const [id, o] of Object.entries(want)) assert.equal(L.findPattern(id).outlook, o, id);
+});
+
+// 山の数: 前後より高い極大(ゆらぎに負けないよう、前後 W 点の最大を基準にする)
+function peaks(values, W = 6, minProminence = 8) {
+  const out = [];
+  for (let i = W; i < values.length - W; i++) {
+    const win = values.slice(i - W, i + W + 1);
+    if (values[i] === Math.max(...win) && values[i] - Math.min(...win) >= minProminence) out.push(i);
+  }
+  return out;
+}
+function troughs(values, W = 6, minProminence = 8) {
+  return peaks(values.map((v) => -v), W, minProminence);
+}
+
+test('トリプルトップ: 高さがそろった山が3つ', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('triple-top'), seed);
+    const ps = peaks(v);
+    assert.equal(ps.length, 3, `seed=${seed} peaks=${ps}`);
+    const hs = ps.map((i) => v[i]);
+    assert.ok(Math.max(...hs) - Math.min(...hs) < 6, `seed=${seed}`);
+  }
+});
+
+test('トリプルボトム: 深さがそろった谷が3つ', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('triple-bottom'), seed);
+    const ts = troughs(v);
+    assert.equal(ts.length, 3, `seed=${seed} troughs=${ts}`);
+    const hs = ts.map((i) => v[i]);
+    assert.ok(Math.max(...hs) - Math.min(...hs) < 6, `seed=${seed}`);
+  }
+});
+
+test('上昇三角形: 高値はほぼ水平で、安値は切り上がる', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('ascending-triangle'), seed);
+    const ps = peaks(v, 6, 6);
+    const ts = troughs(v, 6, 6);
+    assert.ok(ps.length >= 3, `seed=${seed} peaks=${ps}`);
+    const hs = ps.map((i) => v[i]);
+    assert.ok(Math.max(...hs) - Math.min(...hs) < 6, `seed=${seed} 高値が水平`);
+    assert.ok(ts.length >= 2, `seed=${seed} troughs=${ts}`);
+    assert.ok(v[ts[ts.length - 1]] > v[ts[0]] + 8, `seed=${seed} 安値が切り上がる`);
+  }
+});
+
+test('下降三角形: 安値はほぼ水平で、高値は切り下がる', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('descending-triangle'), seed);
+    const ts = troughs(v, 6, 6);
+    const ps = peaks(v, 6, 6);
+    assert.ok(ts.length >= 3, `seed=${seed} troughs=${ts}`);
+    const ls = ts.map((i) => v[i]);
+    assert.ok(Math.max(...ls) - Math.min(...ls) < 6, `seed=${seed} 安値が水平`);
+    assert.ok(ps.length >= 2, `seed=${seed} peaks=${ps}`);
+    assert.ok(v[ps[ps.length - 1]] < v[ps[0]] - 8, `seed=${seed} 高値が切り下がる`);
+  }
+});
+
+test('下降フラッグ: 急落のあと、上向きにゆるく戻る', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('bear-flag'), seed);
+    const n = v.length;
+    const poleStart = v[Math.floor(n * 0.2)];
+    const poleEnd = v[Math.floor(n * 0.6)];
+    assert.ok(poleStart - poleEnd > 40, `seed=${seed} 急落`);
+    assert.ok(v[n - 1] > poleEnd + 8, `seed=${seed} 戻り`);
+    assert.ok(v[n - 1] < poleStart - 20, `seed=${seed} 戻りが浅い`);
+  }
+});
+
+test('下降ペナント: 急落のあと、値幅が狭まる', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('bear-pennant'), seed);
+    const n = v.length;
+    const early = v.slice(Math.floor(n * 0.62), Math.floor(n * 0.78));
+    const late = v.slice(Math.floor(n * 0.86));
+    const range = (a) => Math.max(...a) - Math.min(...a);
+    assert.ok(range(late) < range(early), `seed=${seed}`);
+  }
+});
+
+test('カップウィズハンドル: 左右のふちがそろい、底は深く、最後に小さな押し目', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('cup-with-handle'), seed);
+    const n = v.length;
+    const left = Math.max(...v.slice(Math.floor(n * 0.04), Math.floor(n * 0.14)));
+    const right = Math.max(...v.slice(Math.floor(n * 0.82), Math.floor(n * 0.9)));
+    const bottom = Math.min(...v.slice(Math.floor(n * 0.4), Math.floor(n * 0.6)));
+    assert.ok(Math.abs(left - right) < 6, `seed=${seed} ふち`);
+    assert.ok(left - bottom > 30, `seed=${seed} 底`);
+    const handle = Math.min(...v.slice(Math.floor(n * 0.88), Math.floor(n * 0.96)));
+    assert.ok(right - handle > 4 && right - handle < 20, `seed=${seed} 取っ手`);
+  }
+});
+
+test('ソーサーボトム: なめらかな丸い底(底の位置が中ほどで、左右が高い)', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('saucer-bottom'), seed);
+    const n = v.length;
+    const minI = v.indexOf(Math.min(...v));
+    assert.ok(minI > n * 0.35 && minI < n * 0.65, `seed=${seed} 底の位置 ${minI}`);
+    assert.ok(v[0] - v[minI] > 25 && v[n - 1] - v[minI] > 20, `seed=${seed} 左右が高い`);
+  }
+});
+
+test('ボックス圏: 上限と下限のあいだを往復する(幅が小さく、山と谷が複数)', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const v = L.generateSeries(L.findPattern('box-range'), seed);
+    assert.ok(Math.max(...v) - Math.min(...v) < 30, `seed=${seed} 幅`);
+    assert.ok(peaks(v, 6, 6).length >= 3, `seed=${seed} 山`);
+    assert.ok(troughs(v, 6, 6).length >= 3, `seed=${seed} 谷`);
+  }
+});
+
+test('追加後の出題: どのモードも10問が成立し、値動き予想の続きが outlook と一致する', () => {
+  for (const mode of L.MODES) {
+    for (let seed = 1; seed <= 20; seed++) {
+      const deck = L.buildDeck(mode, seed);
+      assert.equal(deck.length, L.ROUND_SIZE);
+      for (const q of deck) assert.equal(L.validateQuestion(q), null);
+    }
+  }
+  for (const p of L.PATTERNS.filter((x) => x.outlookQuiz !== false)) {
+    const q = L.makeOutlookQuestion(p, 33);
+    const c = L.chartForQuestion(q);
+    const last = c.values[c.values.length - 1];
+    const end = c.continuation[c.continuation.length - 1];
+    if (p.outlook === 'up') assert.ok(end > last + 5, p.id);
+    if (p.outlook === 'down') assert.ok(end < last - 5, p.id);
+    if (p.outlook === 'flat') assert.ok(Math.abs(end - last) < 6, p.id);
   }
 });

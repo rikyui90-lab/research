@@ -109,8 +109,55 @@ const PATTERNS = [
     points: [[0, 30], [0.3, 65], [0.5, 62], [1, 15]],
     explanation: '短期の移動平均線が長期の移動平均線を上から下に抜けた形。下落のサインとされるよ。 ただしダマシも多いよ。',
   },
+  {
+    id: 'triple-top', name: 'トリプルトップ', outlook: 'down',
+    points: [[0,20],[0.12,55],[0.22,82],[0.34,58],[0.46,82],[0.58,58],[0.7,82],[0.8,57],[1,52]],
+    explanation: '高値を3回つけても超えられず、ネックラインを割ると下落に転じやすい形だよ。',
+  },
+  {
+    id: 'triple-bottom', name: 'トリプルボトム', outlook: 'up',
+    points: [[0,80],[0.12,45],[0.22,18],[0.34,42],[0.46,18],[0.58,42],[0.7,18],[0.8,43],[1,48]],
+    explanation: '安値を3回つけて下げ止まり、ネックラインを超えると上昇に転じやすい形だよ。',
+  },
+  {
+    id: 'ascending-triangle', name: '上昇三角形', outlook: 'up',
+    points: [[0,30],[0.15,80],[0.3,42],[0.45,80],[0.58,55],[0.72,80],[0.84,66],[0.94,80],[1,76]],
+    explanation: '高値がほぼ同じ高さで抑えられ、安値が切り上がっていく形。上に抜けやすいとされるよ。',
+  },
+  {
+    id: 'descending-triangle', name: '下降三角形', outlook: 'down',
+    points: [[0,70],[0.15,20],[0.3,58],[0.45,20],[0.58,45],[0.72,20],[0.84,34],[0.94,20],[1,24]],
+    explanation: '安値がほぼ同じ高さで支えられ、高値が切り下がっていく形。下に抜けやすいとされるよ。',
+  },
+  {
+    id: 'bear-flag', name: '下降フラッグ', outlook: 'down',
+    points: [[0,75],[0.2,73],[0.6,15],[0.68,24],[0.76,19],[0.84,28],[0.92,23],[1,32]],
+    explanation: '急落のあとに小さく上向きに戻す形。戻りが終わると、元の下落が続きやすいとされるよ。',
+  },
+  {
+    id: 'bear-pennant', name: '下降ペナント', outlook: 'down',
+    points: [[0,75],[0.2,73],[0.6,15],[0.68,32],[0.76,20],[0.84,28],[0.92,22],[1,26]],
+    explanation: '急落のあとに三角形に狭まる形。下落の途中の小休止で、下に抜けやすいとされるよ。',
+  },
+  {
+    id: 'cup-with-handle', name: 'カップウィズハンドル', outlook: 'up',
+    points: [[0,60],[0.08,78],[0.2,70],[0.35,45],[0.5,32],[0.65,45],[0.78,70],[0.86,78],[0.92,68],[1,72]],
+    explanation: '丸いカップの形のあと、小さな押し目(取っ手)をつける形。取っ手の高値を超えると、上昇しやすいとされるよ。',
+  },
+  {
+    id: 'saucer-bottom', name: 'ソーサーボトム(丸底)', outlook: 'up',
+    points: [[0,80],[0.2,66],[0.4,45],[0.5,38],[0.6,40],[0.8,55],[1,72]],
+    explanation: '下落のあと、ゆっくり丸く底を打って戻る形。売りの勢いが弱まって、上昇に転じやすいとされるよ。',
+  },
+  {
+    id: 'box-range', name: 'ボックス圏(レンジ)', outlook: 'flat',
+    points: [[0,50],[0.1,60],[0.22,41],[0.34,60],[0.46,40],[0.58,60],[0.7,41],[0.82,60],[0.92,41],[1,50]],
+    explanation: '一定の上限と下限のあいだを行き来する形。上下どちらかに抜けるまでは、横ばいが続きやすいよ。',
+  },
 ];
-const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'], ['doji', 'shooting-star']];
+const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'], ['doji', 'shooting-star'],
+  ['symmetrical-triangle', 'bear-pennant'], ['saucer-bottom', 'cup-with-handle'],
+  ['ascending-triangle', 'symmetrical-triangle'], ['descending-triangle', 'symmetrical-triangle']];
 const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
 const MODE_LABELS = {
   all: '全部まぜ',

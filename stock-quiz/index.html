@@ -36,6 +36,12 @@ canvas { display: block; }
 .diffs button { text-align: center; padding: 8px 16px; min-width: 64px; }
 .diffs button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7.5px 15.5px; font-weight: 600; }
 ul.wrong .stars { margin-right: 6px; }
+button.link { background: none; border: none; color: var(--accent); text-decoration: underline; padding: 6px 0; }
+button.link:hover { border: none; }
+.leave { margin-bottom: 4px; }
+.confirm { border: 0.5px solid var(--border); background: var(--card); border-radius: 8px; padding: 12px; margin: 4px 0 8px; }
+.confirm p { margin: 0 0 8px; font-size: 14px; }
+.confirm .row { display: flex; gap: 8px; flex-wrap: wrap; }
 button { font: inherit; color: var(--text); background: var(--card); border: 0.5px solid var(--border);
   border-radius: 8px; padding: 12px; text-align: left; cursor: pointer; }
 button:hover { border-color: var(--accent); }
@@ -648,6 +654,18 @@ function roundSize(mode, difficulty = 'all') {
   return Math.min(ROUND_SIZE, buildPool(mode, createRng(1), difficulty).length);
 }
 
+// 選択肢の並びだけを入れ替えた新しい問題を返す(元の問題は変えない)。outlook は固定順
+function reshuffleChoices(q, rng) {
+  if (q.type === 'outlook') return { ...q, choices: q.choices.slice() };
+  return { ...q, choices: shuffle(q.choices, rng) };
+}
+
+// 間違えた問題だけを、deck の並びのまま、選択肢を入れ替えて取り出す
+function buildRetryDeck(deck, results, seed) {
+  const wrongIds = new Set(results.filter((r) => !r.correct).map((r) => r.id));
+  return deck.filter((q) => wrongIds.has(q.id)).map((q, i) => reshuffleChoices(q, createRng(seed + i)));
+}
+
 function judge(q, choice) {
   return choice === q.answer;
 }
@@ -751,10 +769,44 @@ function starsBadge(level) {
   return `<span class="stars" role="img" aria-label="${starsAria(level)}">${starsOf(level)}</span>`;
 }
 
+// 「← トップに戻る」とその確認(画面の中に出す。window.confirm は使わない)
+let leaving = false; // 確認を出している間は true(このあいだ、選択肢や「次の問題へ」は答えにしない)
+let confirmAt = 0;
+function leaveSlot() {
+  return '<div class="leave" id="leave-slot"><button class="link" id="leave">← トップに戻る</button></div>';
+}
+
+function bindLeave() {
+  leaving = false;
+  const slot = document.getElementById('leave-slot');
+  const showLink = () => {
+    leaving = false;
+    slot.innerHTML = '<button class="link" id="leave">← トップに戻る</button>';
+    document.getElementById('leave').addEventListener('click', showConfirm);
+  };
+  const showConfirm = () => {
+    leaving = true;
+    slot.innerHTML = `<div class="confirm" role="group" aria-label="トップに戻る確認">
+      <p>今のラウンドは途中でやめるよ。トップに戻っていい?</p>
+      <div class="row"><button id="leave-ok">やめてトップへ</button><button id="leave-cancel">続ける</button></div></div>`;
+    // ダブルクリックの2回目が確認のボタンに当たらないようにする
+    const ok = () => { if (performance.now() - confirmAt >= CLICK_GUARD_MS) { leaving = false; showStart(); } };
+    const cancel = () => {
+      if (performance.now() - confirmAt < CLICK_GUARD_MS) return;
+      showLink();
+      shownAt = performance.now(); // 確認が閉じて内容が上にずれるので、2回目のクリックが選択肢に当たらないようにする
+    };
+    document.getElementById('leave-ok').addEventListener('click', ok);
+    document.getElementById('leave-cancel').addEventListener('click', cancel);
+    confirmAt = performance.now();
+  };
+  document.getElementById('leave').addEventListener('click', showConfirm);
+}
+
 function header() {
   const done = game.results.length;
   const correct = game.results.filter((r) => r.correct).length;
-  return `<div class="head"><span>問題 ${Math.min(game.index + 1, game.deck.length)} / ${game.deck.length}</span>${starsBadge(game.deck[Math.min(game.index, game.deck.length - 1)].difficulty)}<span>正解 ${correct}</span></div>
+  return `${leaveSlot()}<div class="head"><span>${game.retry ? 'やり直し ' : ''}問題 ${Math.min(game.index + 1, game.deck.length)} / ${game.deck.length}</span>${starsBadge(game.deck[Math.min(game.index, game.deck.length - 1)].difficulty)}<span>正解 ${correct}</span></div>
     <div class="bar"><div style="width:${(done / game.deck.length) * 100}%"></div></div>`;
 }
 
@@ -922,8 +974,9 @@ function showQuestion() {
     <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
   if (hasChart) drawQuestionChart(q, false);
   else redraw = null;
+  bindLeave();
   app.querySelectorAll('[data-i]').forEach((b) =>
-    b.addEventListener('click', guarded(() => answer(q, q.choices[Number(b.dataset.i)]))));
+    b.addEventListener('click', guarded(() => { if (!leaving) answer(q, q.choices[Number(b.dataset.i)]); })));
   shownAt = performance.now();
 }
 
@@ -950,7 +1003,8 @@ function showExplain(q, picked, correct) {
     <button class="primary" id="next">${last ? '結果を見る' : '次の問題へ'}</button>`;
   if (hasChart) drawQuestionChart(q, true);
   else redraw = null;
-  document.getElementById('next').addEventListener('click', guarded(next));
+  bindLeave();
+  document.getElementById('next').addEventListener('click', guarded(() => { if (!leaving) next(); }));
   shownAt = performance.now();
 }
 
@@ -962,8 +1016,10 @@ function next() {
 
 function finish() {
   const summary = summarizeRound(game.results);
-  stats = updateStats(stats, statsKey(game.mode, game.difficulty), summary.correct, summary.total);
-  saveStats();
+  if (!game.retry) { // やり直しは最高スコアにも正解率にも入れない
+    stats = updateStats(stats, statsKey(game.mode, game.difficulty), summary.correct, summary.total);
+    saveStats();
+  }
   showResult(summary);
 }
 
@@ -971,18 +1027,31 @@ function showResult(summary) {
   redraw = null;
   const wrong = summary.wrong.map((r) =>
     `<li>${starsBadge(r.difficulty)}${esc(r.question)} 正解: ${esc(r.answer)}(あなたの答え: ${esc(r.picked)})</li>`).join('');
-  app.innerHTML = `<h1>結果</h1>
+  const retryLabel = game.retry ? 'まだ間違えた問題をやり直す' : '間違えた問題だけやり直す';
+  const retryBtn = summary.wrong.length
+    ? `<button class="primary" id="retry">${retryLabel}(${summary.wrong.length}問)</button>` : '';
+  app.innerHTML = `<h1>${game.retry ? 'やり直しの結果' : '結果'}</h1>
+    ${game.retry ? '<p class="note">やり直しの結果は、最高スコアと正解率には入らないよ。</p>' : ''}
     <p class="score">${summary.correct} / ${summary.total}</p>
     ${wrong ? `<p class="q">間違えた問題</p><ul class="wrong">${wrong}</ul>` : '<p class="lead">全問正解だよ。</p>'}
     <div class="actions">
-      <button class="primary" id="again">もう一度</button>
-      <button id="copy">結果をコピー</button>
+      ${retryBtn}
+      <button class="${retryBtn ? '' : 'primary'}" id="again">${game.retry ? '新しいラウンドを始める' : 'もう一度'}</button>
+      ${game.retry ? '' : '<button id="copy">結果をコピー</button>'}
       <button id="top">トップへ戻る</button>
     </div>
     <p class="note" id="copy-note"></p>`;
-  document.getElementById('again').addEventListener('click', () => startGame(game.mode));
+  const retryEl = document.getElementById('retry');
+  if (retryEl) retryEl.addEventListener('click', guarded(() => {
+    game = { mode: game.mode, difficulty: game.difficulty, deck: buildRetryDeck(game.deck, game.results, Date.now() % 2147483647),
+      index: 0, results: [], retry: true };
+    showQuestion();
+  }));
+  document.getElementById('again').addEventListener('click', guarded(() => startGame(game.mode)));
+  shownAt = performance.now(); // 直前のダブルクリックの2回目で、やり直しや新ラウンドが始まらないようにする
   document.getElementById('top').addEventListener('click', showStart);
-  document.getElementById('copy').addEventListener('click', () =>
+  const copyEl = document.getElementById('copy');
+  if (copyEl) copyEl.addEventListener('click', () =>
     copyResult(formatShareText(game.mode, summary.correct, summary.total, game.difficulty)));
 }
 

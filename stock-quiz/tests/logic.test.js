@@ -990,3 +990,57 @@ test('formatShareText: 難易度つき', () => {
   assert.ok(t.includes('形の名前') && t.includes('★★') && t.includes('7') && t.includes('10'));
   assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
 });
+
+test('reshuffleChoices: 選択肢の集合と正解が変わらず、元の問題を変更しない。outlook は固定順', () => {
+  const deck = L.buildDeck('all', 4);
+  for (const q of deck) {
+    const before = JSON.stringify(q);
+    const r = L.reshuffleChoices(q, L.createRng(9));
+    assert.equal(JSON.stringify(q), before, '元の問題を変更しない');
+    assert.deepEqual(r.choices.slice().sort(), q.choices.slice().sort());
+    assert.equal(r.answer, q.answer);
+    assert.equal(r.id, q.id);
+    assert.equal(L.validateQuestion(r), null);
+    if (q.type === 'outlook') assert.deepEqual(r.choices, q.choices);
+  }
+});
+
+test('reshuffleChoices: 同じシードなら同じ並び、シードを変えると並びが変わりうる', () => {
+  const q = L.buildDeck('term', 2)[0];
+  assert.deepEqual(L.reshuffleChoices(q, L.createRng(3)), L.reshuffleChoices(q, L.createRng(3)));
+  const orders = new Set();
+  for (let s = 1; s <= 30; s++) orders.add(L.reshuffleChoices(q, L.createRng(s)).choices.join('|'));
+  assert.ok(orders.size > 1);
+});
+
+test('buildRetryDeck: 間違えた問題だけを、元の並びで出す', () => {
+  const deck = L.buildDeck('all', 6);
+  const results = deck.map((q, i) => ({ id: q.id, correct: i % 3 !== 0 }));
+  const retry = L.buildRetryDeck(deck, results, 11);
+  const wrongIds = results.filter((r) => !r.correct).map((r) => r.id);
+  assert.deepEqual(retry.map((q) => q.id), wrongIds);
+  for (const q of retry) {
+    assert.equal(L.validateQuestion(q), null);
+    const orig = deck.find((d) => d.id === q.id);
+    assert.equal(q.answer, orig.answer);
+    assert.equal(q.difficulty, orig.difficulty);
+  }
+});
+
+test('buildRetryDeck: 全問正解なら空、全問不正解なら全部、決定的', () => {
+  const deck = L.buildDeck('candle', 3);
+  assert.deepEqual(L.buildRetryDeck(deck, deck.map((q) => ({ id: q.id, correct: true })), 1), []);
+  const allWrong = deck.map((q) => ({ id: q.id, correct: false }));
+  assert.equal(L.buildRetryDeck(deck, allWrong, 1).length, deck.length);
+  assert.deepEqual(L.buildRetryDeck(deck, allWrong, 1), L.buildRetryDeck(deck, allWrong, 1));
+});
+
+test('buildRetryDeck: やり直しの結果からさらに絞れる(続けてやり直せる)', () => {
+  const deck = L.buildDeck('term', 5);
+  const first = deck.map((q, i) => ({ id: q.id, correct: i >= 4 }));
+  const retry1 = L.buildRetryDeck(deck, first, 1);
+  assert.equal(retry1.length, 4);
+  const second = retry1.map((q, i) => ({ id: q.id, correct: i !== 1 }));
+  const retry2 = L.buildRetryDeck(retry1, second, 2);
+  assert.deepEqual(retry2.map((q) => q.id), [retry1[1].id]);
+});

@@ -684,7 +684,7 @@ function showExplain(q, picked, correct) {
   const shape = q.type === 'outlook' ? `<p class="sub">チャートの形: ${esc(q.patternName)}</p>` : '';
   app.innerHTML = `${header()}
     <div class="result ${correct ? 'good' : 'bad'}">
-      <p class="label">正解</p>
+      <p class="label">${correct ? '正解!' : '不正解… 正しい答えは'}</p>
       <p class="answer">${esc(q.answer)}</p>
       <p class="exp">${esc(q.explanation)}</p>
     </div>

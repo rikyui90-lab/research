@@ -167,6 +167,56 @@ const PATTERNS = [
     points: [[0,50],[0.1,60],[0.22,41],[0.34,60],[0.46,40],[0.58,60],[0.7,41],[0.82,60],[0.92,41],[1,50]],
     explanation: '一定の上限と下限のあいだを行き来する形。上下どちらかに抜けるまでは、横ばいが続きやすいよ。',
   },
+  {
+    id: 'ascending-channel', name: '上昇チャネル', outlook: 'up',
+    points: [[0,15],[0.125,46],[0.25,27],[0.375,58],[0.5,38],[0.625,69],[0.75,49],[0.875,80],[1,70]],
+    explanation: '平行な右上がりの2本の線のあいだで、高値と安値を切り上げながら上下に振れる形だよ。上昇トレンドが続いているサインとされるよ。ただし、下の線を割ると、トレンドが崩れたと見られることもあるよ。',
+  },
+  {
+    id: 'descending-channel', name: '下降チャネル', outlook: 'down',
+    points: [[0,85],[0.125,54],[0.25,73],[0.375,42],[0.5,62],[0.625,31],[0.75,51],[0.875,20],[1,30]],
+    explanation: '平行な右下がりの2本の線のあいだで、高値と安値を切り下げながら上下に振れる形だよ。下落トレンドが続いているサインとされるよ。ただし、上の線を超えると、トレンドが崩れたと見られることもあるよ。',
+  },
+  {
+    id: 'v-bottom', name: 'Vボトム(V字底)', outlook: 'up',
+    points: [[0,70],[0.15,75],[0.28,72],[0.41,48],[0.5,10],[0.59,48],[0.72,72],[0.85,75],[1,80]],
+    explanation: '急落のあと、底を尖らせて急反発し、V字を描く形だよ。売りが一気に出尽くして、上昇に転じやすいとされるよ。',
+  },
+  {
+    id: 'v-top', name: 'Vトップ(逆V字)', outlook: 'down',
+    points: [[0,30],[0.15,25],[0.28,28],[0.41,52],[0.5,90],[0.59,52],[0.72,28],[0.85,25],[1,20]],
+    explanation: '急騰のあと、天井を尖らせて急落し、逆V字を描く形だよ。買いが一気に出尽くして、下落に転じやすいとされるよ。',
+  },
+  {
+    id: 'bullish-perfect-order', name: '上昇パーフェクトオーダー', outlook: 'up', ma: true,
+    points: [[0,12],[0.15,24],[0.3,33],[0.38,36],[0.5,46],[0.6,54],[0.72,66],[0.8,67],[0.9,82],[1,92]],
+    explanation: '短期・中期・長期の移動平均線が、上から短期、中期、長期の順に並び、3本とも右上がりになる形だよ。上昇トレンドが強いサインとされるよ。',
+  },
+  {
+    id: 'bearish-perfect-order', name: '下降パーフェクトオーダー', outlook: 'down', ma: true,
+    points: [[0,88],[0.15,76],[0.3,67],[0.38,64],[0.5,54],[0.6,46],[0.72,34],[0.8,33],[0.9,18],[1,8]],
+    explanation: '短期・中期・長期の移動平均線が、上から長期、中期、短期の順に並び、3本とも右下がりになる形だよ。下落トレンドが強いサインとされるよ。',
+  },
+  {
+    id: 'rounding-top', name: 'ラウンドトップ(丸天井)', outlook: 'down',
+    points: [[0,25],[0.15,38],[0.3,58],[0.42,72],[0.5,75],[0.58,72],[0.7,58],[0.85,38],[1,26]],
+    explanation: 'ゆるやかに上がって丸い天井をつけ、ゆるやかに下がる形だよ。買いの勢いが少しずつ弱まって、下落に転じやすいとされるよ。',
+  },
+  {
+    id: 'inverted-cup-with-handle', name: '逆カップウィズハンドル', outlook: 'down',
+    points: [[0,40],[0.08,22],[0.2,30],[0.35,55],[0.5,68],[0.65,55],[0.78,30],[0.86,22],[0.92,32],[1,28]],
+    explanation: 'カップウィズハンドルを上下に逆さにした形だよ。丸い山のあと、小さな戻り(取っ手)をつけたあとに、下落しやすいとされるよ。',
+  },
+  {
+    id: 'diamond-top', name: 'ダイヤモンドトップ', outlook: 'down',
+    points: [[0,44],[0.08,68],[0.16,58],[0.25,76],[0.35,52],[0.46,84],[0.56,48],[0.66,78],[0.75,58],[0.84,72],[0.9,63],[0.94,66],[1,52]],
+    explanation: '高値圏で値幅が広がってから狭まり、ひし形を描く形だよ。ひし形の下の線を割ると、下落に転じやすいとされるよ。',
+  },
+  {
+    id: 'diamond-bottom', name: 'ダイヤモンドボトム', outlook: 'up',
+    points: [[0,56],[0.08,32],[0.16,42],[0.25,24],[0.35,48],[0.46,16],[0.56,52],[0.66,22],[0.75,42],[0.84,28],[0.9,37],[0.94,34],[1,48]],
+    explanation: '安値圏で値幅が広がってから狭まり、ひし形を描く形だよ。ひし形の上の線を超えると、上昇に転じやすいとされるよ。',
+  },
 ];
 const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'], ['doji', 'shooting-star'],
   ['symmetrical-triangle', 'bear-pennant'], ['saucer-bottom', 'cup-with-handle'],
@@ -181,7 +231,12 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['doji', 'bullish-harami-cross'], ['doji', 'bearish-harami-cross'], ['bullish-harami-cross', 'bearish-harami-cross'],
   ['rising-three-methods', 'falling-three-methods'], ['abandoned-baby-bottom', 'morning-star'],
   ['abandoned-baby-top', 'evening-star'], ['gap-up', 'gap-down'],
-  ['lower-shadow-bullish', 'dragonfly-doji'], ['upper-shadow-bearish', 'gravestone-doji']];
+  ['lower-shadow-bullish', 'dragonfly-doji'], ['upper-shadow-bearish', 'gravestone-doji'],
+  ['v-bottom', 'saucer-bottom'], ['v-top', 'rounding-top'], ['ascending-channel', 'rising-wedge'],
+  ['descending-channel', 'falling-wedge'], ['ascending-channel', 'bullish-perfect-order'],
+  ['descending-channel', 'bearish-perfect-order'], ['rounding-top', 'inverted-cup-with-handle'],
+  ['diamond-top', 'head-shoulders'], ['diamond-bottom', 'inverse-head-shoulders'], ['diamond-top', 'diamond-bottom'],
+  ['inverted-cup-with-handle', 'head-shoulders']];
 const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
 const MODE_LABELS = {
   all: '全部まぜ',
@@ -450,11 +505,14 @@ const DIFFICULTY_FILTERS = ['all', 'easy', 'normal', 'hard', 'expert', 'master']
 const DIFFICULTY_LABELS = { all: 'すべて', easy: '★', normal: '★★', hard: '★★★', expert: '★★★★', master: '★★★★★' };
 const DIFFICULTY_BY_ID = {
   patterns: {
-    easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range'],
-    normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge'],
-    hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom'],
-    expert: [], // 問題はこれから足す
-    master: [],
+    easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range',
+      'ascending-channel', 'descending-channel'],
+    normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge',
+      'v-bottom', 'v-top'],
+    hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom',
+      'bullish-perfect-order', 'bearish-perfect-order'],
+    expert: ['rounding-top', 'inverted-cup-with-handle'],
+    master: ['diamond-top', 'diamond-bottom'],
   },
   candles: {
     easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top',

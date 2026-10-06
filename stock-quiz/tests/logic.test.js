@@ -55,10 +55,10 @@ test('normalizeRange: 値が1つでも min < max になる', () => {
   assert.ok(r.min < r.max);
 });
 
-test('PATTERNS: 20個あり、id と name が重複せず、定義が正しい', () => {
-  assert.equal(L.PATTERNS.length, 20);
-  assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 20);
-  assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 20);
+test('PATTERNS: 30個あり、id と name が重複せず、定義が正しい', () => {
+  assert.equal(L.PATTERNS.length, 30);
+  assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 30);
+  assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 30);
   for (const p of L.PATTERNS) {
     assert.ok(['up', 'down', 'flat'].includes(p.outlook), p.id);
     assert.ok(p.explanation.length > 0, p.id);
@@ -546,8 +546,8 @@ test('続きの値動きも滑らか: 隣り合う点の差が大きくない', 
   }
 });
 
-test('PATTERNS: 20個で、追加した9個が揃っている', () => {
-  assert.equal(L.PATTERNS.length, 20);
+test('PATTERNS: 30個で、追加した9個が揃っている', () => {
+  assert.equal(L.PATTERNS.length, 30);
   for (const id of ['triple-top', 'triple-bottom', 'ascending-triangle', 'descending-triangle',
     'bear-flag', 'bear-pennant', 'cup-with-handle', 'saucer-bottom', 'box-range']) {
     assert.ok(L.findPattern(id), id);
@@ -851,11 +851,14 @@ test('毛抜き天井・底の説明に「そろう」が入っている', () =>
 
 const LEVEL_TABLE = {
   patterns: {
-    easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range'],
-    normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge'],
-    hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom'],
-    expert: [], // Task 2〜4 で追加する
-    master: [], // Task 2〜4 で追加する
+    easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range',
+      'ascending-channel', 'descending-channel'],
+    normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge',
+      'v-bottom', 'v-top'],
+    hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom',
+      'bullish-perfect-order', 'bearish-perfect-order'],
+    expert: ['rounding-top', 'inverted-cup-with-handle'],
+    master: ['diamond-top', 'diamond-bottom'],
   },
   candles: {
     easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top',
@@ -1047,20 +1050,20 @@ test('問題オブジェクトに難易度が入り、validateQuestion が見る
   assert.ok(L.validateQuestion({ ...q, difficulty: undefined }));
 });
 
-test('モード×難易度の問題数: easy/normal/hard は6問以上で表の数と合う(expert/master は0問以上)', () => {
+test('モード×難易度の問題数: easy/normal/hard は6問以上で表の数と合う(expert/master は Task 5 で1問以上に直す)', () => {
   const expected = {
-    pattern: { easy: 7, normal: 7, hard: 6 },
-    outlook: { easy: 7, normal: 6, hard: 6 },
+    pattern: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
+    outlook: { easy: 9, normal: 8, hard: 8, expert: 2, master: 2 },
     candle: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
     term: { easy: 11, normal: 11, hard: 10, expert: 4, master: 4 },
   };
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_FILTERS) {
       const n = L.buildPool(mode, L.createRng(1), level).length;
-      // expert / master は Task 2〜4 で問題を足すまで0問。Task 4/5 で「1問以上」と正確な数に直す
+      // expert / master の all モードは、Task 5 で正確な数に直す(ここでは1問以上)
       if (level === 'expert' || level === 'master') {
-        assert.ok(n >= 0, `${mode}/${level} n=${n}`);
-        if (mode === 'term' || mode === 'candle') assert.equal(n, expected[mode][level], `${mode}/${level}`);
+        assert.ok(n >= 1, `${mode}/${level} n=${n}`);
+        if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
         continue;
       }
       assert.ok(n >= 6, `${mode}/${level} n=${n}`);
@@ -1200,4 +1203,208 @@ test('buildRetryDeck: やり直しの結果からさらに絞れる(続けてや
   const second = retry1.map((q, i) => ({ id: q.id, correct: i !== 1 }));
   const retry2 = L.buildRetryDeck(retry1, second, 2);
   assert.deepEqual(retry2.map((q) => q.id), [retry1[1].id]);
+});
+
+// ---- 新規チャート10種類(Task 4) ----
+const NEW_CHART_IDS = ['ascending-channel', 'descending-channel', 'v-bottom', 'v-top', 'bullish-perfect-order',
+  'bearish-perfect-order', 'rounding-top', 'inverted-cup-with-handle', 'diamond-top', 'diamond-bottom'];
+
+const rangeOf2 = (a) => Math.max(...a) - Math.min(...a);
+const sliceAt = (v, r) => v.slice(Math.floor(v.length * r[0]), Math.ceil(v.length * r[1]) + 1);
+// 最小二乗の傾き(1点あたり)
+function slopeOf(idxs, values) {
+  const n = idxs.length;
+  const mx = idxs.reduce((a, b) => a + b, 0) / n;
+  const my = values.reduce((a, b) => a + b, 0) / n;
+  let num = 0;
+  let den = 0;
+  idxs.forEach((x, i) => { num += (x - mx) * (values[i] - my); den += (x - mx) ** 2; });
+  return num / den;
+}
+
+test('新規チャート10種類: id・outlook・難易度・outlookQuiz が表どおり', () => {
+  const want = {
+    'ascending-channel': ['up', 'easy'], 'descending-channel': ['down', 'easy'],
+    'v-bottom': ['up', 'normal'], 'v-top': ['down', 'normal'],
+    'bullish-perfect-order': ['up', 'hard'], 'bearish-perfect-order': ['down', 'hard'],
+    'rounding-top': ['down', 'expert'], 'inverted-cup-with-handle': ['down', 'expert'],
+    'diamond-top': ['down', 'master'], 'diamond-bottom': ['up', 'master'],
+  };
+  assert.deepEqual(Object.keys(want).sort(), NEW_CHART_IDS.slice().sort());
+  for (const [id, [outlook, level]] of Object.entries(want)) {
+    const p = L.findPattern(id);
+    assert.equal(p.outlook, outlook, id);
+    assert.equal(p.difficulty, level, id);
+    assert.notEqual(p.outlookQuiz, false, id);
+    assert.ok(p.explanation.endsWith('よ。'), id);
+    assert.equal(L.validateQuestion(L.makePatternQuestion(p, 5)), null, id);
+    assert.equal(L.validateQuestion(L.makeOutlookQuestion(p, 5)), null, id);
+  }
+});
+
+test('上昇チャネル / 下降チャネル: 高値の列と安値の列が、どちらも同じ向きに傾き、傾きがほぼ同じ', () => {
+  for (const [id, sign] of [['ascending-channel', 1], ['descending-channel', -1]]) {
+    for (let seed = 1; seed <= 30; seed++) {
+      const v = L.generateSeries(L.findPattern(id), seed);
+      // 頂が平らで同じ値が並んだとき、隣り合う2点は1つの山として数える
+      const dedupe = (a) => a.filter((x, k) => k === 0 || x - a[k - 1] > 2);
+      const ps = dedupe(peaks(v, 6, 5));
+      const ts = dedupe(troughs(v, 6, 5));
+      assert.ok(ps.length >= 3 && ts.length >= 3, `${id} seed=${seed} 山${ps.length} 谷${ts.length}`);
+      const sp = slopeOf(ps, ps.map((i) => v[i])) * sign;
+      const st = slopeOf(ts, ts.map((i) => v[i])) * sign;
+      assert.ok(sp > 0.2 && st > 0.2, `${id} seed=${seed} 傾き sp=${sp} st=${st}`);
+      assert.ok(Math.abs(sp - st) < 0.25 * Math.max(sp, st), `${id} seed=${seed} 平行 sp=${sp} st=${st}`);
+      // 切り上げ(切り下げ): 山も谷も、1つ前より必ず進む
+      for (let k = 1; k < ps.length; k++) assert.ok((v[ps[k]] - v[ps[k - 1]]) * sign > 0, `${id} seed=${seed} 高値`);
+      for (let k = 1; k < ts.length; k++) assert.ok((v[ts[k]] - v[ts[k - 1]]) * sign > 0, `${id} seed=${seed} 安値`);
+      // 山と、いちばん近い谷との差(チャネルの幅)がはっきりある
+      for (const i of ps) {
+        const j = ts.reduce((a, b) => (Math.abs(b - i) < Math.abs(a - i) ? b : a));
+        assert.ok(Math.abs(v[i] - v[j]) > 10, `${id} seed=${seed} 幅`);
+      }
+    }
+  }
+});
+
+test('Vボトム / Vトップ: 底(天井)が中ほどで尖っていて、前後の傾きが急で、左右の差が小さい', () => {
+  for (const [id, sign] of [['v-bottom', 1], ['v-top', -1]]) {
+    for (let seed = 1; seed <= 30; seed++) {
+      const v = L.generateSeries(L.findPattern(id), seed).map((x) => x * sign); // 以後は「底」を探す形にそろえる
+      const n = v.length;
+      const m = v.indexOf(Math.min(...v));
+      assert.ok(m > n * 0.4 && m < n * 0.6, `${id} seed=${seed} 位置 ${m}`);
+      assert.equal(troughs(v, 6, 8).length, 1, `${id} seed=${seed} 谷は1つ`);
+      assert.ok(v[0] - v[m] > 50 && v[n - 1] - v[m] > 50, `${id} seed=${seed} 深さ`);
+      // 尖っている: 底から8点離れただけで、もう20以上動いている(丸底なら数しか動かない)
+      assert.ok(v[m - 8] - v[m] > 20 && v[m + 8] - v[m] > 20, `${id} seed=${seed} 尖り`);
+      // 前後の傾きが急: 底の前後15点で、1点あたり1.5以上動く
+      assert.ok((v[m - 15] - v[m]) / 15 > 1.5 && (v[m + 15] - v[m]) / 15 > 1.5, `${id} seed=${seed} 傾き`);
+      // 左右の差が小さい
+      for (const k of [8, 15, 25]) assert.ok(Math.abs(v[m - k] - v[m + k]) < 12, `${id} seed=${seed} 左右 k=${k}`);
+    }
+  }
+});
+
+test('パーフェクトオーダー: 最後の点で 短期>中期>長期(下降は逆)で、3本とも最後の10点で傾きが正(負)。300シード', () => {
+  for (const [id, sign] of [['bullish-perfect-order', 1], ['bearish-perfect-order', -1]]) {
+    for (let seed = 1; seed <= 300; seed++) {
+      const v = L.generateSeries(L.findPattern(id), seed);
+      const s = L.movingAverage(v, L.MA_SHORT);
+      const m = L.movingAverage(v, L.MA_MID);
+      const l = L.movingAverage(v, L.MA_LONG);
+      const last = v.length - 1;
+      assert.ok((s[last] - m[last]) * sign > 0 && (m[last] - l[last]) * sign > 0, `${id} seed=${seed} 並び`);
+      for (const [name, ma] of [['短期', s], ['中期', m], ['長期', l]]) {
+        assert.ok((ma[last] - ma[last - 9]) * sign > 0, `${id} seed=${seed} ${name}の傾き`);
+      }
+      // トレンドが系列の全体に渡る: 長期線が始まる点から最後まで、長期線は同じ向きに進む
+      assert.ok((l[last] - l[59]) * sign > 10, `${id} seed=${seed} 長期線の進み`);
+      assert.ok((v[last] - v[0]) * sign > 50, `${id} seed=${seed} 全体のトレンド`);
+      // 長期線が始まる点(59)から最後まで、並びが崩れない
+      for (let i = 59; i <= last; i++) {
+        assert.ok((s[i] - m[i]) * sign > 0 && (m[i] - l[i]) * sign > 0, `${id} seed=${seed} i=${i} 並び`);
+      }
+    }
+  }
+});
+
+test('パーフェクトオーダーだけが chart.ma を3本返し、ほかの新規チャートは ma が undefined', () => {
+  for (const id of NEW_CHART_IDS) {
+    const p = L.findPattern(id);
+    for (const q of [L.makePatternQuestion(p, 4), L.makeOutlookQuestion(p, 4)]) {
+      const c = L.chartForQuestion(q);
+      if (id.endsWith('perfect-order')) {
+        assert.equal(p.ma, true, id);
+        for (const [key, win] of [['short', L.MA_SHORT], ['mid', L.MA_MID], ['long', L.MA_LONG]]) {
+          assert.equal(c.ma[key].length, L.SERIES_LENGTH, `${id} ${key}`);
+          assert.equal(c.ma[key].filter((x) => x === null).length, win - 1, `${id} ${key}`);
+        }
+      } else {
+        assert.equal(c.ma, undefined, id);
+        assert.notEqual(p.ma, true, id);
+      }
+    }
+  }
+});
+
+test('ラウンドトップ: 山が1つで、左右がほぼ対称で、頂点付近がなだらか', () => {
+  for (let seed = 1; seed <= 30; seed++) {
+    const v = L.generateSeries(L.findPattern('rounding-top'), seed);
+    const n = v.length;
+    const ps = peaks(v, 25, 15);
+    assert.equal(ps.length, 1, `seed=${seed} 山 ${ps}`);
+    const m = ps[0];
+    assert.ok(m > n * 0.4 && m < n * 0.6, `seed=${seed} 位置 ${m}`);
+    assert.ok(v[m] - v[0] > 35 && v[m] - v[n - 1] > 35, `seed=${seed} 両端より高い`);
+    // 左右がほぼ対称: 系列の中心(59.5)から同じ距離の2点の差が小さい
+    for (const k of [15, 30, 45]) assert.ok(Math.abs(v[59 - k] - v[60 + k]) < 8, `seed=${seed} 左右 k=${k}`);
+    // 頂点付近がなだらか: 中ほどの 0.42〜0.58(約19点)が、最高値から8以内に収まる(尖った山ではない)
+    assert.ok(Math.min(...sliceAt(v, [0.42, 0.58])) > Math.max(...v) - 8, `seed=${seed} なだらか`);
+  }
+});
+
+test('逆カップウィズハンドル: 左右のふちがそろい、頂は高く、最後に小さな戻り(取っ手)', () => {
+  for (let seed = 1; seed <= 30; seed++) {
+    const v = L.generateSeries(L.findPattern('inverted-cup-with-handle'), seed);
+    const n = v.length;
+    const left = Math.min(...sliceAt(v, [0.04, 0.14]));
+    const right = Math.min(...sliceAt(v, [0.82, 0.9]));
+    const top = Math.max(...sliceAt(v, [0.4, 0.6]));
+    assert.ok(Math.abs(left - right) < 6, `seed=${seed} ふち`);
+    assert.ok(top - left > 30, `seed=${seed} 頂`);
+    const handle = Math.max(...sliceAt(v, [0.88, 0.96]));
+    assert.ok(handle - right > 4 && handle - right < 20, `seed=${seed} 取っ手`);
+    assert.equal(peaks(v, 25, 15).length, 1, `seed=${seed} 丸い山は1つ`);
+    assert.ok(v[n - 1] < top - 25, `seed=${seed} 頂より下で終わる`);
+  }
+});
+
+test('ダイヤモンドトップ / ボトム: 中ほどで振れ幅が最大になり、前後で狭まり、最後に抜ける', () => {
+  for (const [id, sign] of [['diamond-top', 1], ['diamond-bottom', -1]]) {
+    for (let seed = 1; seed <= 30; seed++) {
+      const v = L.generateSeries(L.findPattern(id), seed).map((x) => x * sign); // 以後は「高値圏」にそろえる
+      const n = v.length;
+      const early = sliceAt(v, [0.12, 0.3]);
+      const mid = sliceAt(v, [0.38, 0.62]);
+      const late = sliceAt(v, [0.7, 0.9]);
+      assert.ok(rangeOf2(mid) > rangeOf2(early) * 1.25, `${id} seed=${seed} 広がる`);
+      assert.ok(rangeOf2(mid) > rangeOf2(late) * 1.25, `${id} seed=${seed} 狭まる`);
+      // 高値圏: 保ち合いの平均が、始まりより20以上高い
+      const body = sliceAt(v, [0.12, 0.9]);
+      assert.ok(body.reduce((a, b) => a + b, 0) / body.length - v[0] > 20, `${id} seed=${seed} 圏`);
+      // 最後は、保ち合いの下限を抜ける
+      assert.ok(v[n - 1] < Math.min(...sliceAt(v, [0.62, 0.92])) - 4, `${id} seed=${seed} 抜ける`);
+      // ひし形らしく、山と谷が複数ある
+      assert.ok(peaks(v, 6, 5).length >= 3 && troughs(v, 6, 5).length >= 3, `${id} seed=${seed} 山谷`);
+    }
+  }
+});
+
+test('新規チャートの紛らわしい組が両方向で isConfusable で、形状の選択肢に同時に出ない', () => {
+  const pairs = [['v-bottom', 'saucer-bottom'], ['v-top', 'rounding-top'], ['ascending-channel', 'rising-wedge'],
+    ['descending-channel', 'falling-wedge'], ['ascending-channel', 'bullish-perfect-order'],
+    ['descending-channel', 'bearish-perfect-order'], ['rounding-top', 'inverted-cup-with-handle'],
+    ['diamond-top', 'head-shoulders'], ['diamond-bottom', 'inverse-head-shoulders'], ['diamond-top', 'diamond-bottom'],
+    ['inverted-cup-with-handle', 'head-shoulders']];
+  for (const [a, b] of pairs) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+    for (let seed = 1; seed <= 40; seed++) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makePatternQuestion(L.findPattern(x), seed);
+        assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
+      }
+    }
+  }
+});
+
+test('新規チャート: どの難易度でも pattern / outlook / all の出題が有効', () => {
+  for (const mode of ['pattern', 'outlook', 'all']) {
+    for (const level of L.DIFFICULTY_FILTERS) {
+      for (let seed = 1; seed <= 10; seed++) {
+        for (const q of L.buildDeck(mode, seed, level)) assert.equal(L.validateQuestion(q), null, `${mode}/${level}`);
+      }
+    }
+  }
 });

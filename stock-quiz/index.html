@@ -782,7 +782,9 @@ function bindLeave() {
   const showLink = () => {
     leaving = false;
     slot.innerHTML = '<button class="link" id="leave">← トップに戻る</button>';
-    document.getElementById('leave').addEventListener('click', showConfirm);
+    const link = document.getElementById('leave');
+    link.addEventListener('click', showConfirm);
+    return link;
   };
   const showConfirm = () => {
     leaving = true;
@@ -793,12 +795,13 @@ function bindLeave() {
     const ok = () => { if (performance.now() - confirmAt >= CLICK_GUARD_MS) { leaving = false; showStart(); } };
     const cancel = () => {
       if (performance.now() - confirmAt < CLICK_GUARD_MS) return;
-      showLink();
+      showLink().focus();
       shownAt = performance.now(); // 確認が閉じて内容が上にずれるので、2回目のクリックが選択肢に当たらないようにする
     };
     document.getElementById('leave-ok').addEventListener('click', ok);
     document.getElementById('leave-cancel').addEventListener('click', cancel);
     confirmAt = performance.now();
+    document.getElementById('leave-cancel').focus();
   };
   document.getElementById('leave').addEventListener('click', showConfirm);
 }
@@ -944,6 +947,8 @@ function showStart() {
   app.querySelectorAll('[data-diff]').forEach((b) => b.addEventListener('click', () => {
     difficulty = b.dataset.diff;
     showStart();
+    const again = app.querySelector(`[data-diff="${difficulty}"]`);
+    if (again) again.focus(); // 描き直したあとも、押したボタンにフォーカスを戻す
   }));
   // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
   app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => startGame(b.dataset.mode))));

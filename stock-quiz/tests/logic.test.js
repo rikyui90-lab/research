@@ -643,7 +643,7 @@ test('宵の明星: 上に窓を空けた小さな実体のあと、1本目の�
   assert.ok(c.c < c.o && c.c < (a.o + a.c) / 2, '3本目は1本目の半分より下まで下げる陰線');
 });
 
-test('陽のはらみ足 / 陰のはらみ足: 2本目が1本目の実体の中に収まる', () => {
+test('強気のはらみ足 / 弱気のはらみ足: 2本目が1本目の実体の中に収まる', () => {
   const [a, b] = candleOf('bullish-harami');
   assert.ok(a.c < a.o && b.c > b.o);
   assert.ok(Math.max(b.o, b.c) < Math.max(a.o, a.c) && Math.min(b.o, b.c) > Math.min(a.o, a.c));
@@ -755,4 +755,25 @@ test('どのモードでも出題プールが ROUND_SIZE 以上で、値動き�
   }
   const pool = L.buildPool('outlook', L.createRng(1));
   assert.ok(!pool.some((q) => q.patternId === 'symmetrical-triangle'));
+});
+
+test('はらみ足の名前は「強気」「弱気」で、旧名は残っていない', () => {
+  const nameOfCandle = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
+  assert.equal(nameOfCandle('bullish-harami'), '強気のはらみ足');
+  assert.equal(nameOfCandle('bearish-harami'), '弱気のはらみ足');
+  const names = L.CANDLE_PATTERNS.map((c) => c.name);
+  assert.ok(!names.includes('陽のはらみ足') && !names.includes('陰のはらみ足'));
+});
+
+test('トンボは始値=終値=高値、塔婆は始値=終値=安値(厳密な定義)', () => {
+  const [d] = candleOf('dragonfly-doji');
+  assert.ok(d.h === d.o && d.o === d.c);
+  const [g] = candleOf('gravestone-doji');
+  assert.ok(g.l === g.o && g.o === g.c);
+});
+
+test('毛抜き天井・底の説明に「そろう」が入っている', () => {
+  for (const id of ['tweezer-top', 'tweezer-bottom']) {
+    assert.ok(L.CANDLE_PATTERNS.find((c) => c.id === id).explanation.includes('そろう'), id);
+  }
 });

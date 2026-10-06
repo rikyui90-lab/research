@@ -546,7 +546,9 @@ function header() {
 function drawLines(ctx, w, h, chart, reveal, colors) {
   const cont = chart.continuation || [];
   const all = chart.values.concat(cont);
-  const { min, max } = normalizeRange(all);
+  // 続きの方向を軸でほのめかさないよう、最後の値を中心に上下対称な範囲にする
+  const lastValue = chart.values[chart.values.length - 1];
+  const { min, max } = normalizeRange(all.concat(cont.map((v) => 2 * lastValue - v)));
   const n = all.length;
   const x = (i) => 8 + (i / (n - 1)) * (w - 16);
   const y = (v) => h - 12 - ((v - min) / (max - min)) * (h - 24);

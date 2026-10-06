@@ -33,8 +33,9 @@ canvas { display: block; }
 .choices { display: grid; gap: 8px; }
 .sec { font-size: 14px; font-weight: 500; margin: 12px 0 6px; }
 .diffs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-.diffs button { text-align: center; padding: 8px 16px; min-width: 64px; }
-.diffs button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7.5px 15.5px; font-weight: 600; }
+.diffs button { text-align: center; padding: 8px 12px; min-width: 56px; }
+.diffs button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7.5px 11.5px; font-weight: 600; }
+.choice[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 ul.wrong .stars { margin-right: 6px; }
 button.link { background: none; border: none; color: var(--accent); text-decoration: underline; padding: 6px 0; }
 button.link:hover { border: none; }
@@ -178,7 +179,7 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
 const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
 const MODE_LABELS = {
   all: '全部まぜ',
-  pattern: '形の名前',
+  pattern: 'チャートの形状',
   outlook: '値動き予想',
   candle: 'ローソク足',
   term: '用語',
@@ -326,25 +327,31 @@ const TERMS = [
     explanation: '通常、運用益には約20%の税金がかかるけれど、NISA の枠の中では非課税だよ。' },
 ];
 
-// 難易度(内部の値は easy / normal / hard、画面では ★ / ★★ / ★★★ で表す)
-const DIFFICULTY_LEVELS = ['easy', 'normal', 'hard'];
-const DIFFICULTY_FILTERS = ['all', 'easy', 'normal', 'hard'];
-const DIFFICULTY_LABELS = { all: 'すべて', easy: '★', normal: '★★', hard: '★★★' };
+// 難易度(内部の値は easy / normal / hard / expert / master、画面では ★ から ★★★★★ で表す)
+const DIFFICULTY_LEVELS = ['easy', 'normal', 'hard', 'expert', 'master'];
+const DIFFICULTY_FILTERS = ['all', 'easy', 'normal', 'hard', 'expert', 'master'];
+const DIFFICULTY_LABELS = { all: 'すべて', easy: '★', normal: '★★', hard: '★★★', expert: '★★★★', master: '★★★★★' };
 const DIFFICULTY_BY_ID = {
   patterns: {
     easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range'],
     normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge'],
     hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom'],
+    expert: [], // 問題はこれから足す
+    master: [],
   },
   candles: {
     easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top'],
     normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji'],
     hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover'],
+    expert: [], // 問題はこれから足す
+    master: [],
   },
   terms: {
     easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa'],
     normal: ['per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up'],
     hard: ['roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'],
+    expert: [], // 問題はこれから足す
+    master: [],
   },
 };
 // 各項目に difficulty を付ける(表にない id は付かず、validateQuestion が不備として見つける)
@@ -599,7 +606,7 @@ function starsOf(level) {
 }
 
 function starsAria(level) {
-  return `難易度 星${DIFFICULTY_LEVELS.indexOf(level) + 1}つ(3段階)`;
+  return `難易度 星${DIFFICULTY_LEVELS.indexOf(level) + 1}つ(5段階)`;
 }
 
 // difficulty が 'all' なら全部、それ以外はその難易度の項目だけ
@@ -934,11 +941,13 @@ function showStart() {
     const size = roundSize(m, difficulty);
     const p = stats.played[key];
     const rate = p.total ? `${Math.round((p.correct / p.total) * 100)}%` : '-';
+    if (size === 0) {
+      return `<button class="choice" data-mode="${m}" aria-disabled="true">${MODE_LABELS[m]}<small>この難易度の問題は、まだないよ</small></button>`;
+    }
     return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[key]} / ${size}　正解率 ${rate}　${size}問</small></button>`;
   }).join('');
-  const diffLabels = { all: 'すべて', easy: '難易度 星1つ(3段階)', normal: '難易度 星2つ(3段階)', hard: '難易度 星3つ(3段階)' };
   const diffs = DIFFICULTY_FILTERS.map((d) =>
-    `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${diffLabels[d]}">${DIFFICULTY_LABELS[d]}</button>`).join('');
+    `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
     <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <p class="sec">難易度</p>
@@ -951,7 +960,7 @@ function showStart() {
     if (again) again.focus(); // 描き直したあとも、押したボタンにフォーカスを戻す
   }));
   // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
-  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => startGame(b.dataset.mode))));
+  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => { if (b.getAttribute('aria-disabled') !== 'true') startGame(b.dataset.mode); })));
   shownAt = performance.now();
 }
 

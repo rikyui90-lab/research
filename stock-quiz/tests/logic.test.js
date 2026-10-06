@@ -388,10 +388,10 @@ test('parseStats: 一部だけ正しい入力は、正しい部分だけ使う',
 
 test('formatShareText: モード名と正解数が入る', () => {
   const t = L.formatShareText('pattern', 7, 10);
-  assert.ok(t.includes('形の名前') && t.includes('7') && t.includes('10'));
+  assert.ok(t.includes('チャートの形状') && t.includes('7') && t.includes('10'));
 });
 
-test("buildDeck('all'): 同じ形の「形の名前」と「値動き」が同じ回に出ない", () => {
+test("buildDeck('all'): 同じ形の「チャートの形状」と「値動き」が同じ回に出ない", () => {
   for (let seed = 1; seed <= 40; seed++) {
     const ids = L.buildDeck('all', seed).map((q) => q.id);
     for (const id of ids.filter((i) => i.startsWith('pattern:'))) {
@@ -410,7 +410,7 @@ test("buildDeck('all'): 10問・重複なし・有効で、同じシードなら
   }
 });
 
-test("buildDeck('all'): 形の名前も値動きも、たくさんの回のどこかには出る", () => {
+test("buildDeck('all'): チャートの形状も値動きも、たくさんの回のどこかには出る", () => {
   const types = new Set();
   for (let seed = 1; seed <= 40; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
   assert.ok(types.has('pattern') && types.has('outlook'));
@@ -442,7 +442,7 @@ test('紛らわしい組は、同じ問題の選択肢に同時に出ない', ()
   }
 });
 
-test('三角持ち合いは値動き予想に出ない(形の名前には出る)', () => {
+test('三角持ち合いは値動き予想に出ない(チャートの形状には出る)', () => {
   for (let seed = 1; seed <= 60; seed++) {
     const outlookDeck = L.buildDeck('outlook', seed);
     assert.ok(!outlookDeck.some((q) => q.patternId === 'symmetrical-triangle'), `outlook seed=${seed}`);
@@ -453,7 +453,7 @@ test('三角持ち合いは値動き予想に出ない(形の名前には出る)
   for (let seed = 1; seed <= 60 && !seen; seed++) {
     seen = L.buildDeck('pattern', seed).some((q) => q.patternId === 'symmetrical-triangle');
   }
-  assert.ok(seen, '形の名前では出題される');
+  assert.ok(seen, 'チャートの形状では出題される');
 });
 
 test('修正した形: ペナントは三角持ち合いより旗竿のあとの収束が短く、フラッグは下向きの平行', () => {
@@ -852,27 +852,36 @@ const LEVEL_TABLE = {
     easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range'],
     normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge'],
     hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom'],
+    expert: [], // Task 2〜4 で追加する
+    master: [], // Task 2〜4 で追加する
   },
   candles: {
     easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top'],
     normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji'],
     hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover'],
+    expert: [], // Task 2〜4 で追加する
+    master: [], // Task 2〜4 で追加する
   },
   terms: {
     easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa'],
     normal: ['per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up'],
     hard: ['roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'],
+    expert: [], // Task 2〜4 で追加する
+    master: [], // Task 2〜4 で追加する
   },
 };
 
 test('難易度の定数と星の表示', () => {
-  assert.deepEqual(L.DIFFICULTY_LEVELS, ['easy', 'normal', 'hard']);
-  assert.deepEqual(L.DIFFICULTY_FILTERS, ['all', 'easy', 'normal', 'hard']);
-  assert.deepEqual(L.DIFFICULTY_LABELS, { all: 'すべて', easy: '★', normal: '★★', hard: '★★★' });
+  assert.deepEqual(L.DIFFICULTY_LEVELS, ['easy', 'normal', 'hard', 'expert', 'master']);
+  assert.deepEqual(L.DIFFICULTY_FILTERS, ['all', 'easy', 'normal', 'hard', 'expert', 'master']);
+  assert.deepEqual(L.DIFFICULTY_LABELS, { all: 'すべて', easy: '★', normal: '★★', hard: '★★★', expert: '★★★★', master: '★★★★★' });
   assert.equal(L.starsOf('easy'), '★');
   assert.equal(L.starsOf('normal'), '★★');
   assert.equal(L.starsOf('hard'), '★★★');
-  assert.equal(L.starsAria('normal'), '難易度 星2つ(3段階)');
+  assert.equal(L.starsOf('expert'), '★★★★');
+  assert.equal(L.starsOf('master'), '★★★★★');
+  L.DIFFICULTY_LEVELS.forEach((level, i) => assert.equal(L.starsAria(level), `難易度 星${i + 1}つ(5段階)`));
+  assert.equal(L.MODE_LABELS.pattern, 'チャートの形状');
 });
 
 test('難易度の割り当て: 決めた表どおりで、全項目に付いている', () => {
@@ -899,7 +908,7 @@ test('問題オブジェクトに難易度が入り、validateQuestion が見る
   assert.ok(L.validateQuestion({ ...q, difficulty: undefined }));
 });
 
-test('モード×難易度の問題数: どの組み合わせも6問以上で、表の数と合う', () => {
+test('モード×難易度の問題数: easy/normal/hard は6問以上で表の数と合う(expert/master は0問以上)', () => {
   const expected = {
     pattern: { easy: 7, normal: 7, hard: 6 },
     outlook: { easy: 7, normal: 6, hard: 6 },
@@ -909,6 +918,11 @@ test('モード×難易度の問題数: どの組み合わせも6問以上で、
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_FILTERS) {
       const n = L.buildPool(mode, L.createRng(1), level).length;
+      // expert / master は Task 2〜4 で問題を足すまで0問。Task 4/5 で「1問以上」と正確な数に直す
+      if (level === 'expert' || level === 'master') {
+        assert.ok(n >= 0, `${mode}/${level} n=${n}`);
+        continue;
+      }
       assert.ok(n >= 6, `${mode}/${level} n=${n}`);
       if (expected[mode] && level !== 'all') assert.equal(n, expected[mode][level], `${mode}/${level}`);
     }
@@ -920,6 +934,9 @@ test('buildDeck: 難易度の絞り込みで、問題数・重複・難易度・
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
       assert.equal(size, Math.min(L.ROUND_SIZE, L.buildPool(mode, L.createRng(1), level).length), `${mode}/${level}`);
+      // size が 0 のとき(expert / master で問題がまだない間)は、空の配列を返し、例外を投げない
+      if (size === 0) assert.deepEqual(L.buildDeck(mode, 1, level), [], `${mode}/${level}`);
+      else assert.ok(size >= 1);
       for (let seed = 1; seed <= 20; seed++) {
         const deck = L.buildDeck(mode, seed, level);
         assert.equal(deck.length, size, `${mode}/${level} seed=${seed}`);
@@ -985,9 +1002,9 @@ test('保存データ: 難易度ごとのキーが使え、古い形(難易度�
 });
 
 test('formatShareText: 難易度つき', () => {
-  assert.equal(L.formatShareText('pattern', 7, 10), '株クイズ(形の名前)で 10問中7問正解!');
+  assert.equal(L.formatShareText('pattern', 7, 10), '株クイズ(チャートの形状)で 10問中7問正解!');
   const t = L.formatShareText('pattern', 7, 10, 'normal');
-  assert.ok(t.includes('形の名前') && t.includes('★★') && t.includes('7') && t.includes('10'));
+  assert.ok(t.includes('チャートの形状') && t.includes('★★') && t.includes('7') && t.includes('10'));
   assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
 });
 

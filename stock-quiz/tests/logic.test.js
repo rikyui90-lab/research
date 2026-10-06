@@ -322,3 +322,28 @@ test('formatShareText: モード名と正解数が入る', () => {
   const t = L.formatShareText('pattern', 7, 10);
   assert.ok(t.includes('形の名前') && t.includes('7') && t.includes('10'));
 });
+
+test("buildDeck('all'): 同じ形の「形の名前」と「値動き」が同じ回に出ない", () => {
+  for (let seed = 1; seed <= 40; seed++) {
+    const ids = L.buildDeck('all', seed).map((q) => q.id);
+    for (const id of ids.filter((i) => i.startsWith('pattern:'))) {
+      assert.ok(!ids.includes('outlook:' + id.slice('pattern:'.length)), `seed=${seed} ${id}`);
+    }
+  }
+});
+
+test("buildDeck('all'): 10問・重複なし・有効で、同じシードなら同じ", () => {
+  for (let seed = 1; seed <= 40; seed++) {
+    const deck = L.buildDeck('all', seed);
+    assert.equal(deck.length, 10);
+    assert.equal(new Set(deck.map((q) => q.id)).size, 10);
+    deck.forEach((q) => assert.equal(L.validateQuestion(q), null));
+    assert.deepEqual(deck, L.buildDeck('all', seed));
+  }
+});
+
+test("buildDeck('all'): 形の名前も値動きも、たくさんの回のどこかには出る", () => {
+  const types = new Set();
+  for (let seed = 1; seed <= 40; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
+  assert.ok(types.has('pattern') && types.has('outlook'));
+});

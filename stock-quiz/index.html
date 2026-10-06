@@ -426,11 +426,19 @@ const ROUND_SIZE = 10;
 function buildPool(mode, rng) {
   const wants = (type) => mode === 'all' || mode === type;
   const pool = [];
-  if (wants('pattern')) {
-    for (const p of PATTERNS) pool.push(makePatternQuestion(p, Math.floor(rng() * 1e9)));
-  }
-  if (wants('outlook')) {
-    for (const p of PATTERNS) pool.push(makeOutlookQuestion(p, Math.floor(rng() * 1e9)));
+  if (mode === 'all') {
+    // 同じ形の「名前」と「値動き」を両方出すと、片方の解説がもう片方の答えになるので、どちらか一方だけにする
+    for (const p of PATTERNS) {
+      const seed = Math.floor(rng() * 1e9);
+      pool.push(rng() < 0.5 ? makePatternQuestion(p, seed) : makeOutlookQuestion(p, seed));
+    }
+  } else {
+    if (wants('pattern')) {
+      for (const p of PATTERNS) pool.push(makePatternQuestion(p, Math.floor(rng() * 1e9)));
+    }
+    if (wants('outlook')) {
+      for (const p of PATTERNS) pool.push(makeOutlookQuestion(p, Math.floor(rng() * 1e9)));
+    }
   }
   if (wants('candle')) {
     for (const c of CANDLE_PATTERNS) pool.push(makeCandleQuestion(c, rng));

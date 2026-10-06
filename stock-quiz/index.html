@@ -15,6 +15,38 @@
 // ==DATA-END==
 
 // ==LOGIC-START==
+// 擬似乱数(mulberry32)。同じシードなら同じ列になる
+function createRng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffle(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// チャートの縦軸の範囲。全部同じ値でも幅が0にならないようにする
+function normalizeRange(values) {
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (max - min < 1e-9) {
+    min -= 1;
+    max += 1;
+  }
+  const pad = (max - min) * 0.05;
+  return { min: min - pad, max: max + pad };
+}
 // ==LOGIC-END==
 
 // ==UI-START==

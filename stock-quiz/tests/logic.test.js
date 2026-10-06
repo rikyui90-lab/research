@@ -225,11 +225,13 @@ test('CANDLE_PATTERNS: 20個で、ローソク足の値が矛盾していない'
   }
 });
 
-test('TERMS: 20個で、id が重複せず、間違いの選択肢が3つある', () => {
-  assert.equal(L.TERMS.length, 20);
-  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 20);
+test('TERMS: 40個で、id が重複せず、間違いの選択肢が3つある', () => {
+  assert.equal(L.TERMS.length, 40);
+  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 40);
   for (const t of L.TERMS) {
     assert.equal(t.wrongs.length, 3, t.id);
+    assert.ok(!t.wrongs.includes(t.answer), t.id);
+    assert.equal(new Set(t.wrongs).size, 3, t.id);
     assert.ok(t.explanation.length > 0, t.id);
   }
 });
@@ -863,13 +865,33 @@ const LEVEL_TABLE = {
     master: [], // Task 2〜4 で追加する
   },
   terms: {
-    easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa'],
-    normal: ['per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up'],
-    hard: ['roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'],
-    expert: [], // Task 2〜4 で追加する
-    master: [], // Task 2〜4 で追加する
+    easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa',
+      'dividend', 'shareholder-benefit', 'listing', 'trading-unit'],
+    normal: ['per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up',
+      'stop-loss', 'take-profit', 'averaging-down', 'shiozuke'],
+    hard: ['roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights',
+      'order-book', 'execution', 'open-and-close', 'trading-sessions'],
+    expert: ['margin-ratio', 'reverse-fee', 'roa', 'eps'],
+    master: ['payout-ratio', 'buyback', 'stock-split', 'circuit-breaker'],
   },
 };
+
+test('新規の用語20問: 難易度どおりで、問題が validateQuestion を通る', () => {
+  const newIds = [];
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const added = LEVEL_TABLE.terms[level].filter((id) => !['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa', 'per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up', 'roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'].includes(id));
+    assert.equal(added.length, 4, level);
+    for (const id of added) {
+      newIds.push(id);
+      const t = L.TERMS.find((x) => x.id === id);
+      assert.ok(t, id);
+      const q = L.makeTermQuestion(t, L.createRng(3));
+      assert.equal(L.validateQuestion(q), null, id);
+      assert.equal(q.difficulty, level, id);
+    }
+  }
+  assert.equal(newIds.length, 20);
+});
 
 test('難易度の定数と星の表示', () => {
   assert.deepEqual(L.DIFFICULTY_LEVELS, ['easy', 'normal', 'hard', 'expert', 'master']);
@@ -913,7 +935,7 @@ test('モード×難易度の問題数: easy/normal/hard は6問以上で表の�
     pattern: { easy: 7, normal: 7, hard: 6 },
     outlook: { easy: 7, normal: 6, hard: 6 },
     candle: { easy: 7, normal: 7, hard: 6 },
-    term: { easy: 7, normal: 7, hard: 6 },
+    term: { easy: 11, normal: 11, hard: 10, expert: 4, master: 4 },
   };
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_FILTERS) {
@@ -921,6 +943,7 @@ test('モード×難易度の問題数: easy/normal/hard は6問以上で表の�
       // expert / master は Task 2〜4 で問題を足すまで0問。Task 4/5 で「1問以上」と正確な数に直す
       if (level === 'expert' || level === 'master') {
         assert.ok(n >= 0, `${mode}/${level} n=${n}`);
+        if (mode === 'term') assert.equal(n, expected.term[level], `${mode}/${level}`);
         continue;
       }
       assert.ok(n >= 6, `${mode}/${level} n=${n}`);

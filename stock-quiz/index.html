@@ -314,6 +314,40 @@ const TERMS = [
     explanation: '通常、運用益には約20%の税金がかかるけれど、NISA の枠の中では非課税だよ。' },
 ];
 
+// 難易度(内部の値は easy / normal / hard、画面では ★ / ★★ / ★★★ で表す)
+const DIFFICULTY_LEVELS = ['easy', 'normal', 'hard'];
+const DIFFICULTY_FILTERS = ['all', 'easy', 'normal', 'hard'];
+const DIFFICULTY_LABELS = { all: 'すべて', easy: '★', normal: '★★', hard: '★★★' };
+const DIFFICULTY_BY_ID = {
+  patterns: {
+    easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range'],
+    normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge'],
+    hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom'],
+  },
+  candles: {
+    easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top'],
+    normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji'],
+    hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover'],
+  },
+  terms: {
+    easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa'],
+    normal: ['per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up'],
+    hard: ['roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'],
+  },
+};
+// 各項目に difficulty を付ける(表にない id は付かず、validateQuestion が不備として見つける)
+function assignDifficulty(items, table) {
+  for (const level of DIFFICULTY_LEVELS) {
+    for (const id of table[level]) {
+      const item = items.find((x) => x.id === id);
+      if (item) item.difficulty = level;
+    }
+  }
+}
+assignDifficulty(PATTERNS, DIFFICULTY_BY_ID.patterns);
+assignDifficulty(CANDLE_PATTERNS, DIFFICULTY_BY_ID.candles);
+assignDifficulty(TERMS, DIFFICULTY_BY_ID.terms);
+
 // ==DATA-END==
 
 // ==LOGIC-START==
@@ -468,6 +502,7 @@ function makePatternQuestion(pattern, seed) {
     choices: shuffle([pattern.name, ...others], rng),
     answer: pattern.name,
     explanation: pattern.explanation,
+    difficulty: pattern.difficulty,
   };
 }
 
@@ -483,6 +518,7 @@ function makeOutlookQuestion(pattern, seed) {
     answer: OUTLOOK_LABELS[pattern.outlook],
     outlook: pattern.outlook,
     explanation: pattern.explanation,
+    difficulty: pattern.difficulty,
   };
 }
 
@@ -496,6 +532,7 @@ function makeCandleQuestion(candle, rng) {
     choices: shuffle([candle.name, ...others], rng),
     answer: candle.name,
     explanation: candle.explanation,
+    difficulty: candle.difficulty,
   };
 }
 
@@ -507,6 +544,7 @@ function makeTermQuestion(term, rng) {
     choices: shuffle([term.answer, ...term.wrongs], rng),
     answer: term.answer,
     explanation: term.explanation,
+    difficulty: term.difficulty,
   };
 }
 
@@ -518,6 +556,7 @@ function validateQuestion(q) {
   if (q.choices.length !== expected) return `${q.id}: 選択肢が${expected}個ではない`;
   if (new Set(q.choices).size !== q.choices.length) return `${q.id}: 選択肢が重複している`;
   if (q.choices.filter((c) => c === q.answer).length !== 1) return `${q.id}: 正解がちょうど1つ含まれていない`;
+  if (!DIFFICULTY_LEVELS.includes(q.difficulty)) return `${q.id}: difficulty が不正: ${q.difficulty}`;
   return null;
 }
 
@@ -538,39 +577,64 @@ function chartForQuestion(q) {
 
 const ROUND_SIZE = 10;
 
-function buildPool(mode, rng) {
+function starsOf(level) {
+  return DIFFICULTY_LABELS[level];
+}
+
+function starsAria(level) {
+  return `難易度 星${DIFFICULTY_LEVELS.indexOf(level) + 1}つ(3段階)`;
+}
+
+// difficulty が 'all' なら全部、それ以外はその難易度の項目だけ
+function byDifficulty(items, difficulty) {
+  return difficulty === 'all' ? items : items.filter((x) => x.difficulty === difficulty);
+}
+
+function buildPool(mode, rng, difficulty = 'all') {
   const wants = (type) => mode === 'all' || mode === type;
   const pool = [];
+  // 乱数は、絞り込みに関係なくパターンごとに同じ回数だけ引く(同じシードなら同じ結果にするため)
   if (mode === 'all') {
     // 同じ形の「名前」と「値動き」を両方出すと、片方の解説がもう片方の答えになるので、どちらか一方だけにする
     for (const p of PATTERNS) {
       const seed = Math.floor(rng() * 1e9);
       const asPattern = rng() < 0.5 || p.outlookQuiz === false;
+      if (difficulty !== 'all' && p.difficulty !== difficulty) continue;
       pool.push(asPattern ? makePatternQuestion(p, seed) : makeOutlookQuestion(p, seed));
     }
   } else {
     if (wants('pattern')) {
-      for (const p of PATTERNS) pool.push(makePatternQuestion(p, Math.floor(rng() * 1e9)));
+      for (const p of PATTERNS) {
+        const seed = Math.floor(rng() * 1e9);
+        if (difficulty === 'all' || p.difficulty === difficulty) pool.push(makePatternQuestion(p, seed));
+      }
     }
     if (wants('outlook')) {
       for (const p of PATTERNS) {
         const seed = Math.floor(rng() * 1e9);
-        if (p.outlookQuiz !== false) pool.push(makeOutlookQuestion(p, seed));
+        if (p.outlookQuiz !== false && (difficulty === 'all' || p.difficulty === difficulty)) {
+          pool.push(makeOutlookQuestion(p, seed));
+        }
       }
     }
   }
   if (wants('candle')) {
-    for (const c of CANDLE_PATTERNS) pool.push(makeCandleQuestion(c, rng));
+    for (const c of byDifficulty(CANDLE_PATTERNS, difficulty)) pool.push(makeCandleQuestion(c, rng));
   }
   if (wants('term')) {
-    for (const t of TERMS) pool.push(makeTermQuestion(t, rng));
+    for (const t of byDifficulty(TERMS, difficulty)) pool.push(makeTermQuestion(t, rng));
   }
   return pool;
 }
 
-function buildDeck(mode, seed) {
+function buildDeck(mode, seed, difficulty = 'all') {
   const rng = createRng(seed);
-  return shuffle(buildPool(mode, rng), rng).slice(0, ROUND_SIZE);
+  return shuffle(buildPool(mode, rng, difficulty), rng).slice(0, ROUND_SIZE);
+}
+
+// そのモード・難易度の1ラウンドの問題数(問題の数は乱数に依存しない)
+function roundSize(mode, difficulty = 'all') {
+  return Math.min(ROUND_SIZE, buildPool(mode, createRng(1), difficulty).length);
 }
 
 function judge(q, choice) {
@@ -585,15 +649,23 @@ function summarizeRound(results) {
   };
 }
 
+// 成績の保存キー。難易度が all ならモード名そのまま、それ以外は「モード名:難易度」
+function statsKey(mode, difficulty = 'all') {
+  return difficulty === 'all' ? mode : `${mode}:${difficulty}`;
+}
+
+const STATS_KEYS = DIFFICULTY_FILTERS.flatMap((d) => MODES.map((m) => statsKey(m, d)));
+
 function defaultStats() {
   const stats = { best: {}, played: {} };
-  for (const m of MODES) {
+  for (const m of STATS_KEYS) {
     stats.best[m] = 0;
     stats.played[m] = { correct: 0, total: 0 };
   }
   return stats;
 }
 
+// key は statsKey() の値(古い呼び方のモード名もそのまま使える)
 function updateStats(stats, mode, correct, total) {
   const next = JSON.parse(JSON.stringify(stats));
   next.best[mode] = Math.max(next.best[mode], correct);
@@ -612,7 +684,7 @@ function parseStats(text) {
     return stats;
   }
   if (!raw || typeof raw !== 'object') return stats;
-  for (const m of MODES) {
+  for (const m of STATS_KEYS) {
     const best = raw.best && raw.best[m];
     const played = raw.played && raw.played[m];
     if (Number.isFinite(best) && best >= 0) stats.best[m] = best;
@@ -629,8 +701,9 @@ function parseStats(text) {
   return stats;
 }
 
-function formatShareText(mode, correct, total) {
-  return `株クイズ(${MODE_LABELS[mode]})で ${total}問中${correct}問正解!`;
+function formatShareText(mode, correct, total, difficulty = 'all') {
+  const label = difficulty === 'all' ? MODE_LABELS[mode] : `${MODE_LABELS[mode]}・${DIFFICULTY_LABELS[difficulty]}`;
+  return `株クイズ(${label})で ${total}問中${correct}問正解!`;
 }
 
 // ==LOGIC-END==

@@ -777,3 +777,147 @@ test('毛抜き天井・底の説明に「そろう」が入っている', () =>
     assert.ok(L.CANDLE_PATTERNS.find((c) => c.id === id).explanation.includes('そろう'), id);
   }
 });
+
+const LEVEL_TABLE = {
+  patterns: {
+    easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range'],
+    normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge'],
+    hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom'],
+  },
+  candles: {
+    easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top'],
+    normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji'],
+    hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover'],
+  },
+  terms: {
+    easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa'],
+    normal: ['per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up'],
+    hard: ['roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'],
+  },
+};
+
+test('難易度の定数と星の表示', () => {
+  assert.deepEqual(L.DIFFICULTY_LEVELS, ['easy', 'normal', 'hard']);
+  assert.deepEqual(L.DIFFICULTY_FILTERS, ['all', 'easy', 'normal', 'hard']);
+  assert.deepEqual(L.DIFFICULTY_LABELS, { all: 'すべて', easy: '★', normal: '★★', hard: '★★★' });
+  assert.equal(L.starsOf('easy'), '★');
+  assert.equal(L.starsOf('normal'), '★★');
+  assert.equal(L.starsOf('hard'), '★★★');
+  assert.equal(L.starsAria('normal'), '難易度 星2つ(3段階)');
+});
+
+test('難易度の割り当て: 決めた表どおりで、全項目に付いている', () => {
+  const pick = (items, level) => items.filter((x) => x.difficulty === level).map((x) => x.id).sort();
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.deepEqual(pick(L.PATTERNS, level), LEVEL_TABLE.patterns[level].slice().sort(), `patterns ${level}`);
+    assert.deepEqual(pick(L.CANDLE_PATTERNS, level), LEVEL_TABLE.candles[level].slice().sort(), `candles ${level}`);
+    assert.deepEqual(pick(L.TERMS, level), LEVEL_TABLE.terms[level].slice().sort(), `terms ${level}`);
+  }
+  for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS]) {
+    assert.ok(L.DIFFICULTY_LEVELS.includes(x.difficulty), x.id);
+  }
+});
+
+test('問題オブジェクトに難易度が入り、validateQuestion が見る', () => {
+  const p = L.findPattern('cup-with-handle');
+  assert.equal(L.makePatternQuestion(p, 1).difficulty, 'hard');
+  assert.equal(L.makeOutlookQuestion(p, 1).difficulty, 'hard');
+  assert.equal(L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === 'doji'), L.createRng(1)).difficulty, 'easy');
+  assert.equal(L.makeTermQuestion(L.TERMS.find((t) => t.id === 'per'), L.createRng(1)).difficulty, 'normal');
+  const q = L.makeTermQuestion(L.TERMS[0], L.createRng(1));
+  assert.equal(L.validateQuestion(q), null);
+  assert.ok(L.validateQuestion({ ...q, difficulty: 'x' }));
+  assert.ok(L.validateQuestion({ ...q, difficulty: undefined }));
+});
+
+test('モード×難易度の問題数: どの組み合わせも6問以上で、表の数と合う', () => {
+  const expected = {
+    pattern: { easy: 7, normal: 7, hard: 6 },
+    outlook: { easy: 7, normal: 6, hard: 6 },
+    candle: { easy: 7, normal: 7, hard: 6 },
+    term: { easy: 7, normal: 7, hard: 6 },
+  };
+  for (const mode of L.MODES) {
+    for (const level of L.DIFFICULTY_FILTERS) {
+      const n = L.buildPool(mode, L.createRng(1), level).length;
+      assert.ok(n >= 6, `${mode}/${level} n=${n}`);
+      if (expected[mode] && level !== 'all') assert.equal(n, expected[mode][level], `${mode}/${level}`);
+    }
+  }
+});
+
+test('buildDeck: 難易度の絞り込みで、問題数・重複・難易度・有効性・決定性が合う', () => {
+  for (const mode of L.MODES) {
+    for (const level of L.DIFFICULTY_FILTERS) {
+      const size = L.roundSize(mode, level);
+      assert.equal(size, Math.min(L.ROUND_SIZE, L.buildPool(mode, L.createRng(1), level).length), `${mode}/${level}`);
+      for (let seed = 1; seed <= 20; seed++) {
+        const deck = L.buildDeck(mode, seed, level);
+        assert.equal(deck.length, size, `${mode}/${level} seed=${seed}`);
+        assert.equal(new Set(deck.map((q) => q.id)).size, deck.length);
+        for (const q of deck) {
+          assert.equal(L.validateQuestion(q), null);
+          if (level !== 'all') assert.equal(q.difficulty, level, `${mode}/${level} ${q.id}`);
+        }
+        assert.deepEqual(L.buildDeck(mode, seed, level), deck);
+      }
+    }
+  }
+});
+
+test('全部まぜ+難易度: 同じ形の「名前」と「値動き」が両方出ない / 三角持ち合いは値動きに出ない', () => {
+  for (const level of L.DIFFICULTY_FILTERS) {
+    for (let seed = 1; seed <= 60; seed++) {
+      const deck = L.buildDeck('all', seed, level);
+      const byPattern = {};
+      for (const q of deck) {
+        if (q.type === 'pattern' || q.type === 'outlook') {
+          assert.ok(!byPattern[q.patternId], `${level} seed=${seed} ${q.patternId}`);
+          byPattern[q.patternId] = q.type;
+        }
+        assert.ok(!(q.type === 'outlook' && q.patternId === 'symmetrical-triangle'));
+      }
+    }
+  }
+});
+
+test('buildDeck: 難易度を省略すると、これまでと同じ(all)', () => {
+  for (const mode of L.MODES) {
+    assert.deepEqual(L.buildDeck(mode, 5), L.buildDeck(mode, 5, 'all'));
+  }
+});
+
+test('statsKey と STATS_KEYS', () => {
+  assert.equal(L.statsKey('term'), 'term');
+  assert.equal(L.statsKey('term', 'all'), 'term');
+  assert.equal(L.statsKey('pattern', 'hard'), 'pattern:hard');
+  assert.equal(L.STATS_KEYS.length, L.MODES.length * L.DIFFICULTY_FILTERS.length);
+  assert.deepEqual(L.STATS_KEYS.slice(0, L.MODES.length), L.MODES);
+  assert.equal(new Set(L.STATS_KEYS).size, L.STATS_KEYS.length);
+});
+
+test('保存データ: 難易度ごとのキーが使え、古い形(難易度なし)も読める', () => {
+  const s0 = L.defaultStats();
+  for (const k of L.STATS_KEYS) {
+    assert.equal(s0.best[k], 0, k);
+    assert.deepEqual(s0.played[k], { correct: 0, total: 0 }, k);
+  }
+  const s1 = L.updateStats(s0, L.statsKey('candle', 'hard'), 5, 6);
+  assert.equal(s1.best['candle:hard'], 5);
+  assert.deepEqual(s1.played['candle:hard'], { correct: 5, total: 6 });
+  assert.equal(s1.best.candle, 0);
+  assert.deepEqual(L.parseStats(JSON.stringify(s1)), s1);
+  const old = JSON.stringify({ best: { all: 8, term: 6 }, played: { all: { correct: 20, total: 30 } } });
+  const parsed = L.parseStats(old);
+  assert.equal(parsed.best.all, 8);
+  assert.equal(parsed.best.term, 6);
+  assert.deepEqual(parsed.played.all, { correct: 20, total: 30 });
+  assert.equal(parsed.best['all:hard'], 0);
+});
+
+test('formatShareText: 難易度つき', () => {
+  assert.equal(L.formatShareText('pattern', 7, 10), '株クイズ(形の名前)で 10問中7問正解!');
+  const t = L.formatShareText('pattern', 7, 10, 'normal');
+  assert.ok(t.includes('形の名前') && t.includes('★★') && t.includes('7') && t.includes('10'));
+  assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
+});

@@ -70,7 +70,7 @@ test('PATTERNS: 20個あり、id と name が重複せず、定義が正しい',
   }
 });
 
-test('generateSeries: 長さ 60 で、同じシードなら同じ、違うシードなら違う', () => {
+test('generateSeries: 120点で、同じシードなら同じ、違うシードなら違う', () => {
   for (const p of L.PATTERNS) {
     const a = L.generateSeries(p, 123);
     assert.equal(a.length, L.SERIES_LENGTH);
@@ -88,7 +88,7 @@ test('generateSeries: 骨格の形に沿っている(ダブルトップは山が
   assert.ok(Math.min(...v.slice(56, 72)) < peak1 - 15);
 });
 
-test('generateContinuation: 長さ 15 で、方向が outlook と一致する', () => {
+test('generateContinuation: 30点で、方向が outlook と一致する', () => {
   for (let seed = 1; seed <= 30; seed++) {
     const up = L.generateContinuation(50, 'up', seed);
     const down = L.generateContinuation(50, 'down', seed);

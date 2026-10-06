@@ -445,11 +445,12 @@ const QUESTION_TEXT = {
   candle: 'このローソク足の名前は?',
 };
 
-// correct 以外から count 個を、シャッフルして選ぶ
+// 2つの id が、紛らわしい組(CONFUSABLE_PAIRS)かどうか(順不同)
 function isConfusable(a, b) {
   return CONFUSABLE_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 }
 
+// correct 以外から count 個を、シャッフルして選ぶ(紛らわしい組は除く)
 function pickOthers(items, correct, count, rng) {
   return shuffle(items.filter((x) => x !== correct && !isConfusable(x.id, correct.id)), rng).slice(0, count);
 }

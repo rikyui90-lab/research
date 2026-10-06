@@ -514,6 +514,16 @@ test('用語の修正: 単元株は内国株式に限り、サーキットブレ
   assert.ok(!cb.explanation.includes('10分以上'));
 });
 
+test('単元株の選択肢: 重複がなく、答えが一番長くても2番目より8文字以内の差', () => {
+  const unit = L.TERMS.find((t) => t.id === 'trading-unit');
+  const all = [unit.answer, ...unit.wrongs];
+  assert.equal(new Set(all).size, 4);
+  const lens = all.map((s) => s.length).sort((a, b) => b - a);
+  if (unit.answer.length === lens[0]) assert.ok(lens[0] - lens[1] <= 8, `差=${lens[0] - lens[1]}`);
+  const split = L.TERMS.find((t) => t.id === 'stock-split');
+  assert.ok(split.explanation.includes('理論上は下がる'));
+});
+
 
 test('makeSpline: 骨格の点をそのまま通る', () => {
   for (const p of L.PATTERNS) {

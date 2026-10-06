@@ -5,6 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>株クイズ</title>
 <style>
+:root {
+  --bg: #f6f5f2; --card: #ffffff; --text: #1f1f1d; --muted: #6b6a64; --border: #dcdad2;
+  --accent: #185fa5; --good-bg: #eaf3de; --good: #27500a; --bad-bg: #fcebeb; --bad: #791f1f;
+  --line: #185fa5; --ma-short: #d85a30; --ma-long: #7f77dd; --up: #d03a3a; --down: #2a6fd6; --cont: #a32d2d;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a; --card: #262624; --text: #f1efe8; --muted: #b4b2a9; --border: #444441;
+    --accent: #85b7eb; --good-bg: #173404; --good: #c0dd97; --bad-bg: #501313; --bad: #f7c1c1;
+    --line: #85b7eb; --ma-short: #f0997b; --ma-long: #afa9ec; --up: #f09595; --down: #85b7eb; --cont: #f09595;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.7;
+  font-family: system-ui, "Hiragino Sans", "Yu Gothic", sans-serif; }
+main { max-width: 560px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 22px; font-weight: 500; margin: 8px 0 4px; }
+.lead, .note, .sub { color: var(--muted); font-size: 14px; margin: 4px 0 12px; }
+.q { font-size: 16px; font-weight: 500; margin: 12px 0 8px; }
+.head { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.bar { height: 4px; background: var(--border); border-radius: 2px; margin: 6px 0 12px; }
+.bar > div { height: 4px; background: var(--accent); border-radius: 2px; }
+.chart { background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 12px; }
+canvas { display: block; }
+.choices { display: grid; gap: 8px; }
+button { font: inherit; color: var(--text); background: var(--card); border: 0.5px solid var(--border);
+  border-radius: 8px; padding: 12px; text-align: left; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button small { display: block; color: var(--muted); font-size: 13px; }
+button.primary { background: var(--accent); color: var(--card); text-align: center; width: 100%; margin-top: 8px; }
+.result { border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.result.good { background: var(--good-bg); color: var(--good); }
+.result.bad { background: var(--bad-bg); color: var(--bad); }
+.result .label { margin: 0; font-size: 13px; }
+.result .answer { margin: 2px 0 0; font-size: 22px; font-weight: 500; }
+.result .exp { margin: 6px 0 0; font-size: 14px; }
+.score { font-size: 32px; font-weight: 500; margin: 8px 0; }
+ul.wrong { padding-left: 20px; font-size: 14px; }
+.actions { display: grid; gap: 8px; margin-top: 12px; }
+.disclaimer { max-width: 560px; margin: 0 auto; padding: 8px 16px 24px; font-size: 12px; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
@@ -468,6 +509,224 @@ function formatShareText(mode, correct, total) {
 // ==LOGIC-END==
 
 // ==UI-START==
+const STORAGE_KEY = 'stockQuiz.stats.v1';
+const app = document.getElementById('app');
+let stats = loadStats();
+let game = null;
+let redraw = null;
+
+function loadStats() {
+  try {
+    return parseStats(localStorage.getItem(STORAGE_KEY));
+  } catch (e) {
+    return defaultStats();
+  }
+}
+
+function saveStats() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  } catch (e) {
+    // 保存できなくても、ゲームはそのまま続ける
+  }
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function header() {
+  const done = game.results.length;
+  const correct = game.results.filter((r) => r.correct).length;
+  return `<div class="head"><span>問題 ${Math.min(game.index + 1, game.deck.length)} / ${game.deck.length}</span><span>正解 ${correct}</span></div>
+    <div class="bar"><div style="width:${(done / game.deck.length) * 100}%"></div></div>`;
+}
+
+// ---- チャートの描画 ----
+function drawLines(ctx, w, h, chart, reveal, colors) {
+  const cont = chart.continuation || [];
+  const all = chart.values.concat(cont);
+  const { min, max } = normalizeRange(all);
+  const n = all.length;
+  const x = (i) => 8 + (i / (n - 1)) * (w - 16);
+  const y = (v) => h - 12 - ((v - min) / (max - min)) * (h - 24);
+  const stroke = (pts, color, width, dash) => {
+    ctx.beginPath();
+    let started = false;
+    pts.forEach(([i, v]) => {
+      if (v === null) return;
+      if (!started) { ctx.moveTo(x(i), y(v)); started = true; } else { ctx.lineTo(x(i), y(v)); }
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash || []);
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+  if (chart.ma) {
+    stroke(chart.ma.long.map((v, i) => [i, v]), colors.long, 1.5);
+    stroke(chart.ma.short.map((v, i) => [i, v]), colors.short, 1.5);
+  }
+  stroke(chart.values.map((v, i) => [i, v]), colors.line, 2.5);
+  if (reveal && cont.length) {
+    const start = chart.values.length - 1;
+    stroke([[start, chart.values[start]], ...cont.map((v, i) => [start + 1 + i, v])], colors.cont, 2.5, [6, 4]);
+  }
+}
+
+function drawCandles(ctx, w, h, candles, colors) {
+  const { min, max } = normalizeRange(candles.flatMap((c) => [c.h, c.l]));
+  const y = (v) => h - 12 - ((v - min) / (max - min)) * (h - 24);
+  const slot = w / candles.length;
+  const bodyW = Math.min(56, slot * 0.4);
+  candles.forEach((c, i) => {
+    const cx = slot * (i + 0.5);
+    const color = c.c >= c.o ? colors.up : colors.down;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, y(c.h));
+    ctx.lineTo(cx, y(c.l));
+    ctx.stroke();
+    const top = y(Math.max(c.o, c.c));
+    const bottom = y(Math.min(c.o, c.c));
+    ctx.fillRect(cx - bodyW / 2, top, bodyW, Math.max(2, bottom - top));
+  });
+}
+
+function renderChart(canvas, chart, reveal) {
+  const css = getComputedStyle(document.documentElement);
+  const get = (name) => css.getPropertyValue(name).trim();
+  const colors = {
+    line: get('--line'), short: get('--ma-short'), long: get('--ma-long'),
+    up: get('--up'), down: get('--down'), cont: get('--cont'),
+  };
+  const w = canvas.parentElement.clientWidth - 16;
+  const h = Math.round(w * 0.55);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.width = `${w}px`;
+  canvas.style.height = `${h}px`;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+  if (chart.kind === 'candles') drawCandles(ctx, w, h, chart.candles, colors);
+  else drawLines(ctx, w, h, chart, reveal, colors);
+}
+
+function drawQuestionChart(q, reveal) {
+  const canvas = document.getElementById('chart');
+  const chart = chartForQuestion(q);
+  redraw = () => renderChart(canvas, chart, reveal);
+  redraw();
+}
+
+window.addEventListener('resize', () => { if (redraw) redraw(); });
+
+// ---- 画面 ----
+function showStart() {
+  redraw = null;
+  const rows = MODES.map((m) => {
+    const p = stats.played[m];
+    const rate = p.total ? `${Math.round((p.correct / p.total) * 100)}%` : '-';
+    return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[m]} / ${ROUND_SIZE}　正解率 ${rate}</small></button>`;
+  }).join('');
+  app.innerHTML = `<h1>株クイズ</h1>
+    <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ。</p>
+    <div class="choices">${rows}</div>`;
+  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.mode)));
+}
+
+function startGame(mode) {
+  game = { mode, deck: buildDeck(mode, Date.now() % 2147483647), index: 0, results: [] };
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = game.deck[game.index];
+  const hasChart = q.type !== 'term';
+  app.innerHTML = `${header()}
+    <p class="q">${esc(q.question)}</p>
+    ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
+    ${q.type === 'candle' ? '<p class="note">赤が陽線(上昇)、青が陰線(下落)だよ。</p>' : ''}
+    <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
+  if (hasChart) drawQuestionChart(q, false);
+  else redraw = null;
+  app.querySelectorAll('[data-i]').forEach((b) =>
+    b.addEventListener('click', () => answer(q, q.choices[Number(b.dataset.i)])));
+}
+
+function answer(q, picked) {
+  const correct = judge(q, picked);
+  game.results.push({ id: q.id, question: q.question, answer: q.answer, picked, correct });
+  showExplain(q, picked, correct);
+}
+
+function showExplain(q, picked, correct) {
+  const hasChart = q.type !== 'term';
+  const last = game.index === game.deck.length - 1;
+  const shape = q.type === 'outlook' ? `<p class="sub">チャートの形: ${esc(q.patternName)}</p>` : '';
+  app.innerHTML = `${header()}
+    <div class="result ${correct ? 'good' : 'bad'}">
+      <p class="label">正解</p>
+      <p class="answer">${esc(q.answer)}</p>
+      <p class="exp">${esc(q.explanation)}</p>
+    </div>
+    ${shape}
+    ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
+    <p class="sub">あなたの答え: ${esc(picked)}(${correct ? '正解' : '不正解'})</p>
+    <button class="primary" id="next">${last ? '結果を見る' : '次の問題へ'}</button>`;
+  if (hasChart) drawQuestionChart(q, true);
+  else redraw = null;
+  document.getElementById('next').addEventListener('click', next);
+}
+
+function next() {
+  game.index += 1;
+  if (game.index >= game.deck.length) finish();
+  else showQuestion();
+}
+
+function finish() {
+  const summary = summarizeRound(game.results);
+  stats = updateStats(stats, game.mode, summary.correct, summary.total);
+  saveStats();
+  showResult(summary);
+}
+
+function showResult(summary) {
+  redraw = null;
+  const wrong = summary.wrong.map((r) =>
+    `<li>${esc(r.question)} 正解: ${esc(r.answer)}(あなたの答え: ${esc(r.picked)})</li>`).join('');
+  app.innerHTML = `<h1>結果</h1>
+    <p class="score">${summary.correct} / ${summary.total}</p>
+    ${wrong ? `<p class="q">間違えた問題</p><ul class="wrong">${wrong}</ul>` : '<p class="lead">全問正解だよ。</p>'}
+    <div class="actions">
+      <button class="primary" id="again">もう一度</button>
+      <button id="copy">結果をコピー</button>
+      <button id="top">トップへ戻る</button>
+    </div>
+    <p class="note" id="copy-note"></p>`;
+  document.getElementById('again').addEventListener('click', () => startGame(game.mode));
+  document.getElementById('top').addEventListener('click', showStart);
+  document.getElementById('copy').addEventListener('click', () =>
+    copyResult(formatShareText(game.mode, summary.correct, summary.total)));
+}
+
+async function copyResult(text) {
+  const note = document.getElementById('copy-note');
+  try {
+    await navigator.clipboard.writeText(text);
+    note.textContent = 'コピーしたよ。';
+  } catch (e) {
+    note.textContent = `コピーできなかったよ。次の文を手でコピーしてね: ${text}`;
+  }
+}
+
+showStart();
 // ==UI-END==
 </script>
 </body>

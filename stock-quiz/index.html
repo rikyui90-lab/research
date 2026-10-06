@@ -945,7 +945,9 @@ function showStart() {
     difficulty = b.dataset.diff;
     showStart();
   }));
-  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.mode)));
+  // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
+  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => startGame(b.dataset.mode))));
+  shownAt = performance.now();
 }
 
 function startGame(mode) {

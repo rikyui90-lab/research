@@ -234,3 +234,91 @@ test('validateQuestion: 不正な問題を見つける', () => {
   assert.ok(L.validateQuestion({ ...ok, type: 'unknown' }));
   assert.ok(L.validateQuestion({ ...ok, explanation: '' }));
 });
+
+test('buildDeck: どのモードでも10問で、問題が重複せず、全部有効', () => {
+  for (const mode of L.MODES) {
+    for (let seed = 1; seed <= 30; seed++) {
+      const deck = L.buildDeck(mode, seed);
+      assert.equal(deck.length, L.ROUND_SIZE, `${mode} seed=${seed}`);
+      assert.equal(new Set(deck.map((q) => q.id)).size, deck.length, `${mode} seed=${seed} 重複`);
+      for (const q of deck) assert.equal(L.validateQuestion(q), null);
+    }
+  }
+});
+
+test('buildDeck: モードごとの問題の種類が合っている', () => {
+  for (const mode of ['pattern', 'outlook', 'candle', 'term']) {
+    for (const q of L.buildDeck(mode, 3)) assert.equal(q.type, mode);
+  }
+  const types = new Set();
+  for (let seed = 1; seed <= 10; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
+  assert.equal(types.size, 4);
+});
+
+test('buildDeck: 同じシードなら同じ、違うシードなら違う順番', () => {
+  assert.deepEqual(L.buildDeck('all', 8), L.buildDeck('all', 8));
+  assert.notDeepEqual(L.buildDeck('all', 8).map((q) => q.id), L.buildDeck('all', 9).map((q) => q.id));
+});
+
+test('judge: 正解の選択肢だけ true', () => {
+  const q = L.buildDeck('term', 1)[0];
+  assert.equal(L.judge(q, q.answer), true);
+  for (const c of q.choices.filter((x) => x !== q.answer)) assert.equal(L.judge(q, c), false);
+});
+
+test('summarizeRound: 正解数と間違えた問題を数える', () => {
+  const results = [
+    { id: 'a', question: 'Qa', answer: 'A', picked: 'A', correct: true },
+    { id: 'b', question: 'Qb', answer: 'B', picked: 'X', correct: false },
+    { id: 'c', question: 'Qc', answer: 'C', picked: 'C', correct: true },
+  ];
+  const s = L.summarizeRound(results);
+  assert.equal(s.total, 3);
+  assert.equal(s.correct, 2);
+  assert.deepEqual(s.wrong.map((r) => r.id), ['b']);
+});
+
+test('defaultStats: 全モードが0で始まる', () => {
+  const s = L.defaultStats();
+  for (const m of L.MODES) {
+    assert.equal(s.best[m], 0);
+    assert.deepEqual(s.played[m], { correct: 0, total: 0 });
+  }
+});
+
+test('updateStats: 最高スコアは大きいほうが残り、正解率は積み上がり、元は変わらない', () => {
+  const s0 = L.defaultStats();
+  const s1 = L.updateStats(s0, 'term', 7, 10);
+  const s2 = L.updateStats(s1, 'term', 4, 10);
+  assert.equal(s0.best.term, 0);
+  assert.equal(s1.best.term, 7);
+  assert.equal(s2.best.term, 7);
+  assert.deepEqual(s2.played.term, { correct: 11, total: 20 });
+  assert.deepEqual(s2.played.pattern, { correct: 0, total: 0 });
+});
+
+test('parseStats: 保存した値をそのまま読める', () => {
+  const s = L.updateStats(L.defaultStats(), 'all', 8, 10);
+  assert.deepEqual(L.parseStats(JSON.stringify(s)), s);
+});
+
+test('parseStats: 壊れた入力は初期値に戻る', () => {
+  const bad = [null, undefined, '', 'not json', '{', '[]', '123', '"x"', 'null',
+    '{"best":1,"played":2}', '{"best":{"all":"x"},"played":{"all":{"correct":5,"total":2}}}',
+    '{"best":{"all":-3},"played":{"all":{"correct":-1,"total":2}}}'];
+  for (const text of bad) {
+    assert.deepEqual(L.parseStats(text), L.defaultStats(), String(text));
+  }
+});
+
+test('parseStats: 一部だけ正しい入力は、正しい部分だけ使う', () => {
+  const s = L.parseStats('{"best":{"all":6,"term":"x"},"played":{"all":{"correct":3,"total":5}}}');
+  assert.equal(s.best.all, 6);
+  assert.equal(s.best.term, 0);
+  assert.deepEqual(s.played.all, { correct: 3, total: 5 });
+});
+
+test('formatShareText: モード名と正解数が入る', () => {
+  const t = L.formatShareText('pattern', 7, 10);
+  assert.ok(t.includes('形の名前') && t.includes('7') && t.includes('10'));
+});

@@ -380,6 +380,91 @@ function chartForQuestion(q) {
   return chart;
 }
 
+const ROUND_SIZE = 10;
+
+function buildPool(mode, rng) {
+  const wants = (type) => mode === 'all' || mode === type;
+  const pool = [];
+  if (wants('pattern')) {
+    for (const p of PATTERNS) pool.push(makePatternQuestion(p, Math.floor(rng() * 1e9)));
+  }
+  if (wants('outlook')) {
+    for (const p of PATTERNS) pool.push(makeOutlookQuestion(p, Math.floor(rng() * 1e9)));
+  }
+  if (wants('candle')) {
+    for (const c of CANDLE_PATTERNS) pool.push(makeCandleQuestion(c, rng));
+  }
+  if (wants('term')) {
+    for (const t of TERMS) pool.push(makeTermQuestion(t, rng));
+  }
+  return pool;
+}
+
+function buildDeck(mode, seed) {
+  const rng = createRng(seed);
+  return shuffle(buildPool(mode, rng), rng).slice(0, ROUND_SIZE);
+}
+
+function judge(q, choice) {
+  return choice === q.answer;
+}
+
+function summarizeRound(results) {
+  return {
+    total: results.length,
+    correct: results.filter((r) => r.correct).length,
+    wrong: results.filter((r) => !r.correct),
+  };
+}
+
+function defaultStats() {
+  const stats = { best: {}, played: {} };
+  for (const m of MODES) {
+    stats.best[m] = 0;
+    stats.played[m] = { correct: 0, total: 0 };
+  }
+  return stats;
+}
+
+function updateStats(stats, mode, correct, total) {
+  const next = JSON.parse(JSON.stringify(stats));
+  next.best[mode] = Math.max(next.best[mode], correct);
+  next.played[mode].correct += correct;
+  next.played[mode].total += total;
+  return next;
+}
+
+// localStorage の文字列から読み込む。壊れていても、正しい部分だけ使って続行する
+function parseStats(text) {
+  const stats = defaultStats();
+  let raw;
+  try {
+    raw = JSON.parse(text);
+  } catch (e) {
+    return stats;
+  }
+  if (!raw || typeof raw !== 'object') return stats;
+  for (const m of MODES) {
+    const best = raw.best && raw.best[m];
+    const played = raw.played && raw.played[m];
+    if (Number.isFinite(best) && best >= 0) stats.best[m] = best;
+    if (
+      played &&
+      Number.isFinite(played.correct) &&
+      Number.isFinite(played.total) &&
+      played.correct >= 0 &&
+      played.total >= played.correct
+    ) {
+      stats.played[m] = { correct: played.correct, total: played.total };
+    }
+  }
+  return stats;
+}
+
+function formatShareText(mode, correct, total) {
+  return `株クイズ(${MODE_LABELS[mode]})で ${total}問中${correct}問正解!`;
+}
+
 // ==LOGIC-END==
 
 // ==UI-START==

@@ -212,12 +212,12 @@ test('MODES と MODE_LABELS が揃っている', () => {
   for (const m of L.MODES) assert.ok(L.MODE_LABELS[m], m);
 });
 
-test('CANDLE_PATTERNS: 20個で、ローソク足の値が矛盾していない', () => {
-  assert.equal(L.CANDLE_PATTERNS.length, 20);
-  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 20);
-  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 20);
+test('CANDLE_PATTERNS: 30個で、ローソク足の値が矛盾していない', () => {
+  assert.equal(L.CANDLE_PATTERNS.length, 30);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 30);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 30);
   for (const c of L.CANDLE_PATTERNS) {
-    assert.ok(c.candles.length >= 1 && c.candles.length <= 3, c.id);
+    assert.ok(c.candles.length >= 1 && c.candles.length <= 5, c.id);
     for (const k of c.candles) {
       assert.ok(k.h >= Math.max(k.o, k.c), `${c.id}: 高値が低い`);
       assert.ok(k.l <= Math.min(k.o, k.c), `${c.id}: 安値が高い`);
@@ -767,7 +767,7 @@ test('紛らわしいローソク足の組は、同じ問題の選択肢に同�
   const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
   const candleIds = new Set(L.CANDLE_PATTERNS.map((c) => c.id));
   const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => candleIds.has(a) && candleIds.has(b));
-  assert.ok(pairs.length >= 9);
+  assert.ok(pairs.length >= 22);
   for (let seed = 1; seed <= 40; seed++) {
     for (const [a, b] of pairs) {
       for (const [x, y] of [[a, b], [b, a]]) {
@@ -858,11 +858,14 @@ const LEVEL_TABLE = {
     master: [], // Task 2〜4 で追加する
   },
   candles: {
-    easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top'],
-    normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji'],
-    hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover'],
-    expert: [], // Task 2〜4 で追加する
-    master: [], // Task 2〜4 で追加する
+    easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top',
+      'lower-shadow-bullish', 'upper-shadow-bearish'],
+    normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji',
+      'gap-up', 'gap-down'],
+    hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover',
+      'bullish-harami-cross', 'bearish-harami-cross'],
+    expert: ['rising-three-methods', 'falling-three-methods'],
+    master: ['abandoned-baby-bottom', 'abandoned-baby-top'],
   },
   terms: {
     easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa',
@@ -875,6 +878,120 @@ const LEVEL_TABLE = {
     master: ['payout-ratio', 'buyback', 'stock-split', 'circuit-breaker'],
   },
 };
+
+test('下影陽線 / 上影陰線: 実体が値幅の30〜50%で、ヒゲが実体より長い', () => {
+  const [a] = candleOf('lower-shadow-bullish');
+  assert.ok(a.c > a.o);
+  assert.ok(bodyOf(a) >= rangeOf(a) * 0.3 && bodyOf(a) <= rangeOf(a) * 0.5);
+  assert.ok(a.o - a.l > bodyOf(a), '下ヒゲは実体より長い');
+  assert.ok(a.h - a.c <= rangeOf(a) * 0.1, '上ヒゲはほとんどない');
+  const [b] = candleOf('upper-shadow-bearish');
+  assert.ok(b.c < b.o);
+  assert.ok(bodyOf(b) >= rangeOf(b) * 0.3 && bodyOf(b) <= rangeOf(b) * 0.5);
+  assert.ok(b.h - b.o > bodyOf(b), '上ヒゲは実体より長い');
+  assert.ok(b.c - b.l <= rangeOf(b) * 0.1, '下ヒゲはほとんどない');
+});
+
+test('上窓 / 下窓: 2本で、窓は8以上空いている', () => {
+  assert.equal(candleOf('gap-up').length, 2);
+  const [a, b] = candleOf('gap-up');
+  assert.ok(b.l - a.h >= 8, '2本目の安値が1本目の高値より上');
+  assert.equal(candleOf('gap-down').length, 2);
+  const [c, d] = candleOf('gap-down');
+  assert.ok(c.l - d.h >= 8, '2本目の高値が1本目の安値より下');
+});
+
+test('強気のはらみ十字 / 弱気のはらみ十字: 1本目の大きな実体の中に十字線が収まる', () => {
+  assert.equal(candleOf('bullish-harami-cross').length, 2);
+  const [a, b] = candleOf('bullish-harami-cross');
+  assert.ok(a.c < a.o && bodyOf(a) >= 30, '1本目は大きな陰線');
+  assert.equal(b.o, b.c);
+  assert.ok(b.o < a.o - 8 && b.o > a.c + 8, '十字線の始値=終値は1本目の実体の中');
+  assert.equal(candleOf('bearish-harami-cross').length, 2);
+  const [c, d] = candleOf('bearish-harami-cross');
+  assert.ok(c.c > c.o && bodyOf(c) >= 30, '1本目は大きな陽線');
+  assert.equal(d.o, d.c);
+  assert.ok(d.o < c.c - 8 && d.o > c.o + 8);
+});
+
+test('上げ三法 / 下げ三法: 小さな3本が1本目の値幅の内側で少しずつ動き、5本目が1本目の終値を超えて引ける', () => {
+  const r = candleOf('rising-three-methods');
+  assert.equal(r.length, 5);
+  assert.ok(r[0].c > r[0].o && bodyOf(r[0]) >= 30, '1本目は大きな陽線');
+  for (const k of r.slice(1, 4)) {
+    assert.ok(bodyOf(k) <= bodyOf(r[0]) / 3, '小さな実体');
+    assert.ok(k.h < r[0].h && k.l > r[0].l, '1本目の値幅の内側');
+  }
+  assert.ok(r.slice(1, 4).some((k) => k.c < k.o), '陰線を含む');
+  for (let i = 2; i <= 3; i++) assert.ok(r[i].c < r[i - 1].c && r[i].l < r[i - 1].l, '少しずつ下がる');
+  assert.ok(r[4].c > r[4].o && bodyOf(r[4]) >= 30, '5本目は大きな陽線');
+  assert.ok(r[4].c > r[0].c + 8, '1本目の終値より上で引ける');
+  const f = candleOf('falling-three-methods');
+  assert.equal(f.length, 5);
+  assert.ok(f[0].c < f[0].o && bodyOf(f[0]) >= 30);
+  for (const k of f.slice(1, 4)) {
+    assert.ok(bodyOf(k) <= bodyOf(f[0]) / 3);
+    assert.ok(k.h < f[0].h && k.l > f[0].l);
+  }
+  assert.ok(f.slice(1, 4).some((k) => k.c > k.o), '陽線を含む');
+  for (let i = 2; i <= 3; i++) assert.ok(f[i].c > f[i - 1].c && f[i].h > f[i - 1].h, '少しずつ上がる');
+  assert.ok(f[4].c < f[4].o && bodyOf(f[4]) >= 30);
+  assert.ok(f[4].c < f[0].c - 8, '1本目の終値より下で引ける');
+});
+
+test('捨て子線(底) / 捨て子線(天井): 十字線が前後と窓を空けて孤立している', () => {
+  const [a, b, c] = candleOf('abandoned-baby-bottom');
+  assert.ok(a.c < a.o && bodyOf(a) >= 20, '1本目は大きな陰線');
+  assert.equal(b.o, b.c, '2本目は十字線');
+  assert.ok(a.l - b.h >= 8, '下に窓');
+  assert.ok(c.c > c.o && bodyOf(c) >= 20, '3本目は大きな陽線');
+  assert.ok(c.l - b.h >= 8, '上に窓');
+  const [d, e, f] = candleOf('abandoned-baby-top');
+  assert.ok(d.c > d.o && bodyOf(d) >= 20);
+  assert.equal(e.o, e.c);
+  assert.ok(e.l - d.h >= 8, '上に窓');
+  assert.ok(f.c < f.o && bodyOf(f) >= 20);
+  assert.ok(e.l - f.h >= 8, '下に窓');
+});
+
+test('新規10個のローソク足の紛らわしい組が両方向で isConfusable で、選択肢に同時に出ない', () => {
+  const pairs = [['hammer', 'lower-shadow-bullish'], ['shooting-star', 'upper-shadow-bearish'],
+    ['bullish-harami', 'bullish-harami-cross'], ['bearish-harami', 'bearish-harami-cross'],
+    ['doji', 'bullish-harami-cross'], ['doji', 'bearish-harami-cross'], ['rising-three-methods', 'falling-three-methods'],
+    ['abandoned-baby-bottom', 'morning-star'], ['abandoned-baby-top', 'evening-star'], ['gap-up', 'gap-down']];
+  for (const [a, b] of pairs) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+    for (let seed = 1; seed <= 40; seed++) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((k) => k.id === x), L.createRng(seed));
+        assert.ok(!q.choices.includes(L.CANDLE_PATTERNS.find((k) => k.id === y).name), `${x} vs ${y} seed=${seed}`);
+      }
+    }
+  }
+});
+
+test('新規10個のローソク足: 問題が有効で難易度が表どおり、どの難易度でも candle / all の出題が有効', () => {
+  const NEW = ['lower-shadow-bullish', 'upper-shadow-bearish', 'gap-up', 'gap-down', 'bullish-harami-cross', 'bearish-harami-cross',
+    'rising-three-methods', 'falling-three-methods', 'abandoned-baby-bottom', 'abandoned-baby-top'];
+  for (const id of NEW) {
+    const level = L.DIFFICULTY_LEVELS.find((lv) => LEVEL_TABLE.candles[lv].includes(id));
+    const item = L.CANDLE_PATTERNS.find((k) => k.id === id);
+    assert.ok(item.explanation.endsWith('よ。'), id);
+    for (let seed = 1; seed <= 10; seed++) {
+      const q = L.makeCandleQuestion(item, L.createRng(seed));
+      assert.equal(L.validateQuestion(q), null, id);
+      assert.equal(q.difficulty, level, id);
+    }
+  }
+  for (const mode of ['candle', 'all']) {
+    for (const level of L.DIFFICULTY_FILTERS) {
+      for (let seed = 1; seed <= 10; seed++) {
+        for (const q of L.buildDeck(mode, seed, level)) assert.equal(L.validateQuestion(q), null, `${mode}/${level}`);
+      }
+    }
+  }
+});
 
 test('新規の用語20問: 難易度どおりで、問題が validateQuestion を通る', () => {
   const newIds = [];
@@ -934,7 +1051,7 @@ test('モード×難易度の問題数: easy/normal/hard は6問以上で表の�
   const expected = {
     pattern: { easy: 7, normal: 7, hard: 6 },
     outlook: { easy: 7, normal: 6, hard: 6 },
-    candle: { easy: 7, normal: 7, hard: 6 },
+    candle: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
     term: { easy: 11, normal: 11, hard: 10, expert: 4, master: 4 },
   };
   for (const mode of L.MODES) {
@@ -943,7 +1060,7 @@ test('モード×難易度の問題数: easy/normal/hard は6問以上で表の�
       // expert / master は Task 2〜4 で問題を足すまで0問。Task 4/5 で「1問以上」と正確な数に直す
       if (level === 'expert' || level === 'master') {
         assert.ok(n >= 0, `${mode}/${level} n=${n}`);
-        if (mode === 'term') assert.equal(n, expected.term[level], `${mode}/${level}`);
+        if (mode === 'term' || mode === 'candle') assert.equal(n, expected[mode][level], `${mode}/${level}`);
         continue;
       }
       assert.ok(n >= 6, `${mode}/${level} n=${n}`);

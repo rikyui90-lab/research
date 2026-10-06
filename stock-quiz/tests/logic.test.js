@@ -718,3 +718,41 @@ test('追加後の出題: ローソク足モードが10問成立し、全部ま�
     }
   }
 });
+
+const NEW_CANDLE_PAIRS = [['tweezer-top', 'dark-cloud-cover'], ['tweezer-bottom', 'piercing-line'], ['bullish-harami', 'bearish-harami']];
+const NEW_PATTERN_PAIRS = [['bull-flag', 'pennant'], ['bear-flag', 'bear-pennant'], ['bull-flag', 'falling-wedge'], ['bear-flag', 'rising-wedge']];
+
+test('追加した紛らわしい組は isConfusable が true', () => {
+  for (const [a, b] of [...NEW_CANDLE_PAIRS, ...NEW_PATTERN_PAIRS]) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+  }
+});
+
+test('追加した紛らわしい組は、同じ問題の選択肢に同時に出ない(両方向・シード1〜40)', () => {
+  const candleName = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
+  for (let seed = 1; seed <= 40; seed++) {
+    for (const [a, b] of NEW_CANDLE_PAIRS) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
+        assert.ok(!q.choices.includes(candleName(y)), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null);
+      }
+    }
+    for (const [a, b] of NEW_PATTERN_PAIRS) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makePatternQuestion(L.findPattern(x), seed);
+        assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null);
+      }
+    }
+  }
+});
+
+test('どのモードでも出題プールが ROUND_SIZE 以上で、値動き予想に三角持ち合いが入らない', () => {
+  for (const mode of L.MODES) {
+    assert.ok(L.buildPool(mode, L.createRng(1)).length >= L.ROUND_SIZE, mode);
+  }
+  const pool = L.buildPool('outlook', L.createRng(1));
+  assert.ok(!pool.some((q) => q.patternId === 'symmetrical-triangle'));
+});

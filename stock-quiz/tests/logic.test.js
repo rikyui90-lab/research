@@ -1128,15 +1128,20 @@ const NEW_IDS = {
 test('各難易度に、新しく追加した問題がちょうど10問ある(用語4・ローソク足2・形状2・値動き2)', () => {
   for (const level of L.DIFFICULTY_LEVELS) {
     const ids = NEW_IDS[level];
-    const count = (type, list) => L.buildPool(type, L.createRng(1), level).filter((q) => {
-      const [t, ...rest] = q.id.split(':');
-      return t === type && list.includes(rest.join(':'));
-    }).length;
+    let total = 0;
+    const count = (type, list) => {
+      const n = L.buildPool(type, L.createRng(1), level).filter((q) => {
+        const [t, ...rest] = q.id.split(':');
+        return t === type && list.includes(rest.join(':'));
+      }).length;
+      total += n;
+      return n;
+    };
     assert.equal(count('term', ids.term), 4, `term ${level}`);
     assert.equal(count('candle', ids.candle), 2, `candle ${level}`);
     assert.equal(count('pattern', ids.pattern), 2, `pattern ${level}`);
     assert.equal(count('outlook', ids.pattern), 2, `outlook ${level}`);
-    assert.equal(4 + 2 + 2 + 2, 10);
+    assert.equal(total, 10, `合計 ${level}`);
   }
 });
 

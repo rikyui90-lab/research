@@ -622,6 +622,8 @@ function drawQuestionChart(q, reveal) {
   const chart = chartForQuestion(q);
   redraw = () => renderChart(canvas, chart, reveal);
   redraw();
+  // 描画後に縦スクロールバーが出ると幅が変わるので、もう一度描き直す
+  requestAnimationFrame(() => { if (redraw) redraw(); });
 }
 
 window.addEventListener('resize', () => { if (redraw) redraw(); });

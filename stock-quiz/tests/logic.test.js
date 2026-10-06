@@ -145,10 +145,10 @@ test('MODES と MODE_LABELS が揃っている', () => {
   for (const m of L.MODES) assert.ok(L.MODE_LABELS[m], m);
 });
 
-test('CANDLE_PATTERNS: 10個で、ローソク足の値が矛盾していない', () => {
-  assert.equal(L.CANDLE_PATTERNS.length, 10);
-  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 10);
-  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 10);
+test('CANDLE_PATTERNS: 20個で、ローソク足の値が矛盾していない', () => {
+  assert.equal(L.CANDLE_PATTERNS.length, 20);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 20);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 20);
   for (const c of L.CANDLE_PATTERNS) {
     assert.ok(c.candles.length >= 1 && c.candles.length <= 3, c.id);
     for (const k of c.candles) {
@@ -621,5 +621,100 @@ test('追加後の出題: どのモードも10問が成立し、値動き予想�
     if (p.outlook === 'up') assert.ok(end > last + 5, p.id);
     if (p.outlook === 'down') assert.ok(end < last - 5, p.id);
     if (p.outlook === 'flat') assert.ok(Math.abs(end - last) < 6, p.id);
+  }
+});
+
+const candleOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).candles;
+const bodyOf = (k) => Math.abs(k.c - k.o);
+const rangeOf = (k) => k.h - k.l;
+
+test('追加した10個のローソク足が揃っている', () => {
+  for (const id of ['evening-star', 'bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom',
+    'piercing-line', 'dark-cloud-cover', 'dragonfly-doji', 'gravestone-doji', 'spinning-top']) {
+    assert.ok(L.CANDLE_PATTERNS.some((c) => c.id === id), id);
+  }
+});
+
+test('宵の明星: 上に窓を空けた小さな実体のあと、1本目の実体の半分より下まで下げる', () => {
+  const [a, b, c] = candleOf('evening-star');
+  assert.ok(a.c > a.o && bodyOf(a) > 10, '1本目は大きな陽線');
+  assert.ok(b.l > a.h, '2本目は窓を空けて上');
+  assert.ok(bodyOf(b) < bodyOf(a) / 2, '2本目は小さな実体');
+  assert.ok(c.c < c.o && c.c < (a.o + a.c) / 2, '3本目は1本目の半分より下まで下げる陰線');
+});
+
+test('陽のはらみ足 / 陰のはらみ足: 2本目が1本目の実体の中に収まる', () => {
+  const [a, b] = candleOf('bullish-harami');
+  assert.ok(a.c < a.o && b.c > b.o);
+  assert.ok(Math.max(b.o, b.c) < Math.max(a.o, a.c) && Math.min(b.o, b.c) > Math.min(a.o, a.c));
+  const [c, d] = candleOf('bearish-harami');
+  assert.ok(c.c > c.o && d.c < d.o);
+  assert.ok(Math.max(d.o, d.c) < Math.max(c.o, c.c) && Math.min(d.o, d.c) > Math.min(c.o, c.c));
+});
+
+test('毛抜き天井 / 毛抜き底: 2本の高値(安値)が同じ', () => {
+  const [a, b] = candleOf('tweezer-top');
+  assert.equal(a.h, b.h);
+  assert.ok(a.c > a.o && b.c < b.o);
+  const [c, d] = candleOf('tweezer-bottom');
+  assert.equal(c.l, d.l);
+  assert.ok(c.c < c.o && d.c > d.o);
+});
+
+test('切り込み線: 前の安値より安く始まり、前の実体の半分より上まで戻すが、前の始値は超えない', () => {
+  const [a, b] = candleOf('piercing-line');
+  assert.ok(a.c < a.o && b.c > b.o);
+  assert.ok(b.o < a.l);
+  assert.ok(b.c > (a.o + a.c) / 2 && b.c < a.o);
+});
+
+test('かぶせ線: 前の高値より高く始まり、前の実体の半分より下まで押し戻すが、前の始値は割らない', () => {
+  const [a, b] = candleOf('dark-cloud-cover');
+  assert.ok(a.c > a.o && b.c < b.o);
+  assert.ok(b.o > a.h);
+  assert.ok(b.c < (a.o + a.c) / 2 && b.c > a.o);
+});
+
+test('トンボ / 塔婆: 始値と終値が同じで、長い下ヒゲ(上ヒゲ)だけ', () => {
+  const [d] = candleOf('dragonfly-doji');
+  assert.equal(d.o, d.c);
+  assert.ok(d.h - d.o <= rangeOf(d) * 0.1 && d.o - d.l >= rangeOf(d) * 0.7);
+  const [g] = candleOf('gravestone-doji');
+  assert.equal(g.o, g.c);
+  assert.ok(g.o - g.l <= rangeOf(g) * 0.1 && g.h - g.o >= rangeOf(g) * 0.7);
+});
+
+test('コマ: 実体が小さく、上下にヒゲがほぼ同じくらいある', () => {
+  const [k] = candleOf('spinning-top');
+  assert.ok(bodyOf(k) <= rangeOf(k) * 0.25);
+  const upper = k.h - Math.max(k.o, k.c);
+  const lower = Math.min(k.o, k.c) - k.l;
+  assert.ok(upper >= rangeOf(k) * 0.25 && lower >= rangeOf(k) * 0.25);
+});
+
+test('紛らわしいローソク足の組は、同じ問題の選択肢に同時に出ない', () => {
+  const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
+  const candleIds = new Set(L.CANDLE_PATTERNS.map((c) => c.id));
+  const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => candleIds.has(a) && candleIds.has(b));
+  assert.ok(pairs.length >= 9);
+  for (let seed = 1; seed <= 40; seed++) {
+    for (const [a, b] of pairs) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
+        assert.ok(!q.choices.includes(nameOf(y)), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null);
+      }
+    }
+  }
+});
+
+test('追加後の出題: ローソク足モードが10問成立し、全部まぜでも有効', () => {
+  for (let seed = 1; seed <= 30; seed++) {
+    for (const mode of ['candle', 'all']) {
+      const deck = L.buildDeck(mode, seed);
+      assert.equal(deck.length, L.ROUND_SIZE);
+      assert.equal(new Set(deck.map((q) => q.id)).size, deck.length);
+      for (const q of deck) assert.equal(L.validateQuestion(q), null);
+    }
   }
 });

@@ -647,6 +647,16 @@ function startGame(mode) {
   showQuestion();
 }
 
+// 画面を描いた直後のクリック(ダブルクリックの2回目)は無視する
+const CLICK_GUARD_MS = 400;
+let shownAt = 0;
+function guarded(fn) {
+  return (...args) => {
+    if (performance.now() - shownAt < CLICK_GUARD_MS) return;
+    fn(...args);
+  };
+}
+
 function showQuestion() {
   const q = game.deck[game.index];
   const hasChart = q.type !== 'term';
@@ -658,7 +668,8 @@ function showQuestion() {
   if (hasChart) drawQuestionChart(q, false);
   else redraw = null;
   app.querySelectorAll('[data-i]').forEach((b) =>
-    b.addEventListener('click', () => answer(q, q.choices[Number(b.dataset.i)])));
+    b.addEventListener('click', guarded(() => answer(q, q.choices[Number(b.dataset.i)]))));
+  shownAt = performance.now();
 }
 
 function answer(q, picked) {
@@ -683,7 +694,8 @@ function showExplain(q, picked, correct) {
     <button class="primary" id="next">${last ? '結果を見る' : '次の問題へ'}</button>`;
   if (hasChart) drawQuestionChart(q, true);
   else redraw = null;
-  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('next').addEventListener('click', guarded(next));
+  shownAt = performance.now();
 }
 
 function next() {

@@ -492,6 +492,29 @@ test('用語の修正: 決算の答えと権利確定日の説明', () => {
   assert.ok(record.explanation.includes('権利付最終日'));
 });
 
+// 用語の事実確認の指摘(v4)
+test('新規の用語20問: 正解が選択肢の中で一番長い問題は4割未満で、誤りの選択肢が重複しない', () => {
+  // 全40問で数えると、元の20問だけで長い答えが13問あり、基準を超えてしまうため、今回の20問に絞って確かめる
+  const newTerms = L.TERMS.slice(20);
+  assert.equal(newTerms.length, 20);
+  const longest = newTerms.filter((t) => t.answer.length > Math.max(...t.wrongs.map((w) => w.length)));
+  assert.ok((newTerms.length - longest.length) / newTerms.length > 0.6, '一番長い答え: ' + longest.map((t) => t.id).join(','));
+  for (const t of newTerms) {
+    assert.ok(!t.wrongs.includes(t.answer), t.id);
+    assert.equal(new Set(t.wrongs).size, 3, t.id);
+  }
+});
+
+test('用語の修正: 単元株は内国株式に限り、サーキットブレーカーは10分程度と書く', () => {
+  const unit = L.TERMS.find((t) => t.id === 'trading-unit');
+  assert.ok(unit.answer.includes('国内の上場会社') || unit.answer.includes('内国株式'));
+  assert.ok(unit.explanation.includes('内国株式'));
+  const cb = L.TERMS.find((t) => t.id === 'circuit-breaker');
+  assert.ok(cb.explanation.includes('10分程度'));
+  assert.ok(!cb.explanation.includes('10分以上'));
+});
+
+
 test('makeSpline: 骨格の点をそのまま通る', () => {
   for (const p of L.PATTERNS) {
     const f = L.makeSpline(p.points);

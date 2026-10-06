@@ -82,10 +82,10 @@ test('generateSeries: 長さ 60 で、同じシードなら同じ、違うシー
 test('generateSeries: 骨格の形に沿っている(ダブルトップは山が2つで高さがほぼ同じ)', () => {
   const p = L.findPattern('double-top');
   const v = L.generateSeries(p, 5);
-  const peak1 = Math.max(...v.slice(10, 30));
-  const peak2 = Math.max(...v.slice(31, 50));
+  const peak1 = Math.max(...v.slice(20, 60));
+  const peak2 = Math.max(...v.slice(62, 100));
   assert.ok(Math.abs(peak1 - peak2) < 6, `peak1=${peak1} peak2=${peak2}`);
-  assert.ok(Math.min(...v.slice(28, 36)) < peak1 - 15);
+  assert.ok(Math.min(...v.slice(56, 72)) < peak1 - 15);
 });
 
 test('generateContinuation: 長さ 15 で、方向が outlook と一致する', () => {
@@ -420,4 +420,57 @@ test('用語の修正: 決算の答えと権利確定日の説明', () => {
   assert.ok(earnings.answer.includes('確定'));
   const record = L.TERMS.find((t) => t.id === 'record-date');
   assert.ok(record.explanation.includes('権利付最終日'));
+});
+
+test('makeSpline: 骨格の点をそのまま通る', () => {
+  for (const p of L.PATTERNS) {
+    const f = L.makeSpline(p.points);
+    for (const [t, v] of p.points) assert.ok(Math.abs(f(t) - v) < 1e-9, `${p.id} t=${t}`);
+  }
+});
+
+test('makeSpline: 隣り合う点のあいだで、2点の値の範囲をはみ出さない', () => {
+  for (const p of L.PATTERNS) {
+    const f = L.makeSpline(p.points);
+    for (let i = 1; i < p.points.length; i++) {
+      const [t0, v0] = p.points[i - 1];
+      const [t1, v1] = p.points[i];
+      const lo = Math.min(v0, v1) - 1e-9;
+      const hi = Math.max(v0, v1) + 1e-9;
+      for (let k = 0; k <= 20; k++) {
+        const v = f(t0 + ((t1 - t0) * k) / 20);
+        assert.ok(v >= lo && v <= hi, `${p.id} 区間${i} k=${k} v=${v}`);
+      }
+    }
+  }
+});
+
+test('生成定数: 120点・続き30点・移動平均 10 と 30', () => {
+  assert.equal(L.SERIES_LENGTH, 120);
+  assert.equal(L.CONTINUATION_LENGTH, 30);
+  assert.equal(L.MA_SHORT, 10);
+  assert.equal(L.MA_LONG, 30);
+});
+
+test('滑らかさ: 隣り合う3点の折れ曲がり(2階差)が、すべてのパターンで小さい', () => {
+  const THRESHOLD = 2.65; // 実測の最大値 2.04 の約1.3倍(変更前の生成は 15.21)
+  let worst = 0;
+  for (const p of L.PATTERNS) {
+    for (let seed = 1; seed <= 30; seed++) {
+      const v = L.generateSeries(p, seed);
+      for (let i = 1; i < v.length - 1; i++) {
+        worst = Math.max(worst, Math.abs(v[i + 1] - 2 * v[i] + v[i - 1]));
+      }
+    }
+  }
+  assert.ok(worst < THRESHOLD, `worst=${worst}`);
+});
+
+test('続きの値動きも滑らか: 隣り合う点の差が大きくない', () => {
+  for (const outlook of ['up', 'down', 'flat']) {
+    for (let seed = 1; seed <= 30; seed++) {
+      const c = L.generateContinuation(50, outlook, seed);
+      for (let i = 1; i < c.length; i++) assert.ok(Math.abs(c[i] - c[i - 1]) < 3, `${outlook} seed=${seed}`);
+    }
+  }
 });

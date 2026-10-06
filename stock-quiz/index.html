@@ -271,12 +271,13 @@ function normalizeRange(values) {
   return { min: min - pad, max: max + pad };
 }
 
-const SERIES_LENGTH = 60;
-const CONTINUATION_LENGTH = 15;
-const SERIES_NOISE = 3;
+const SERIES_LENGTH = 120;
+const CONTINUATION_LENGTH = 30;
+const SERIES_NOISE = 1.2;
+const NOISE_PERSISTENCE = 0.85;
 const CONTINUATION_MOVE = 15;
-const MA_SHORT = 5;
-const MA_LONG = 15;
+const MA_SHORT = 10;
+const MA_LONG = 30;
 
 function round2(v) {
   return Math.round(v * 100) / 100;
@@ -288,24 +289,51 @@ function findPattern(id) {
   return p;
 }
 
-// 骨格の点のあいだを直線でつなぐ
-function interpolate(points, t) {
-  for (let i = 1; i < points.length; i++) {
-    if (t <= points[i][0]) {
-      const [t0, v0] = points[i - 1];
-      const [t1, v1] = points[i];
-      return v0 + ((v1 - v0) * (t - t0)) / (t1 - t0);
+// 骨格の点を通る、なめらかな補間。山と谷の高さをはみ出さない(単調3次エルミート)
+function makeSpline(points) {
+  const n = points.length;
+  const xs = points.map((p) => p[0]);
+  const ys = points.map((p) => p[1]);
+  const d = [];
+  for (let i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+  const m = new Array(n);
+  m[0] = d[0];
+  m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / d[i];
+    const b = m[i + 1] / d[i];
+    const s = a * a + b * b;
+    if (s > 9) {
+      const t = 3 / Math.sqrt(s);
+      m[i] = t * a * d[i];
+      m[i + 1] = t * b * d[i];
     }
   }
-  return points[points.length - 1][1];
+  return function (t) {
+    if (t <= xs[0]) return ys[0];
+    if (t >= xs[n - 1]) return ys[n - 1];
+    let i = 0;
+    while (t > xs[i + 1]) i++;
+    const h = xs[i + 1] - xs[i];
+    const u = (t - xs[i]) / h;
+    const u2 = u * u;
+    const u3 = u2 * u;
+    return (2 * u3 - 3 * u2 + 1) * ys[i] + (u3 - 2 * u2 + u) * h * m[i]
+      + (-2 * u3 + 3 * u2) * ys[i + 1] + (u3 - u2) * h * m[i + 1];
+  };
 }
 
 function generateSeries(pattern, seed) {
   const rng = createRng(seed);
+  const spline = makeSpline(pattern.points);
   const values = [];
+  let prev = 0;
   for (let i = 0; i < SERIES_LENGTH; i++) {
-    const base = interpolate(pattern.points, i / (SERIES_LENGTH - 1));
-    values.push(round2(base + (rng() - 0.5) * SERIES_NOISE));
+    const base = spline(i / (SERIES_LENGTH - 1));
+    prev = NOISE_PERSISTENCE * prev + (rng() - 0.5) * SERIES_NOISE;
+    values.push(round2(base + prev));
   }
   return values;
 }
@@ -315,9 +343,11 @@ function generateContinuation(lastValue, outlook, seed) {
   const rng = createRng(seed + 7919);
   const move = outlook === 'up' ? CONTINUATION_MOVE : outlook === 'down' ? -CONTINUATION_MOVE : 0;
   const values = [];
+  let prev = 0;
   for (let i = 0; i < CONTINUATION_LENGTH; i++) {
     const base = lastValue + (move * (i + 1)) / CONTINUATION_LENGTH;
-    values.push(round2(base + (rng() - 0.5) * 2));
+    prev = NOISE_PERSISTENCE * prev + (rng() - 0.5) * SERIES_NOISE;
+    values.push(round2(base + prev));
   }
   return values;
 }
@@ -571,10 +601,15 @@ function drawLines(ctx, w, h, chart, reveal, colors) {
   const y = (v) => h - 12 - ((v - min) / (max - min)) * (h - 24);
   const stroke = (pts, color, width, dash) => {
     ctx.beginPath();
-    let started = false;
-    pts.forEach(([i, v]) => {
-      if (v === null) return;
-      if (!started) { ctx.moveTo(x(i), y(v)); started = true; } else { ctx.lineTo(x(i), y(v)); }
+    // 点の中点を通る2次曲線でなめらかにつなぐ
+    const valid = pts.filter(([, v]) => v !== null);
+    valid.forEach(([i, v], k) => {
+      if (k === 0) ctx.moveTo(x(i), y(v));
+      else if (k === valid.length - 1) ctx.lineTo(x(i), y(v));
+      else {
+        const [pi, pv] = valid[k - 1];
+        ctx.quadraticCurveTo(x(pi), y(pv), (x(pi) + x(i)) / 2, (y(pv) + y(v)) / 2);
+      }
     });
     ctx.strokeStyle = color;
     ctx.lineWidth = width;

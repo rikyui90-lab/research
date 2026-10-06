@@ -33,8 +33,10 @@ canvas { display: block; }
 .choices { display: grid; gap: 8px; }
 .sec { font-size: 14px; font-weight: 500; margin: 12px 0 6px; }
 .diffs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-.diffs button { text-align: center; padding: 8px 16px; min-width: 64px; }
-.diffs button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7.5px 15.5px; font-weight: 600; }
+.diffs button { text-align: center; padding: 8px 12px; min-width: 56px; }
+.diffs button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7.5px 11.5px; font-weight: 600; }
+.choice[aria-disabled="true"] { opacity: 0.7; cursor: not-allowed; }
+.choice[aria-disabled="true"]:hover { border-color: var(--border); }
 ul.wrong .stars { margin-right: 6px; }
 button.link { background: none; border: none; color: var(--accent); text-decoration: underline; padding: 6px 0; }
 button.link:hover { border: none; }
@@ -166,6 +168,56 @@ const PATTERNS = [
     points: [[0,50],[0.1,60],[0.22,41],[0.34,60],[0.46,40],[0.58,60],[0.7,41],[0.82,60],[0.92,41],[1,50]],
     explanation: '一定の上限と下限のあいだを行き来する形。上下どちらかに抜けるまでは、横ばいが続きやすいよ。',
   },
+  {
+    id: 'ascending-channel', name: '上昇チャネル', outlook: 'up',
+    points: [[0,15],[0.125,46],[0.25,27],[0.375,58],[0.5,38],[0.625,69],[0.75,49],[0.875,80],[1,70]],
+    explanation: '平行な右上がりの2本の線のあいだで、高値と安値を切り上げながら上下に振れる形だよ。上昇トレンドが続いているサインとされるよ。ただし、下の線を割ると、トレンドが崩れたと見られることもあるよ。',
+  },
+  {
+    id: 'descending-channel', name: '下降チャネル', outlook: 'down',
+    points: [[0,85],[0.125,54],[0.25,73],[0.375,42],[0.5,62],[0.625,31],[0.75,51],[0.875,20],[1,30]],
+    explanation: '平行な右下がりの2本の線のあいだで、高値と安値を切り下げながら上下に振れる形だよ。下落トレンドが続いているサインとされるよ。ただし、上の線を超えると、トレンドが崩れたと見られることもあるよ。',
+  },
+  {
+    id: 'v-bottom', name: 'Vボトム(V字底)', outlook: 'up',
+    points: [[0,70],[0.15,75],[0.28,72],[0.41,48],[0.5,10],[0.59,48],[0.72,72],[0.85,75],[1,80]],
+    explanation: '急落のあと、底を尖らせて急反発し、V字を描く形だよ。売りが一気に出尽くして、上昇に転じやすいとされるよ。',
+  },
+  {
+    id: 'v-top', name: 'Vトップ(逆V字)', outlook: 'down',
+    points: [[0,30],[0.15,25],[0.28,28],[0.41,52],[0.5,90],[0.59,52],[0.72,28],[0.85,25],[1,20]],
+    explanation: '急騰のあと、天井を尖らせて急落し、逆V字を描く形だよ。買いが一気に出尽くして、下落に転じやすいとされるよ。',
+  },
+  {
+    id: 'bullish-perfect-order', name: '上昇パーフェクトオーダー', outlook: 'up', ma: true,
+    points: [[0,12],[0.15,24],[0.3,33],[0.38,36],[0.5,46],[0.6,54],[0.72,66],[0.8,67],[0.9,82],[1,92]],
+    explanation: '短期・中期・長期の移動平均線が、上から短期、中期、長期の順に並び、3本とも右上がりになる形だよ。上昇トレンドが強いサインとされるよ。ただし、サインが出るのは遅めで、横ばい相場ではダマシも多いよ。',
+  },
+  {
+    id: 'bearish-perfect-order', name: '下降パーフェクトオーダー', outlook: 'down', ma: true,
+    points: [[0,88],[0.15,76],[0.3,67],[0.38,64],[0.5,54],[0.6,46],[0.72,34],[0.8,33],[0.9,18],[1,8]],
+    explanation: '短期・中期・長期の移動平均線が、上から長期、中期、短期の順に並び、3本とも右下がりになる形だよ。下落トレンドが強いサインとされるよ。ただし、サインが出るのは遅めで、横ばい相場ではダマシも多いよ。',
+  },
+  {
+    id: 'rounding-top', name: 'ラウンドトップ(丸天井)', outlook: 'down',
+    points: [[0,25],[0.15,38],[0.3,58],[0.42,72],[0.5,75],[0.58,72],[0.7,58],[0.85,38],[1,26]],
+    explanation: 'ゆるやかに上がって丸い天井をつけ、ゆるやかに下がる形だよ。買いの勢いが少しずつ弱まって、下落に転じやすいとされるよ。「ソーサートップ」とも呼ばれるよ。',
+  },
+  {
+    id: 'inverted-cup-with-handle', name: '逆カップウィズハンドル', outlook: 'down',
+    points: [[0,40],[0.08,22],[0.2,30],[0.35,55],[0.5,68],[0.65,55],[0.78,30],[0.86,20],[0.93,34],[1,31]],
+    explanation: 'カップウィズハンドルを上下に逆さにした形だよ。丸い山のあと、小さな戻り(取っ手)をつけて、取っ手の安値を割ると、下落しやすいとされるよ。',
+  },
+  {
+    id: 'diamond-top', name: 'ダイヤモンドトップ', outlook: 'down',
+    points: [[0,44],[0.08,68],[0.16,58],[0.25,76],[0.35,52],[0.46,84],[0.56,48],[0.66,78],[0.75,58],[0.84,72],[0.9,63],[0.94,66],[1,50]],
+    explanation: '高値圏で値幅が広がってから狭まり、ひし形を描く形だよ。ひし形の下の線を割ると、下落に転じやすいとされるよ。',
+  },
+  {
+    id: 'diamond-bottom', name: 'ダイヤモンドボトム', outlook: 'up',
+    points: [[0,56],[0.08,32],[0.16,42],[0.25,24],[0.35,48],[0.46,16],[0.56,52],[0.66,22],[0.75,42],[0.84,28],[0.9,37],[0.94,34],[1,50]],
+    explanation: '安値圏で値幅が広がってから狭まり、ひし形を描く形だよ。ひし形の上の線を超えると、上昇に転じやすいとされるよ。',
+  },
 ];
 const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'], ['doji', 'shooting-star'],
   ['symmetrical-triangle', 'bear-pennant'], ['saucer-bottom', 'cup-with-handle'],
@@ -174,11 +226,26 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['shooting-star', 'gravestone-doji'], ['bullish-engulfing', 'piercing-line'], ['bearish-engulfing', 'dark-cloud-cover'],
   ['spinning-top', 'hammer'], ['spinning-top', 'shooting-star'],
   ['tweezer-top', 'dark-cloud-cover'], ['tweezer-bottom', 'piercing-line'], ['bullish-harami', 'bearish-harami'],
-  ['bull-flag', 'pennant'], ['bear-flag', 'bear-pennant'], ['bull-flag', 'falling-wedge'], ['bear-flag', 'rising-wedge']];
+  ['bull-flag', 'pennant'], ['bear-flag', 'bear-pennant'], ['bull-flag', 'falling-wedge'], ['bear-flag', 'rising-wedge'],
+  ['hammer', 'lower-shadow-bullish'], ['shooting-star', 'upper-shadow-bearish'],
+  ['bullish-harami', 'bullish-harami-cross'], ['bearish-harami', 'bearish-harami-cross'],
+  ['doji', 'bullish-harami-cross'], ['doji', 'bearish-harami-cross'], ['bullish-harami-cross', 'bearish-harami-cross'],
+  ['rising-three-methods', 'falling-three-methods'], ['abandoned-baby-bottom', 'morning-star'],
+  ['abandoned-baby-top', 'evening-star'], ['gap-up', 'gap-down'],
+  ['lower-shadow-bullish', 'dragonfly-doji'], ['upper-shadow-bearish', 'gravestone-doji'],
+  ['v-bottom', 'saucer-bottom'], ['v-top', 'rounding-top'], ['ascending-channel', 'rising-wedge'],
+  ['descending-channel', 'falling-wedge'], ['ascending-channel', 'bullish-perfect-order'],
+  ['descending-channel', 'bearish-perfect-order'], ['rounding-top', 'inverted-cup-with-handle'],
+  ['diamond-top', 'head-shoulders'], ['diamond-bottom', 'inverse-head-shoulders'], ['diamond-top', 'diamond-bottom'],
+  ['inverted-cup-with-handle', 'head-shoulders'],
+  ['golden-cross', 'bullish-perfect-order'], ['dead-cross', 'bearish-perfect-order'],
+  ['diamond-top', 'symmetrical-triangle'], ['diamond-bottom', 'symmetrical-triangle'],
+  ['gap-down', 'morning-star'], ['gap-up', 'evening-star'], ['gap-up', 'abandoned-baby-bottom'],
+  ['gap-down', 'abandoned-baby-bottom'], ['gap-up', 'abandoned-baby-top'], ['gap-down', 'abandoned-baby-top']];
 const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
 const MODE_LABELS = {
   all: '全部まぜ',
-  pattern: '形の名前',
+  pattern: 'チャートの形状',
   outlook: '値動き予想',
   candle: 'ローソク足',
   term: '用語',
@@ -241,6 +308,36 @@ const CANDLE_PATTERNS = [
     explanation: '始値と終値が安値圏で同じで、長い上ヒゲがある十字線。上昇の天井で出ると、反落のサインとされるよ。' },
   { id: 'spinning-top', name: 'コマ', candles: [{ o: 48, h: 66, l: 32, c: 54 }],
     explanation: '実体が小さく、上下にヒゲがある形。買いと売りが迷っていて、方向感がないことを表すよ。' },
+  { id: 'lower-shadow-bullish', name: '下影陽線', candles: [{ o: 48, h: 66, l: 20, c: 64 }],
+    explanation: '陽線で、実体より長い下ヒゲがある形。いったん売られても買い戻されたことを表し、下落の底で出ると、上昇のサインとされるよ。' },
+  { id: 'upper-shadow-bearish', name: '上影陰線', candles: [{ o: 62, h: 82, l: 44, c: 46 }],
+    explanation: '陰線で、実体より長い上ヒゲがある形。いったん買われても売り戻されたことを表し、上昇の天井で出ると、下落のサインとされるよ。' },
+  { id: 'gap-up', name: '上窓(ギャップアップ)',
+    candles: [{ o: 40, h: 52, l: 36, c: 50 }, { o: 62, h: 76, l: 60, c: 74 }],
+    explanation: '前の足の高値より高く始まり、そのまま上で推移して、足と足のあいだにすき間(窓)が空く形。買いの勢いが強いサインとされるよ。' },
+  { id: 'gap-down', name: '下窓(ギャップダウン)',
+    candles: [{ o: 70, h: 74, l: 58, c: 60 }, { o: 48, h: 50, l: 34, c: 36 }],
+    explanation: '前の足の安値より安く始まり、そのまま下で推移して、足と足のあいだにすき間(窓)が空く形。売りの勢いが強いサインとされるよ。' },
+  { id: 'bullish-harami-cross', name: '強気のはらみ十字',
+    candles: [{ o: 72, h: 74, l: 30, c: 32 }, { o: 52, h: 60, l: 44, c: 52 }],
+    explanation: '大きな陰線の中に、十字線がすっぽり収まる形。下落の勢いが止まったサインで、底で出ると、上昇のサインとされるよ。(「はらみ寄せ線」とも呼ばれるよ)' },
+  { id: 'bearish-harami-cross', name: '弱気のはらみ十字',
+    candles: [{ o: 30, h: 72, l: 28, c: 70 }, { o: 50, h: 58, l: 42, c: 50 }],
+    explanation: '大きな陽線の中に、十字線がすっぽり収まる形。上昇の勢いが止まったサインで、天井で出ると、下落のサインとされるよ。(「はらみ寄せ線」とも呼ばれるよ)' },
+  { id: 'rising-three-methods', name: '上げ三法',
+    candles: [{ o: 30, h: 72, l: 28, c: 70 }, { o: 68, h: 70, l: 58, c: 60 }, { o: 62, h: 64, l: 52, c: 54 },
+      { o: 56, h: 58, l: 46, c: 48 }, { o: 50, h: 84, l: 48, c: 82 }],
+    explanation: '大きな陽線のあと、小さな陰線が3本続いても最初の陽線の値幅の中に収まり、最後の大きな陽線がその高値を上回る形。上昇が続くサインとされるよ。' },
+  { id: 'falling-three-methods', name: '下げ三法',
+    candles: [{ o: 70, h: 72, l: 28, c: 30 }, { o: 32, h: 42, l: 30, c: 40 }, { o: 38, h: 48, l: 36, c: 46 },
+      { o: 44, h: 54, l: 42, c: 52 }, { o: 50, h: 52, l: 16, c: 18 }],
+    explanation: '大きな陰線のあと、小さな陽線が3本続いても最初の陰線の値幅の中に収まり、最後の大きな陰線がその安値を下回る形。下落が続くサインとされるよ。' },
+  { id: 'abandoned-baby-bottom', name: '捨て子線(底)',
+    candles: [{ o: 80, h: 82, l: 56, c: 58 }, { o: 44, h: 48, l: 40, c: 44 }, { o: 58, h: 84, l: 56, c: 82 }],
+    explanation: '大きな陰線のあと、窓を空けて下に十字線が出て、さらに窓を空けて大きな陽線が出る形。十字線が前後から離れて取り残される。下落の底で出ると、上昇のサインとされるよ。' },
+  { id: 'abandoned-baby-top', name: '捨て子線(天井)',
+    candles: [{ o: 20, h: 44, l: 18, c: 42 }, { o: 56, h: 60, l: 52, c: 56 }, { o: 42, h: 44, l: 16, c: 18 }],
+    explanation: '大きな陽線のあと、窓を空けて上に十字線が出て、さらに窓を空けて大きな陰線が出る形。十字線が前後から離れて取り残される。上昇の天井で出ると、下落のサインとされるよ。' },
 ];
 
 const TERMS = [
@@ -324,27 +421,123 @@ const TERMS = [
     answer: '一定の投資額までの運用益や配当が非課税になる制度',
     wrongs: ['株を担保にお金を借りられる制度', '海外の株だけを買える口座', '売買手数料が無料になる制度'],
     explanation: '通常、運用益には約20%の税金がかかるけれど、NISA の枠の中では非課税だよ。' },
+  // ここから下は、難易度 ★〜★★★★★ を足すときに追加した用語(各難易度に4問)
+  { id: 'dividend', question: '「配当」の意味は?',
+    answer: '会社が利益の一部を、株主に分配するお金',
+    wrongs: ['株を売って値上がり分を現金にしたときの利益', '株主総会に出席した人に渡される謝礼', '会社が株主から、事業のために追加で集める出資金'],
+    explanation: '配当の額は、会社が決算ごとに決めるよ。業績しだいで、増えたり減ったりするよ。' },
+  { id: 'shareholder-benefit', question: '「株主優待」とは?',
+    answer: '会社が株主に、自社の商品やサービスなどを贈る制度',
+    wrongs: ['株を長く持つほど、配当が必ず増える制度', '株主が会社の経営に意見を言える権利', '株を買うとき、税金の一部が戻ってくる制度'],
+    explanation: '優待の内容や条件は会社ごとに違うよ。配当と同じように、権利確定日に株主であることが条件になることが多いよ。' },
+  { id: 'listing', question: '「上場」とは?',
+    answer: '会社の株が、証券取引所で売買できるようになること',
+    wrongs: ['会社が決算を発表して、業績を株主に報告すること', '会社が経営に行き詰まって解散し、株が無価値になること', '会社が特定の取引先や関係者にだけ株を売ること'],
+    explanation: '上場すると、多くの投資家が株を売買できるようになるよ。会社は、上場にあたって取引所の審査を受けるよ。' },
+  { id: 'trading-unit', question: '「単元株」とは?',
+    answer: '株を売買するときの基本のまとまりで、国内の上場会社の株は100株が標準',
+    wrongs: ['1日に売買できる株数の上限として、取引所が決めたもの', '1回の注文で出せる株数の上限で、証券会社ごとに1,000株などと決めたもの', '新規上場のときに、最初に会社が発行する株数のこと'],
+    explanation: '2018年10月1日に、国内の上場会社(内国株式)の売買単位は100株に統一されたとされるよ。ETFや外国株などは別のこともあるよ。株価が1,000円なら、買うのに10万円ほど必要だよ。' },
+  { id: 'stop-loss', question: '「損切り」とは?',
+    answer: '値下がりした株を、損失が広がる前に売って確定させること',
+    wrongs: ['損が出ている株を、売らずに長く持ち続けること', '値下がりした株を買い増して、平均の買値を下げること', '値上がりした株を売って、利益を確定させること'],
+    explanation: '損切りの価格をあらかじめ決めておくと、迷わず売りやすいよ。逆指値注文を使う人もいるよ。' },
+  { id: 'take-profit', question: '「利益確定」とは?',
+    answer: '値上がりした株を売って、利益を実際に確定させること',
+    wrongs: ['損が出ている株を売って、損を確定させること', '値上がりを期待して、売らずに株を持ち続けること', '決算で出た利益を、株主に配当として配ること'],
+    explanation: '売るまでは、利益は「含み益」のままで、その後の値下がりで減ることがあるよ。' },
+  { id: 'averaging-down', question: '「ナンピン」の意味は?',
+    answer: '株価が下がったときに買い増して、平均の買値を下げること',
+    wrongs: ['株価が上がったときに買い増して、持ち株を増やすこと', '値下がりした株を売って、別の銘柄に乗り換えること', '同じ株を1日のうちに何度も売買すること'],
+    explanation: '平均の買値は下がるけれど、株価が下がり続けると、損失が膨らむこともあるよ。' },
+  { id: 'shiozuke', question: '「塩漬け」とは?',
+    answer: '含み損を抱えたまま売れず、長く持ち続けている状態',
+    wrongs: ['利益が出ている株を、売らずに長く持ち続けること', '買った日のうちに、株を売ってしまうこと', '決算の発表の前に、持っている株をすべて売ってしまうこと'],
+    explanation: '株価が戻るのを待つうちに、資金が長く固定されてしまうよ。投資に使える資金が減る点も気をつけたいよ。' },
+  { id: 'order-book', question: '「板(いた)」とは?',
+    answer: '売り注文と買い注文を、価格ごとに並べて表示したもの',
+    wrongs: ['過去の株価の動きを、ローソク足で並べたチャート', '実際に成立した取引の価格と数量を、時間順に並べた履歴', '企業の決算の数字を、期ごとに並べて一覧にした表'],
+    explanation: '板を見ると、どの価格にどれだけの注文が出ているかが分かるよ。' },
+  { id: 'execution', question: '「約定(やくじょう)」の意味は?',
+    answer: '出した売買の注文が成立すること',
+    wrongs: ['出した注文を取り消すこと', '注文の内容を、証券会社が確認すること', '株の代金と株式を、実際に受け渡すこと'],
+    explanation: '約定すると、売買が成立するよ。受け渡しは、約定のあとの決済で行われるよ。' },
+  { id: 'open-and-close', question: '「寄り付き」と「大引け」の意味は?',
+    answer: '寄り付きはその日の最初の取引、大引けは最後の取引',
+    wrongs: ['寄り付きはその日の最後の取引、大引けは最初の取引', '寄り付きは前日の終値、大引けは当日の高値', '寄り付きは売り注文だけ、大引けは買い注文だけが成立する時間'],
+    explanation: '寄り付きで決まる値段が始値、大引けで決まる値段が終値だよ。ローソク足の始値と終値にあたるよ。' },
+  { id: 'trading-sessions', question: '「前場(ぜんば)」と「後場(ごば)」とは?',
+    answer: '1日の売買時間を、昼休みをはさんで分けた午前の部と午後の部',
+    wrongs: ['前場は日中の通常の取引、後場は夜間に行われる取引', '前場は国内の株の取引、後場は海外の株や先物の取引', '前場は買い注文だけ、後場は売り注文だけを受け付けるという決まり'],
+    explanation: '東証では、2024年11月から前場が9:00〜11:30、後場が12:30〜15:30だよ。' },
+  { id: 'margin-ratio', question: '「信用倍率」の計算式は?',
+    answer: '信用買い残 ÷ 信用売り残',
+    wrongs: ['信用売り残 ÷ 信用買い残', '信用買い残 − 信用売り残', '信用取引の売買高 ÷ 現物取引の売買高'],
+    explanation: '1倍より大きいほど、買い方が多いことを表すよ。将来の売りや買いの圧力を考える材料のひとつだよ。' },
+  { id: 'reverse-fee', question: '「逆日歩(ぎゃくひぶ)」とは?',
+    answer: '貸す株が足りないときに、売り方が追加で払う費用',
+    wrongs: ['信用買いで借りたお金に、毎日かかる金利', '株を売買するたびに、証券会社へ払う手数料', '配当の権利が落ちた分を、売り方が買い方へ払う調整金'],
+    explanation: '信用売りが多くて貸せる株が足りないと発生することがあるよ。毎日金額が変わり、売り方の負担になるよ。' },
+  { id: 'roa', question: '「ROA(総資産利益率)」の意味は?',
+    answer: '総資産に対して、どれだけ利益を出したかの割合',
+    wrongs: ['自己資本に対して、どれだけ利益を出したかの割合', '売上高に対して、どれだけ利益を出したかの割合', '株価に対して、どれだけ利益を出したかの割合'],
+    explanation: 'ROA は、借りたお金も含めた会社の資産全体を、どれだけ効率よく利益に変えたかを見る指標だよ。' },
+  { id: 'eps', question: '「EPS(1株当たり利益)」とは?',
+    answer: '会社の純利益を、発行済株式数で割った1株あたりの利益',
+    wrongs: ['株価が、1株あたり利益の何倍になっているかを示す指標', '1年間に、株主が1株あたり受け取れる配当金の額', '純資産を発行済株式数で割った、1株あたりの純資産'],
+    explanation: 'EPS が増えていく会社は、成長しているとされるよ。株価 ÷ EPS が PER だよ。' },
+  { id: 'payout-ratio', question: '「配当性向」の意味は?',
+    answer: '利益のうち、配当に回した割合',
+    wrongs: ['株価に対する、1年間の配当金の割合', '前の年からの、配当金の増え方', '配当金のうち、税金として引かれる割合'],
+    explanation: '配当性向 = 配当金 ÷ 純利益。高すぎると、将来の増配の余地が小さいこともあるよ。' },
+  { id: 'buyback', question: '「自社株買い」とは?',
+    answer: '会社が、自分の会社の株を市場などから買い取ること',
+    wrongs: ['会社が新しく株を発行して、投資家に買ってもらうこと', '会社が、ほかの会社の株を買って子会社にすること', '社員だけが、決まった価格で自社の株を買えること'],
+    explanation: '市場に出回る株が減り、1株あたりの価値が高まるとされるよ。株主への還元の方法のひとつだよ。' },
+  { id: 'stock-split', question: '「株式分割」とは?',
+    answer: '1株を複数の株に分けて、株数を増やすこと',
+    wrongs: ['複数の株を1株にまとめて、株数を減らすこと', '会社の事業を、複数の会社に分けること', '株の代金を、何回かに分けて払うこと'],
+    explanation: '株数が増えた分、1株あたりの株価は理論上は下がるよ。会社の価値が変わるわけではなく、買いやすくなる効果があるとされるよ。' },
+  { id: 'circuit-breaker', question: '「サーキットブレーカー」とは?',
+    answer: '先物などが急に大きく動いたとき、取引を一時的に止める仕組み',
+    wrongs: ['暴落した銘柄を、取引所がすぐに上場廃止にする仕組み', '注文が一定数を超えたら、注文を自動で取り消す仕組み', 'システム障害が起きたときに、その日の取引をすべて取り消す仕組み'],
+    explanation: '大阪取引所の日経225先物などでは、値幅の上限・下限に達するなど一定の条件を満たすと、取引が一時的に止まる(10分程度)とされるよ。個別株のストップ高・安とは別の仕組みだよ。' },
 ];
 
-// 難易度(内部の値は easy / normal / hard、画面では ★ / ★★ / ★★★ で表す)
-const DIFFICULTY_LEVELS = ['easy', 'normal', 'hard'];
-const DIFFICULTY_FILTERS = ['all', 'easy', 'normal', 'hard'];
-const DIFFICULTY_LABELS = { all: 'すべて', easy: '★', normal: '★★', hard: '★★★' };
+// 難易度(内部の値は easy / normal / hard / expert / master、画面では ★ から ★★★★★ で表す)
+const DIFFICULTY_LEVELS = ['easy', 'normal', 'hard', 'expert', 'master'];
+const DIFFICULTY_FILTERS = ['all', 'easy', 'normal', 'hard', 'expert', 'master'];
+const DIFFICULTY_LABELS = { all: 'すべて', easy: '★', normal: '★★', hard: '★★★', expert: '★★★★', master: '★★★★★' };
 const DIFFICULTY_BY_ID = {
   patterns: {
-    easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range'],
-    normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge'],
-    hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom'],
+    easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range',
+      'ascending-channel', 'descending-channel'],
+    normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge',
+      'v-bottom', 'v-top'],
+    hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom',
+      'bullish-perfect-order', 'bearish-perfect-order'],
+    expert: ['rounding-top', 'inverted-cup-with-handle'],
+    master: ['diamond-top', 'diamond-bottom'],
   },
   candles: {
-    easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top'],
-    normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji'],
-    hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover'],
+    easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top',
+      'lower-shadow-bullish', 'upper-shadow-bearish'],
+    normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji',
+      'gap-up', 'gap-down'],
+    hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover',
+      'bullish-harami-cross', 'bearish-harami-cross'],
+    expert: ['rising-three-methods', 'falling-three-methods'],
+    master: ['abandoned-baby-bottom', 'abandoned-baby-top'],
   },
   terms: {
-    easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa'],
-    normal: ['per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up'],
-    hard: ['roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'],
+    easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa',
+      'dividend', 'shareholder-benefit', 'listing', 'trading-unit'],
+    normal: ['per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up',
+      'stop-loss', 'take-profit', 'averaging-down', 'shiozuke'],
+    hard: ['roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights',
+      'order-book', 'execution', 'open-and-close', 'trading-sessions'],
+    expert: ['margin-ratio', 'reverse-fee', 'roa', 'eps'],
+    master: ['payout-ratio', 'buyback', 'stock-split', 'circuit-breaker'],
   },
 };
 // 各項目に difficulty を付ける(表にない id は付かず、validateQuestion が不備として見つける)
@@ -599,7 +792,7 @@ function starsOf(level) {
 }
 
 function starsAria(level) {
-  return `難易度 星${DIFFICULTY_LEVELS.indexOf(level) + 1}つ(3段階)`;
+  return `難易度 星${DIFFICULTY_LEVELS.indexOf(level) + 1}つ(5段階)`;
 }
 
 // difficulty が 'all' なら全部、それ以外はその難易度の項目だけ
@@ -934,11 +1127,13 @@ function showStart() {
     const size = roundSize(m, difficulty);
     const p = stats.played[key];
     const rate = p.total ? `${Math.round((p.correct / p.total) * 100)}%` : '-';
+    if (size === 0) {
+      return `<button class="choice" data-mode="${m}" aria-disabled="true">${MODE_LABELS[m]}<small>この難易度の問題は、まだないよ</small></button>`;
+    }
     return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[key]} / ${size}　正解率 ${rate}　${size}問</small></button>`;
   }).join('');
-  const diffLabels = { all: 'すべて', easy: '難易度 星1つ(3段階)', normal: '難易度 星2つ(3段階)', hard: '難易度 星3つ(3段階)' };
   const diffs = DIFFICULTY_FILTERS.map((d) =>
-    `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${diffLabels[d]}">${DIFFICULTY_LABELS[d]}</button>`).join('');
+    `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
     <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <p class="sec">難易度</p>
@@ -951,7 +1146,7 @@ function showStart() {
     if (again) again.focus(); // 描き直したあとも、押したボタンにフォーカスを戻す
   }));
   // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
-  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => startGame(b.dataset.mode))));
+  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => { if (b.getAttribute('aria-disabled') !== 'true') startGame(b.dataset.mode); })));
   shownAt = performance.now();
 }
 

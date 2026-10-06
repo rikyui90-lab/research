@@ -619,6 +619,12 @@ function renderChart(canvas, chart, reveal) {
   else drawLines(ctx, w, h, chart, reveal, colors);
 }
 
+// 移動平均線がある図には、色の説明を添える
+function maNote(q) {
+  if (q.type === 'term' || q.type === 'candle' || !findPattern(q.patternId).ma) return '';
+  return `<p class="note">橙の線が短期(${MA_SHORT}本)、紫の線が長期(${MA_LONG}本)の移動平均線だよ。</p>`;
+}
+
 function drawQuestionChart(q, reveal) {
   const canvas = document.getElementById('chart');
   const chart = chartForQuestion(q);
@@ -666,6 +672,7 @@ function showQuestion() {
     <p class="q">${esc(q.question)}</p>
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
     ${q.type === 'candle' ? '<p class="note">赤が陽線(上昇)、青が陰線(下落)だよ。</p>' : ''}
+    ${maNote(q)}
     <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
   if (hasChart) drawQuestionChart(q, false);
   else redraw = null;
@@ -692,6 +699,7 @@ function showExplain(q, picked, correct) {
     </div>
     ${shape}
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
+    ${maNote(q)}
     <p class="sub">あなたの答え: ${esc(picked)}(${correct ? '正解' : '不正解'})</p>
     <button class="primary" id="next">${last ? '結果を見る' : '次の問題へ'}</button>`;
   if (hasChart) drawQuestionChart(q, true);

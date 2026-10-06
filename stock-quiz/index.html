@@ -75,24 +75,24 @@ const PATTERNS = [
     explanation: '3つの谷の真ん中が一番深い形。ネックラインを超えると上昇に転じやすいよ。',
   },
   {
-    id: 'symmetrical-triangle', name: '三角持ち合い', outlook: 'flat',
+    id: 'symmetrical-triangle', name: '三角持ち合い', outlook: 'flat', outlookQuiz: false,
     points: [[0, 50], [0.12, 85], [0.28, 20], [0.44, 72], [0.58, 33], [0.72, 62], [0.84, 42], [0.94, 55], [1, 50]],
-    explanation: '高値が切り下がり安値が切り上がって、値動きが狭まる形。上下どちらに抜けるかは抜けるまでわからないから、方向感のない横ばいと考えるよ。',
+    explanation: '高値が切り下がり安値が切り上がって、値動きが狭まる形。上下どちらに抜けるかは抜けるまで分からないよ。抜けた方向に動きやすいとされるよ。',
   },
   {
     id: 'bull-flag', name: '上昇フラッグ', outlook: 'up',
-    points: [[0, 10], [0.4, 80], [0.5, 70], [0.6, 76], [0.7, 66], [0.8, 72], [0.9, 62], [1, 68]],
+    points: [[0, 25], [0.2, 27], [0.6, 85], [0.68, 76], [0.76, 81], [0.84, 72], [0.92, 77], [1, 68]],
     explanation: '急上昇のあとに小さく下向きに調整する形。調整が終わると、元の上昇が続きやすいよ。',
   },
   {
     id: 'pennant', name: 'ペナント', outlook: 'up',
-    points: [[0, 10], [0.4, 80], [0.5, 64], [0.6, 76], [0.7, 68], [0.8, 74], [0.9, 71], [1, 72]],
-    explanation: '急上昇のあとに三角形に狭まる形。上昇の途中の小休止で、上に抜けやすいよ。',
+    points: [[0, 25], [0.2, 27], [0.6, 85], [0.68, 68], [0.76, 80], [0.84, 72], [0.92, 78], [1, 74]],
+    explanation: '上昇のあとに三角形に狭まる形。上昇の途中の小休止で、上に抜けやすいとされるよ。',
   },
   {
     id: 'rising-wedge', name: '上昇ウェッジ', outlook: 'down',
     points: [[0, 15], [0.15, 45], [0.25, 32], [0.4, 62], [0.5, 50], [0.65, 74], [0.75, 64], [0.88, 82], [1, 76]],
-    explanation: '上昇しながら値幅が狭まる形。上昇の勢いが弱まっていて、下に抜けやすいよ。',
+    explanation: '上昇しながら値幅が狭まる形。上昇の勢いが弱まっていて、下に抜けやすいとされるよ。',
   },
   {
     id: 'falling-wedge', name: '下降ウェッジ', outlook: 'up',
@@ -102,14 +102,15 @@ const PATTERNS = [
   {
     id: 'golden-cross', name: 'ゴールデンクロス', outlook: 'up', ma: true,
     points: [[0, 70], [0.3, 35], [0.5, 38], [1, 85]],
-    explanation: '短期の移動平均線が長期の移動平均線を下から上に抜けた形。上昇のサインとされるよ。',
+    explanation: '短期の移動平均線が長期の移動平均線を下から上に抜けた形。上昇のサインとされるよ。 ただしダマシも多いよ。',
   },
   {
     id: 'dead-cross', name: 'デッドクロス', outlook: 'down', ma: true,
     points: [[0, 30], [0.3, 65], [0.5, 62], [1, 15]],
-    explanation: '短期の移動平均線が長期の移動平均線を上から下に抜けた形。下落のサインとされるよ。',
+    explanation: '短期の移動平均線が長期の移動平均線を上から下に抜けた形。下落のサインとされるよ。 ただしダマシも多いよ。',
   },
 ];
+const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'], ['doji', 'shooting-star']];
 const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
 const MODE_LABELS = {
   all: '全部まぜ',
@@ -130,9 +131,9 @@ const CANDLE_PATTERNS = [
     explanation: '始値から終値まで大きく下落した長い陰線。売りの勢いが強いことを表すよ。' },
   { id: 'doji', name: '十字線', candles: [{ o: 50, h: 72, l: 28, c: 50 }],
     explanation: '始値と終値がほぼ同じで、上下にヒゲがある形。買いと売りが拮抗していて、転換点のサインになることがあるよ。' },
-  { id: 'hammer', name: 'ハンマー', candles: [{ o: 62, h: 66, l: 20, c: 64 }],
+  { id: 'hammer', name: 'ハンマー', candles: [{ o: 58, h: 66, l: 20, c: 64 }],
     explanation: '実体が小さく、長い下ヒゲがある形。下落の底で出ると、反発のサインとされるよ。' },
-  { id: 'shooting-star', name: '流れ星(シューティングスター)', candles: [{ o: 36, h: 80, l: 32, c: 34 }],
+  { id: 'shooting-star', name: '流れ星(シューティングスター)', candles: [{ o: 42, h: 80, l: 32, c: 36 }],
     explanation: '実体が小さく、長い上ヒゲがある形。上昇の天井で出ると、下落のサインとされるよ。' },
   { id: 'bullish-engulfing', name: '陽の包み足',
     candles: [{ o: 62, h: 64, l: 44, c: 46 }, { o: 42, h: 70, l: 40, c: 68 }],
@@ -141,14 +142,14 @@ const CANDLE_PATTERNS = [
     candles: [{ o: 46, h: 64, l: 44, c: 62 }, { o: 66, h: 68, l: 38, c: 40 }],
     explanation: '小さな陽線を、次の大きな陰線がすっぽり包む形。上昇の天井で出ると、下落のサインとされるよ。' },
   { id: 'three-white-soldiers', name: '赤三兵',
-    candles: [{ o: 30, h: 46, l: 28, c: 44 }, { o: 44, h: 60, l: 42, c: 58 }, { o: 58, h: 74, l: 56, c: 72 }],
-    explanation: '陽線が3本続けて切り上がる形。上昇が続くサインとされるよ。' },
+    candles: [{ o: 30, h: 46, l: 28, c: 44 }, { o: 40, h: 60, l: 38, c: 58 }, { o: 54, h: 74, l: 52, c: 72 }],
+    explanation: '陽線が3本続けて切り上がる形。上昇が強まるサインとされるよ。(高値圏で出ると、買われすぎに注意する見方もあるよ)' },
   { id: 'three-black-crows', name: '黒三兵',
-    candles: [{ o: 72, h: 74, l: 56, c: 58 }, { o: 58, h: 60, l: 42, c: 44 }, { o: 44, h: 46, l: 28, c: 30 }],
-    explanation: '陰線が3本続けて切り下がる形。下落が続くサインとされるよ。' },
+    candles: [{ o: 72, h: 74, l: 56, c: 58 }, { o: 62, h: 64, l: 42, c: 44 }, { o: 48, h: 50, l: 28, c: 30 }],
+    explanation: '陰線が3本続けて切り下がる形。下落局面に入るサインとされるよ。(三羽ガラスとも呼ばれるよ)' },
   { id: 'morning-star', name: '明けの明星',
     candles: [{ o: 72, h: 74, l: 48, c: 50 }, { o: 40, h: 44, l: 34, c: 38 }, { o: 44, h: 74, l: 42, c: 70 }],
-    explanation: '大きな陰線のあとに小さな実体が出て、大きな陽線で反発する形。下落の底で出ると、上昇のサインとされるよ。' },
+    explanation: '大きな陰線のあとに、窓を空けて下に小さな実体が出て、大きな陽線で反発する形。下落の底で出ると、上昇のサインとされるよ。' },
 ];
 
 const TERMS = [
@@ -187,7 +188,7 @@ const TERMS = [
   { id: 'stop-order', question: '「逆指値注文」とは?',
     answer: '株価が指定した価格に達したら発注する注文',
     wrongs: ['現在の株価より有利な価格で出す注文', '売りと買いを同時に出す注文', '注文を出してすぐ取り消す注文'],
-    explanation: '損失を限定したいときなどに使うよ。' },
+    explanation: '損失を限定したいときなどに使うよ。売りは現在の株価より下、買いは上の価格を指定するよ。' },
   { id: 'limit-up', question: '「ストップ高」とは?',
     answer: '1日の値幅制限の上限まで株価が上昇すること',
     wrongs: ['1日の取引が停止されること', '年初来の高値を更新すること', '配当が上限額まで増えること'],
@@ -203,15 +204,15 @@ const TERMS = [
   { id: 'record-date', question: '「権利確定日」とは?',
     answer: '配当や株主優待を受け取る権利が決まる日',
     wrongs: ['株が上場する日', '決算が発表される日', '株を売却できる最後の日'],
-    explanation: '権利確定日に株主名簿に載っている人が、配当などを受け取れるよ。' },
+    explanation: '権利確定日に株主名簿に載っている人が、配当などを受け取れるよ。実際には、権利確定日の2営業日前(権利付最終日)までに買う必要があるよ。' },
   { id: 'ex-rights', question: '「権利落ち日」とは?',
     answer: 'この日以降に買っても、配当などの権利が得られない最初の日',
     wrongs: ['権利を他の人に売れる最後の日', '決算が発表される日', '上場廃止が決まる日'],
     explanation: '権利落ち日は、配当の分だけ株価が下がることがあるよ。' },
   { id: 'earnings', question: '「決算」とは?',
-    answer: '企業が一定期間の業績をまとめて報告すること',
+    answer: '企業が一定期間の収益と費用を集計して、業績や財政状態を確定すること',
     wrongs: ['株主総会の別の呼び方', '株の売買代金を精算すること', '配当金を振り込むこと'],
-    explanation: '決算発表の前後は、株価が大きく動くことがあるよ。' },
+    explanation: '決算の内容を発表するのが決算発表だよ。発表の前後は、株価が大きく動くことがあるよ。' },
   { id: 'golden-cross-term', question: '「ゴールデンクロス」とは?',
     answer: '短期の移動平均線が、長期の移動平均線を下から上に抜けること',
     wrongs: ['短期の移動平均線が、長期の移動平均線を上から下に抜けること', '株価が過去最高値を更新すること', '出来高が前日の2倍になること'],
@@ -336,8 +337,12 @@ const QUESTION_TEXT = {
 };
 
 // correct 以外から count 個を、シャッフルして選ぶ
+function isConfusable(a, b) {
+  return CONFUSABLE_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+}
+
 function pickOthers(items, correct, count, rng) {
-  return shuffle(items.filter((x) => x !== correct), rng).slice(0, count);
+  return shuffle(items.filter((x) => x !== correct && !isConfusable(x.id, correct.id)), rng).slice(0, count);
 }
 
 function makePatternQuestion(pattern, seed) {
@@ -430,14 +435,18 @@ function buildPool(mode, rng) {
     // 同じ形の「名前」と「値動き」を両方出すと、片方の解説がもう片方の答えになるので、どちらか一方だけにする
     for (const p of PATTERNS) {
       const seed = Math.floor(rng() * 1e9);
-      pool.push(rng() < 0.5 ? makePatternQuestion(p, seed) : makeOutlookQuestion(p, seed));
+      const asPattern = rng() < 0.5 || p.outlookQuiz === false;
+      pool.push(asPattern ? makePatternQuestion(p, seed) : makeOutlookQuestion(p, seed));
     }
   } else {
     if (wants('pattern')) {
       for (const p of PATTERNS) pool.push(makePatternQuestion(p, Math.floor(rng() * 1e9)));
     }
     if (wants('outlook')) {
-      for (const p of PATTERNS) pool.push(makeOutlookQuestion(p, Math.floor(rng() * 1e9)));
+      for (const p of PATTERNS) {
+        const seed = Math.floor(rng() * 1e9);
+        if (p.outlookQuiz !== false) pool.push(makeOutlookQuestion(p, seed));
+      }
     }
   }
   if (wants('candle')) {

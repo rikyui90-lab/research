@@ -347,3 +347,77 @@ test("buildDeck('all'): 形の名前も値動きも、たくさんの回のど�
   for (let seed = 1; seed <= 40; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
   assert.ok(types.has('pattern') && types.has('outlook'));
 });
+
+test('isConfusable: 順不同で、定義した組だけ true', () => {
+  assert.equal(L.isConfusable('symmetrical-triangle', 'pennant'), true);
+  assert.equal(L.isConfusable('pennant', 'symmetrical-triangle'), true);
+  assert.equal(L.isConfusable('doji', 'hammer'), true);
+  assert.equal(L.isConfusable('doji', 'big-bullish'), false);
+  assert.equal(L.isConfusable('pennant', 'pennant'), false);
+});
+
+test('紛らわしい組は、同じ問題の選択肢に同時に出ない', () => {
+  const nameOf = (id) => L.findPattern(id).name;
+  const candleName = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
+  for (let seed = 1; seed <= 60; seed++) {
+    const t = L.makePatternQuestion(L.findPattern('symmetrical-triangle'), seed);
+    assert.ok(!t.choices.includes(nameOf('pennant')), `triangle seed=${seed}`);
+    const p = L.makePatternQuestion(L.findPattern('pennant'), seed);
+    assert.ok(!p.choices.includes(nameOf('symmetrical-triangle')), `pennant seed=${seed}`);
+    for (const [a, b] of [['doji', 'hammer'], ['doji', 'shooting-star']]) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
+        assert.ok(!q.choices.includes(candleName(y)), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null);
+      }
+    }
+  }
+});
+
+test('三角持ち合いは値動き予想に出ない(形の名前には出る)', () => {
+  for (let seed = 1; seed <= 60; seed++) {
+    const outlookDeck = L.buildDeck('outlook', seed);
+    assert.ok(!outlookDeck.some((q) => q.patternId === 'symmetrical-triangle'), `outlook seed=${seed}`);
+    const allDeck = L.buildDeck('all', seed);
+    assert.ok(!allDeck.some((q) => q.type === 'outlook' && q.patternId === 'symmetrical-triangle'), `all seed=${seed}`);
+  }
+  let seen = false;
+  for (let seed = 1; seed <= 60 && !seen; seed++) {
+    seen = L.buildDeck('pattern', seed).some((q) => q.patternId === 'symmetrical-triangle');
+  }
+  assert.ok(seen, '形の名前では出題される');
+});
+
+test('修正した形: ペナントは三角持ち合いより旗竿のあとの収束が短く、フラッグは下向きの平行', () => {
+  const pennant = L.findPattern('pennant').points;
+  assert.deepEqual(pennant[2], [0.6, 85]);
+  const flag = L.findPattern('bull-flag').points;
+  assert.deepEqual(flag[flag.length - 1], [1, 68]);
+});
+
+test('ローソク足の修正: ハンマーと流れ星は実体が小さすぎない', () => {
+  const body = (id) => {
+    const k = L.CANDLE_PATTERNS.find((c) => c.id === id).candles[0];
+    return Math.abs(k.c - k.o) / (k.h - k.l);
+  };
+  assert.ok(body('hammer') >= 0.1, `hammer ${body('hammer')}`);
+  assert.ok(body('shooting-star') >= 0.1, `shooting-star ${body('shooting-star')}`);
+});
+
+test('三兵: 各足は前の足の実体の内側から寄る', () => {
+  for (const id of ['three-white-soldiers', 'three-black-crows']) {
+    const ks = L.CANDLE_PATTERNS.find((c) => c.id === id).candles;
+    for (let i = 1; i < ks.length; i++) {
+      const lo = Math.min(ks[i - 1].o, ks[i - 1].c);
+      const hi = Math.max(ks[i - 1].o, ks[i - 1].c);
+      assert.ok(ks[i].o >= lo && ks[i].o <= hi, `${id} ${i}`);
+    }
+  }
+});
+
+test('用語の修正: 決算の答えと権利確定日の説明', () => {
+  const earnings = L.TERMS.find((t) => t.id === 'earnings');
+  assert.ok(earnings.answer.includes('確定'));
+  const record = L.TERMS.find((t) => t.id === 'record-date');
+  assert.ok(record.explanation.includes('権利付最終日'));
+});

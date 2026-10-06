@@ -69,6 +69,130 @@ const PATTERNS = [
     explanation: '短期の移動平均線が長期の移動平均線を上から下に抜けた形。下落のサインとされるよ。',
   },
 ];
+const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
+const MODE_LABELS = {
+  all: '全部まぜ',
+  pattern: '形の名前',
+  outlook: '値動き予想',
+  candle: 'ローソク足',
+  term: '用語',
+};
+
+const OUTLOOK_LABELS = { up: '上がりやすい', down: '下がりやすい', flat: '横ばい' };
+const OUTLOOK_CHOICES = ['上がりやすい', '下がりやすい', '横ばい'];
+
+// ローソク足: o=始値 h=高値 l=安値 c=終値(0〜100 の相対値)
+const CANDLE_PATTERNS = [
+  { id: 'big-bullish', name: '大陽線', candles: [{ o: 30, h: 72, l: 28, c: 70 }],
+    explanation: '始値から終値まで大きく上昇した長い陽線。買いの勢いが強いことを表すよ。' },
+  { id: 'big-bearish', name: '大陰線', candles: [{ o: 70, h: 72, l: 28, c: 30 }],
+    explanation: '始値から終値まで大きく下落した長い陰線。売りの勢いが強いことを表すよ。' },
+  { id: 'doji', name: '十字線', candles: [{ o: 50, h: 72, l: 28, c: 50 }],
+    explanation: '始値と終値がほぼ同じで、上下にヒゲがある形。買いと売りが拮抗していて、転換点のサインになることがあるよ。' },
+  { id: 'hammer', name: 'ハンマー(トンカチ)', candles: [{ o: 62, h: 66, l: 20, c: 64 }],
+    explanation: '実体が小さく、長い下ヒゲがある形。下落の底で出ると、反発のサインとされるよ。' },
+  { id: 'shooting-star', name: '流れ星(シューティングスター)', candles: [{ o: 36, h: 80, l: 32, c: 34 }],
+    explanation: '実体が小さく、長い上ヒゲがある形。上昇の天井で出ると、下落のサインとされるよ。' },
+  { id: 'bullish-engulfing', name: '陽の包み足',
+    candles: [{ o: 62, h: 64, l: 44, c: 46 }, { o: 42, h: 70, l: 40, c: 68 }],
+    explanation: '小さな陰線を、次の大きな陽線がすっぽり包む形。下落の底で出ると、上昇のサインとされるよ。' },
+  { id: 'bearish-engulfing', name: '陰の包み足',
+    candles: [{ o: 46, h: 64, l: 44, c: 62 }, { o: 66, h: 68, l: 38, c: 40 }],
+    explanation: '小さな陽線を、次の大きな陰線がすっぽり包む形。上昇の天井で出ると、下落のサインとされるよ。' },
+  { id: 'three-white-soldiers', name: '赤三兵',
+    candles: [{ o: 30, h: 46, l: 28, c: 44 }, { o: 44, h: 60, l: 42, c: 58 }, { o: 58, h: 74, l: 56, c: 72 }],
+    explanation: '陽線が3本続けて切り上がる形。上昇が続くサインとされるよ。' },
+  { id: 'three-black-crows', name: '黒三兵',
+    candles: [{ o: 72, h: 74, l: 56, c: 58 }, { o: 58, h: 60, l: 42, c: 44 }, { o: 44, h: 46, l: 28, c: 30 }],
+    explanation: '陰線が3本続けて切り下がる形。下落が続くサインとされるよ。' },
+  { id: 'morning-star', name: '明けの明星',
+    candles: [{ o: 72, h: 74, l: 48, c: 50 }, { o: 40, h: 44, l: 34, c: 38 }, { o: 44, h: 74, l: 42, c: 70 }],
+    explanation: '大きな陰線のあとに小さな実体が出て、大きな陽線で反発する形。下落の底で出ると、上昇のサインとされるよ。' },
+];
+
+const TERMS = [
+  { id: 'per', question: '「PER(株価収益率)」の意味は?',
+    answer: '株価が1株あたり利益の何倍かを示す指標',
+    wrongs: ['株価が1株あたり純資産の何倍かを示す指標', '株価に対する配当金の割合', '自己資本に対する利益の割合'],
+    explanation: 'PER は株価 ÷ 1株あたり利益。一般に、低いほど割安とされるよ。' },
+  { id: 'pbr', question: '「PBR(株価純資産倍率)」の意味は?',
+    answer: '株価が1株あたり純資産の何倍かを示す指標',
+    wrongs: ['株価が1株あたり利益の何倍かを示す指標', '株価に対する配当金の割合', '売上高の前年からの伸び率'],
+    explanation: 'PBR は株価 ÷ 1株あたり純資産。1倍を割ると、解散価値より安いとされるよ。' },
+  { id: 'dividend-yield', question: '「配当利回り」の意味は?',
+    answer: '株価に対する、1年間の配当金の割合',
+    wrongs: ['利益のうち、配当に回した割合', '株価の1年間の上昇率', '売上に対する利益の割合'],
+    explanation: '配当利回り = 1株あたりの年間配当 ÷ 株価。株価が下がると、利回りは上がるよ。' },
+  { id: 'roe', question: '「ROE(自己資本利益率)」の意味は?',
+    answer: '自己資本に対して、どれだけ利益を出したかの割合',
+    wrongs: ['総資産に対して、どれだけ利益を出したかの割合', '売上に対する利益の割合', '株価に対する利益の割合'],
+    explanation: 'ROE は株主のお金をどれだけ効率よく利益に変えたかを見る指標だよ。' },
+  { id: 'market-cap', question: '「時価総額」の計算式は?',
+    answer: '株価 × 発行済株式数',
+    wrongs: ['株価 × 1日の売買高', '純資産 + 負債', '1年間の売上の合計'],
+    explanation: '時価総額は、市場がその会社全体にどれだけの値段をつけているかを表すよ。' },
+  { id: 'volume', question: '「出来高」の意味は?',
+    answer: '一定期間に売買が成立した株数',
+    wrongs: ['売買の注文が出された金額の合計', '会社が発行している株式の総数', '配当を受け取れる株数'],
+    explanation: '出来高が増えると、その値動きに多くの人が参加していることを表すよ。' },
+  { id: 'market-order', question: '「成行注文」とは?',
+    answer: '価格を指定せずに、すぐ売買したいときに出す注文',
+    wrongs: ['価格を指定して出す注文', '株価が指定した価格に達したら出す注文', '翌日まで取り消せない注文'],
+    explanation: '成行注文は、約定しやすい反面、思ったより不利な価格になることがあるよ。' },
+  { id: 'limit-order', question: '「指値注文」とは?',
+    answer: '価格を指定して出す注文',
+    wrongs: ['価格を指定せずに出す注文', '売買を証券会社に任せる注文', '注文を出さずに様子を見ること'],
+    explanation: '指値注文は、希望の価格にならなければ約定しないよ。' },
+  { id: 'stop-order', question: '「逆指値注文」とは?',
+    answer: '株価が指定した価格に達したら発注する注文',
+    wrongs: ['現在の株価より有利な価格で出す注文', '売りと買いを同時に出す注文', '注文を出してすぐ取り消す注文'],
+    explanation: '損失を限定したいときなどに使うよ。' },
+  { id: 'limit-up', question: '「ストップ高」とは?',
+    answer: '1日の値幅制限の上限まで株価が上昇すること',
+    wrongs: ['1日の取引が停止されること', '年初来の高値を更新すること', '配当が上限額まで増えること'],
+    explanation: '株価が1日に動ける幅には上限と下限があって、上限に達するとストップ高だよ。' },
+  { id: 'short-selling', question: '「空売り」とは?',
+    answer: '株を借りて売り、値下がり後に買い戻して利益を狙う取引',
+    wrongs: ['持っている株を証券会社に貸して利息を得る取引', '新規上場する株を発行前に買う取引', '現金を全額払って買う取引'],
+    explanation: '株価が下がると利益が出る一方、上がると損失が膨らむことがあるよ。' },
+  { id: 'margin-trading', question: '「信用取引」とは?',
+    answer: '資金や株を借りて行う取引',
+    wrongs: ['代金を全額払って株を買う取引', '外貨で行う取引', '投資信託を積み立てる取引'],
+    explanation: '手持ち資金より大きな取引ができるけれど、損失も大きくなるよ。' },
+  { id: 'record-date', question: '「権利確定日」とは?',
+    answer: '配当や株主優待を受け取る権利が決まる日',
+    wrongs: ['株が上場する日', '決算が発表される日', '株を売却できる最後の日'],
+    explanation: '権利確定日に株主名簿に載っている人が、配当などを受け取れるよ。' },
+  { id: 'ex-rights', question: '「権利落ち日」とは?',
+    answer: 'この日以降に買っても、配当などの権利が得られない最初の日',
+    wrongs: ['権利を他の人に売れる最後の日', '決算が発表される日', '上場廃止が決まる日'],
+    explanation: '権利落ち日は、配当の分だけ株価が下がることがあるよ。' },
+  { id: 'earnings', question: '「決算」とは?',
+    answer: '企業が一定期間の業績をまとめて報告すること',
+    wrongs: ['株主総会の別の呼び方', '株の売買代金を精算すること', '配当金を振り込むこと'],
+    explanation: '決算発表の前後は、株価が大きく動くことがあるよ。' },
+  { id: 'golden-cross-term', question: '「ゴールデンクロス」とは?',
+    answer: '短期の移動平均線が、長期の移動平均線を下から上に抜けること',
+    wrongs: ['短期の移動平均線が、長期の移動平均線を上から下に抜けること', '株価が過去最高値を更新すること', '出来高が前日の2倍になること'],
+    explanation: '上昇のサインとされるよ。反対に、上から下に抜けるのはデッドクロスだよ。' },
+  { id: 'moving-average', question: '「移動平均線」とは?',
+    answer: '一定期間の終値の平均をつないだ線',
+    wrongs: ['一定期間の出来高の合計をつないだ線', '高値と安値をつないだ線', '売買代金の推移をつないだ線'],
+    explanation: '株価のトレンド(流れ)を見るときに使うよ。' },
+  { id: 'nikkei-225', question: '「日経平均株価」とは?',
+    answer: '日本経済新聞社が選んだ225銘柄の株価から計算する指数',
+    wrongs: ['東証に上場する全銘柄の時価総額から計算する指数', '日本銀行が毎日発表する株価の目標', '上場企業の配当利回りの平均'],
+    explanation: '日本の株式市場の動きを見る代表的な指標だよ。' },
+  { id: 'diversification', question: '「分散投資」とは?',
+    answer: '複数の銘柄や資産に分けて投資して、リスクを減らすこと',
+    wrongs: ['1つの銘柄に資金を集中させること', '短期の売買を何度も繰り返すこと', '借りたお金で投資額を増やすこと'],
+    explanation: '「卵を1つのカゴに盛るな」という言葉でも知られているよ。' },
+  { id: 'nisa', question: '「NISA」とは?',
+    answer: '一定の投資額までの運用益や配当が非課税になる制度',
+    wrongs: ['株を担保にお金を借りられる制度', '海外の株だけを買える口座', '売買手数料が無料になる制度'],
+    explanation: '通常、運用益には約20%の税金がかかるけれど、NISA の枠の中では非課税だよ。' },
+];
+
 // ==DATA-END==
 
 // ==LOGIC-START==
@@ -164,6 +288,98 @@ function movingAverage(values, window) {
     return round2(sum / window);
   });
 }
+const QUESTION_TEXT = {
+  pattern: 'このチャートの形の名前は?',
+  outlook: 'この後、株価はどう動きやすい?',
+  candle: 'このローソク足の名前は?',
+};
+
+// correct 以外から count 個を、シャッフルして選ぶ
+function pickOthers(items, correct, count, rng) {
+  return shuffle(items.filter((x) => x !== correct), rng).slice(0, count);
+}
+
+function makePatternQuestion(pattern, seed) {
+  const rng = createRng(seed + 1);
+  const others = pickOthers(PATTERNS, pattern, 3, rng).map((p) => p.name);
+  return {
+    id: `pattern:${pattern.id}`,
+    type: 'pattern',
+    patternId: pattern.id,
+    patternName: pattern.name,
+    seed,
+    question: QUESTION_TEXT.pattern,
+    choices: shuffle([pattern.name, ...others], rng),
+    answer: pattern.name,
+    explanation: pattern.explanation,
+  };
+}
+
+function makeOutlookQuestion(pattern, seed) {
+  return {
+    id: `outlook:${pattern.id}`,
+    type: 'outlook',
+    patternId: pattern.id,
+    patternName: pattern.name,
+    seed,
+    question: QUESTION_TEXT.outlook,
+    choices: OUTLOOK_CHOICES.slice(),
+    answer: OUTLOOK_LABELS[pattern.outlook],
+    outlook: pattern.outlook,
+    explanation: pattern.explanation,
+  };
+}
+
+function makeCandleQuestion(candle, rng) {
+  const others = pickOthers(CANDLE_PATTERNS, candle, 3, rng).map((c) => c.name);
+  return {
+    id: `candle:${candle.id}`,
+    type: 'candle',
+    candles: candle.candles,
+    question: QUESTION_TEXT.candle,
+    choices: shuffle([candle.name, ...others], rng),
+    answer: candle.name,
+    explanation: candle.explanation,
+  };
+}
+
+function makeTermQuestion(term, rng) {
+  return {
+    id: `term:${term.id}`,
+    type: 'term',
+    question: term.question,
+    choices: shuffle([term.answer, ...term.wrongs], rng),
+    answer: term.answer,
+    explanation: term.explanation,
+  };
+}
+
+// 問題に不備があればその説明を、なければ null を返す
+function validateQuestion(q) {
+  if (!['pattern', 'outlook', 'candle', 'term'].includes(q.type)) return `type が不正: ${q.type}`;
+  if (!q.id || !q.question || !q.explanation) return `${q.id}: 必須項目がない`;
+  const expected = q.type === 'outlook' ? 3 : 4;
+  if (q.choices.length !== expected) return `${q.id}: 選択肢が${expected}個ではない`;
+  if (new Set(q.choices).size !== q.choices.length) return `${q.id}: 選択肢が重複している`;
+  if (q.choices.filter((c) => c === q.answer).length !== 1) return `${q.id}: 正解がちょうど1つ含まれていない`;
+  return null;
+}
+
+function chartForQuestion(q) {
+  if (q.type === 'term') return null;
+  if (q.type === 'candle') return { kind: 'candles', candles: q.candles };
+  const pattern = findPattern(q.patternId);
+  const values = generateSeries(pattern, q.seed);
+  const chart = { kind: 'line', values };
+  if (pattern.ma) {
+    chart.ma = { short: movingAverage(values, MA_SHORT), long: movingAverage(values, MA_LONG) };
+  }
+  if (q.type === 'outlook') {
+    chart.continuation = generateContinuation(values[values.length - 1], pattern.outlook, q.seed);
+  }
+  return chart;
+}
+
 // ==LOGIC-END==
 
 // ==UI-START==

@@ -139,3 +139,98 @@ test('デッドクロス: 途中で短期が長期の上にあり、最後は下
 test('findPattern: 存在しない id は例外', () => {
   assert.throws(() => L.findPattern('nothing'));
 });
+
+test('MODES と MODE_LABELS が揃っている', () => {
+  assert.deepEqual(L.MODES, ['all', 'pattern', 'outlook', 'candle', 'term']);
+  for (const m of L.MODES) assert.ok(L.MODE_LABELS[m], m);
+});
+
+test('CANDLE_PATTERNS: 10個で、ローソク足の値が矛盾していない', () => {
+  assert.equal(L.CANDLE_PATTERNS.length, 10);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 10);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 10);
+  for (const c of L.CANDLE_PATTERNS) {
+    assert.ok(c.candles.length >= 1 && c.candles.length <= 3, c.id);
+    for (const k of c.candles) {
+      assert.ok(k.h >= Math.max(k.o, k.c), `${c.id}: 高値が低い`);
+      assert.ok(k.l <= Math.min(k.o, k.c), `${c.id}: 安値が高い`);
+    }
+  }
+});
+
+test('TERMS: 20個で、id が重複せず、間違いの選択肢が3つある', () => {
+  assert.equal(L.TERMS.length, 20);
+  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 20);
+  for (const t of L.TERMS) {
+    assert.equal(t.wrongs.length, 3, t.id);
+    assert.ok(t.explanation.length > 0, t.id);
+  }
+});
+
+test('makePatternQuestion: 4択で、正解が1つだけ含まれ、チャートが作れる', () => {
+  for (const p of L.PATTERNS) {
+    const q = L.makePatternQuestion(p, 11);
+    assert.equal(L.validateQuestion(q), null);
+    assert.equal(q.answer, p.name);
+    assert.equal(q.patternName, p.name);
+    assert.equal(L.chartForQuestion(q).values.length, L.SERIES_LENGTH);
+  }
+});
+
+test('makePatternQuestion: 同じシードなら同じ問題', () => {
+  const p = L.PATTERNS[0];
+  assert.deepEqual(L.makePatternQuestion(p, 3), L.makePatternQuestion(p, 3));
+});
+
+test('makeOutlookQuestion: 3択固定順で、正解が outlook に対応し、続きの方向が一致する', () => {
+  for (const p of L.PATTERNS) {
+    const q = L.makeOutlookQuestion(p, 21);
+    assert.equal(L.validateQuestion(q), null);
+    assert.deepEqual(q.choices, ['上がりやすい', '下がりやすい', '横ばい']);
+    assert.equal(q.answer, L.OUTLOOK_LABELS[p.outlook]);
+    assert.equal(q.patternName, p.name);
+    const chart = L.chartForQuestion(q);
+    const last = chart.values[chart.values.length - 1];
+    const end = chart.continuation[chart.continuation.length - 1];
+    if (p.outlook === 'up') assert.ok(end > last + 5, p.id);
+    if (p.outlook === 'down') assert.ok(end < last - 5, p.id);
+    if (p.outlook === 'flat') assert.ok(Math.abs(end - last) < 6, p.id);
+  }
+});
+
+test('chartForQuestion: 移動平均線つきのパターンだけ ma を持つ', () => {
+  const gc = L.chartForQuestion(L.makePatternQuestion(L.findPattern('golden-cross'), 1));
+  assert.equal(gc.ma.short.length, L.SERIES_LENGTH);
+  assert.equal(gc.ma.long.length, L.SERIES_LENGTH);
+  const dt = L.chartForQuestion(L.makePatternQuestion(L.findPattern('double-top'), 1));
+  assert.equal(dt.ma, undefined);
+});
+
+test('makeCandleQuestion: 4択で、チャートはローソク足', () => {
+  for (const c of L.CANDLE_PATTERNS) {
+    const q = L.makeCandleQuestion(c, L.createRng(5));
+    assert.equal(L.validateQuestion(q), null);
+    assert.equal(q.answer, c.name);
+    const chart = L.chartForQuestion(q);
+    assert.equal(chart.kind, 'candles');
+    assert.deepEqual(chart.candles, c.candles);
+  }
+});
+
+test('makeTermQuestion: 4択で、チャートなし', () => {
+  for (const t of L.TERMS) {
+    const q = L.makeTermQuestion(t, L.createRng(5));
+    assert.equal(L.validateQuestion(q), null);
+    assert.equal(L.chartForQuestion(q), null);
+  }
+});
+
+test('validateQuestion: 不正な問題を見つける', () => {
+  const ok = L.makeTermQuestion(L.TERMS[0], L.createRng(1));
+  assert.equal(L.validateQuestion(ok), null);
+  assert.ok(L.validateQuestion({ ...ok, choices: ok.choices.slice(0, 3) }));
+  assert.ok(L.validateQuestion({ ...ok, choices: [ok.choices[0], ok.choices[0], ok.choices[1], ok.choices[2]] }));
+  assert.ok(L.validateQuestion({ ...ok, answer: '存在しない答え' }));
+  assert.ok(L.validateQuestion({ ...ok, type: 'unknown' }));
+  assert.ok(L.validateQuestion({ ...ok, explanation: '' }));
+});

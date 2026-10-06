@@ -8,13 +8,13 @@
 :root {
   --bg: #f6f5f2; --card: #ffffff; --text: #1f1f1d; --muted: #6b6a64; --border: #dcdad2;
   --accent: #185fa5; --good-bg: #eaf3de; --good: #27500a; --bad-bg: #fcebeb; --bad: #791f1f;
-  --line: #185fa5; --ma-short: #d85a30; --ma-long: #7f77dd; --up: #d03a3a; --down: #2a6fd6; --cont: #a32d2d;
+  --line: #185fa5; --ma-short: #d85a30; --ma-mid: #0f6e56; --ma-long: #7f77dd; --up: #d03a3a; --down: #2a6fd6; --cont: #a32d2d;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #1c1c1a; --card: #262624; --text: #f1efe8; --muted: #b4b2a9; --border: #444441;
     --accent: #85b7eb; --good-bg: #173404; --good: #c0dd97; --bad-bg: #501313; --bad: #f7c1c1;
-    --line: #85b7eb; --ma-short: #f0997b; --ma-long: #afa9ec; --up: #f09595; --down: #85b7eb; --cont: #f09595;
+    --line: #85b7eb; --ma-short: #f0997b; --ma-mid: #5dcaa5; --ma-long: #afa9ec; --up: #f09595; --down: #85b7eb; --cont: #f09595;
   }
 }
 * { box-sizing: border-box; }
@@ -102,12 +102,12 @@ const PATTERNS = [
   {
     id: 'golden-cross', name: 'ゴールデンクロス', outlook: 'up', ma: true,
     points: [[0, 70], [0.3, 35], [0.5, 38], [1, 85]],
-    explanation: '短期の移動平均線が長期の移動平均線を下から上に抜けた形。上昇のサインとされるよ。 ただしダマシも多いよ。',
+    explanation: '短期の移動平均線が中期の移動平均線を下から上に抜けた形。上昇のサインとされるよ。ただしダマシも多いよ。',
   },
   {
     id: 'dead-cross', name: 'デッドクロス', outlook: 'down', ma: true,
     points: [[0, 30], [0.3, 65], [0.5, 62], [1, 15]],
-    explanation: '短期の移動平均線が長期の移動平均線を上から下に抜けた形。下落のサインとされるよ。 ただしダマシも多いよ。',
+    explanation: '短期の移動平均線が中期の移動平均線を上から下に抜けた形。下落のサインとされるよ。ただしダマシも多いよ。',
   },
   {
     id: 'triple-top', name: 'トリプルトップ', outlook: 'down',
@@ -390,7 +390,8 @@ const SERIES_NOISE = 1.2;
 const NOISE_PERSISTENCE = 0.85;
 const CONTINUATION_MOVE = 15;
 const MA_SHORT = 10;
-const MA_LONG = 30;
+const MA_MID = 30;
+const MA_LONG = 60;
 
 function round2(v) {
   return Math.round(v * 100) / 100;
@@ -567,7 +568,11 @@ function chartForQuestion(q) {
   const values = generateSeries(pattern, q.seed);
   const chart = { kind: 'line', values };
   if (pattern.ma) {
-    chart.ma = { short: movingAverage(values, MA_SHORT), long: movingAverage(values, MA_LONG) };
+    chart.ma = {
+      short: movingAverage(values, MA_SHORT),
+      mid: movingAverage(values, MA_MID),
+      long: movingAverage(values, MA_LONG),
+    };
   }
   if (q.type === 'outlook') {
     chart.continuation = generateContinuation(values[values.length - 1], pattern.outlook, q.seed);
@@ -750,7 +755,8 @@ function drawLines(ctx, w, h, chart, reveal, colors) {
   const lastValue = chart.values[chart.values.length - 1];
   const { min, max } = normalizeRange(all.concat(cont.map((v) => 2 * lastValue - v)));
   const n = all.length;
-  const x = (i) => 8 + (i / (n - 1)) * (w - 16);
+  const right = chart.ma ? 22 : 8; // 移動平均線の名前を右端に書くための余白
+  const x = (i) => 8 + (i / (n - 1)) * (w - 8 - right);
   const y = (v) => h - 12 - ((v - min) / (max - min)) * (h - 24);
   const stroke = (pts, color, width, dash) => {
     ctx.beginPath();
@@ -772,8 +778,21 @@ function drawLines(ctx, w, h, chart, reveal, colors) {
     ctx.setLineDash([]);
   };
   if (chart.ma) {
-    stroke(chart.ma.long.map((v, i) => [i, v]), colors.long, 1.5);
-    stroke(chart.ma.short.map((v, i) => [i, v]), colors.short, 1.5);
+    const lines = [
+      ['長', chart.ma.long, colors.long],
+      ['中', chart.ma.mid, colors.mid],
+      ['短', chart.ma.short, colors.short],
+    ];
+    for (const [, series, color] of lines) stroke(series.map((v, i) => [i, v]), color, 1.5);
+    // 各線の右端のそばに、その線の名前を同じ色で小さく書く
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    for (const [label, series, color] of lines) {
+      const last = series.length - 1;
+      ctx.fillStyle = color;
+      ctx.fillText(label, x(last) + 4, y(series[last]));
+    }
   }
   stroke(chart.values.map((v, i) => [i, v]), colors.line, 2.5);
   if (reveal && cont.length) {
@@ -807,7 +826,7 @@ function renderChart(canvas, chart, reveal) {
   const css = getComputedStyle(document.documentElement);
   const get = (name) => css.getPropertyValue(name).trim();
   const colors = {
-    line: get('--line'), short: get('--ma-short'), long: get('--ma-long'),
+    line: get('--line'), short: get('--ma-short'), mid: get('--ma-mid'), long: get('--ma-long'),
     up: get('--up'), down: get('--down'), cont: get('--cont'),
   };
   const w = canvas.parentElement.clientWidth - 16;
@@ -827,7 +846,7 @@ function renderChart(canvas, chart, reveal) {
 // 移動平均線がある図には、色の説明を添える
 function maNote(q) {
   if (q.type === 'term' || q.type === 'candle' || !findPattern(q.patternId).ma) return '';
-  return `<p class="note">橙の線が短期(${MA_SHORT}本)、紫の線が長期(${MA_LONG}本)の移動平均線だよ。</p>`;
+  return `<p class="note">橙の線が短期(${MA_SHORT}本)、緑の線が中期(${MA_MID}本)、紫の線が長期(${MA_LONG}本)の移動平均線だよ。</p>`;
 }
 
 function drawQuestionChart(q, reveal) {

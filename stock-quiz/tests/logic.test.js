@@ -112,27 +112,94 @@ test('movingAverage: 先頭は null で、平均が正しい', () => {
   assert.deepEqual(ma, [null, null, 2, 3, 4]);
 });
 
-test('ゴールデンクロス: 途中で短期が長期の下にあり、最後は上にある', () => {
+test('ゴールデンクロス: 途中で短期が中期の下にあり、最後は上にある', () => {
   const p = L.findPattern('golden-cross');
   for (let seed = 1; seed <= 20; seed++) {
     const v = L.generateSeries(p, seed);
     const s = L.movingAverage(v, L.MA_SHORT);
-    const l = L.movingAverage(v, L.MA_LONG);
+    const m = L.movingAverage(v, L.MA_MID);
     const last = v.length - 1;
-    assert.ok(s[last] > l[last], `seed=${seed} 最後は短期が上`);
-    assert.ok(s.some((x, i) => x !== null && l[i] !== null && x < l[i]), `seed=${seed} 途中は短期が下`);
+    assert.ok(s[last] > m[last], `seed=${seed} 最後は短期が上`);
+    assert.ok(s.some((x, i) => x !== null && m[i] !== null && x < m[i]), `seed=${seed} 途中は短期が下`);
   }
 });
 
-test('デッドクロス: 途中で短期が長期の上にあり、最後は下にある', () => {
+test('デッドクロス: 途中で短期が中期の上にあり、最後は下にある', () => {
   const p = L.findPattern('dead-cross');
   for (let seed = 1; seed <= 20; seed++) {
     const v = L.generateSeries(p, seed);
     const s = L.movingAverage(v, L.MA_SHORT);
-    const l = L.movingAverage(v, L.MA_LONG);
+    const m = L.movingAverage(v, L.MA_MID);
     const last = v.length - 1;
-    assert.ok(s[last] < l[last], `seed=${seed} 最後は短期が下`);
-    assert.ok(s.some((x, i) => x !== null && l[i] !== null && x > l[i]), `seed=${seed} 途中は短期が上`);
+    assert.ok(s[last] < m[last], `seed=${seed} 最後は短期が下`);
+    assert.ok(s.some((x, i) => x !== null && m[i] !== null && x > m[i]), `seed=${seed} 途中は短期が上`);
+  }
+});
+
+test('移動平均の窓: 短期10・中期30・長期60', () => {
+  assert.equal(L.MA_SHORT, 10);
+  assert.equal(L.MA_MID, 30);
+  assert.equal(L.MA_LONG, 60);
+});
+
+test('移動平均線を持つパターンの chart.ma は3本で、先頭の null の数が窓に合う', () => {
+  for (const id of ['golden-cross', 'dead-cross']) {
+    const c = L.chartForQuestion(L.makePatternQuestion(L.findPattern(id), 3));
+    for (const [key, win] of [['short', L.MA_SHORT], ['mid', L.MA_MID], ['long', L.MA_LONG]]) {
+      assert.equal(c.ma[key].length, L.SERIES_LENGTH, `${id} ${key}`);
+      assert.equal(c.ma[key].filter((x) => x === null).length, win - 1, `${id} ${key}`);
+    }
+  }
+  const dt = L.chartForQuestion(L.makePatternQuestion(L.findPattern('double-top'), 3));
+  assert.equal(dt.ma, undefined);
+});
+
+// 符号が変わった回数。差がちょうど0(丸めで一致)の点は飛ばして、前の符号と比べる
+function countCrosses(a, b) {
+  let crosses = 0;
+  let prev = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] === null || b[i] === null) continue;
+    const sign = Math.sign(a[i] - b[i]);
+    if (sign === 0) continue;
+    if (prev !== 0 && sign !== prev) crosses++;
+    prev = sign;
+  }
+  return crosses;
+}
+
+test('ゴールデンクロス: 短期と中期の交差がちょうど1回で、最後は 短期 > 中期 > 長期', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const v = L.generateSeries(L.findPattern('golden-cross'), seed);
+    const s = L.movingAverage(v, L.MA_SHORT);
+    const m = L.movingAverage(v, L.MA_MID);
+    const l = L.movingAverage(v, L.MA_LONG);
+    const crosses = countCrosses(s, m);
+    assert.equal(crosses, 1, `seed=${seed}`);
+    const last = v.length - 1;
+    assert.ok(s[last] > m[last] && m[last] > l[last], `seed=${seed} 最後の並び`);
+  }
+});
+
+test('デッドクロス: 短期と中期の交差がちょうど1回で、最後は 短期 < 中期 < 長期', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const v = L.generateSeries(L.findPattern('dead-cross'), seed);
+    const s = L.movingAverage(v, L.MA_SHORT);
+    const m = L.movingAverage(v, L.MA_MID);
+    const l = L.movingAverage(v, L.MA_LONG);
+    const crosses = countCrosses(s, m);
+    assert.equal(crosses, 1, `seed=${seed}`);
+    const last = v.length - 1;
+    assert.ok(s[last] < m[last] && m[last] < l[last], `seed=${seed} 最後の並び`);
+  }
+});
+
+test('クロスの説明文: 中期と書いてあり、余分な空白がない', () => {
+  for (const id of ['golden-cross', 'dead-cross']) {
+    const e = L.findPattern(id).explanation;
+    assert.ok(e.includes('中期'), id);
+    assert.ok(!e.includes('。 '), `${id} に句点のあとの空白`);
+    assert.ok(e.includes('ただしダマシも多いよ。'), id);
   }
 });
 
@@ -201,6 +268,7 @@ test('makeOutlookQuestion: 3択固定順で、正解が outlook に対応し、�
 test('chartForQuestion: 移動平均線つきのパターンだけ ma を持つ', () => {
   const gc = L.chartForQuestion(L.makePatternQuestion(L.findPattern('golden-cross'), 1));
   assert.equal(gc.ma.short.length, L.SERIES_LENGTH);
+  assert.equal(gc.ma.mid.length, L.SERIES_LENGTH);
   assert.equal(gc.ma.long.length, L.SERIES_LENGTH);
   const dt = L.chartForQuestion(L.makePatternQuestion(L.findPattern('double-top'), 1));
   assert.equal(dt.ma, undefined);
@@ -445,11 +513,12 @@ test('makeSpline: 隣り合う点のあいだで、2点の値の範囲をはみ�
   }
 });
 
-test('生成定数: 120点・続き30点・移動平均 10 と 30', () => {
+test('生成定数: 120点・続き30点・移動平均 10・30・60', () => {
   assert.equal(L.SERIES_LENGTH, 120);
   assert.equal(L.CONTINUATION_LENGTH, 30);
   assert.equal(L.MA_SHORT, 10);
-  assert.equal(L.MA_LONG, 30);
+  assert.equal(L.MA_MID, 30);
+  assert.equal(L.MA_LONG, 60);
 });
 
 test('滑らかさ: 隣り合う3点の折れ曲がり(2階差)が、すべてのパターンで小さい', () => {

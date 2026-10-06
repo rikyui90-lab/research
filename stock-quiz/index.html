@@ -24,12 +24,18 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 h1 { font-size: 22px; font-weight: 500; margin: 8px 0 4px; }
 .lead, .note, .sub { color: var(--muted); font-size: 14px; margin: 4px 0 12px; }
 .q { font-size: 16px; font-weight: 500; margin: 12px 0 8px; }
-.head { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.stars { color: var(--accent); font-size: 13px; letter-spacing: 0.1em; white-space: nowrap; }
+.head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
 .bar { height: 4px; background: var(--border); border-radius: 2px; margin: 6px 0 12px; }
 .bar > div { height: 4px; background: var(--accent); border-radius: 2px; }
 .chart { background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 12px; }
 canvas { display: block; }
 .choices { display: grid; gap: 8px; }
+.sec { font-size: 14px; font-weight: 500; margin: 12px 0 6px; }
+.diffs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.diffs button { text-align: center; padding: 8px 16px; min-width: 64px; }
+.diffs button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7.5px 15.5px; font-weight: 600; }
+ul.wrong .stars { margin-right: 6px; }
 button { font: inherit; color: var(--text); background: var(--card); border: 0.5px solid var(--border);
   border-radius: 8px; padding: 12px; text-align: left; cursor: pointer; }
 button:hover { border-color: var(--accent); }
@@ -718,6 +724,7 @@ const STORAGE_KEY = 'stockQuiz.stats.v1';
 const app = document.getElementById('app');
 let stats = loadStats();
 let game = null;
+let difficulty = 'all'; // スタート画面で選んだ難易度(ページを開いているあいだは保つ)
 let redraw = null;
 
 function loadStats() {
@@ -740,10 +747,14 @@ function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function starsBadge(level) {
+  return `<span class="stars" role="img" aria-label="${starsAria(level)}">${starsOf(level)}</span>`;
+}
+
 function header() {
   const done = game.results.length;
   const correct = game.results.filter((r) => r.correct).length;
-  return `<div class="head"><span>問題 ${Math.min(game.index + 1, game.deck.length)} / ${game.deck.length}</span><span>正解 ${correct}</span></div>
+  return `<div class="head"><span>問題 ${Math.min(game.index + 1, game.deck.length)} / ${game.deck.length}</span>${starsBadge(game.deck[Math.min(game.index, game.deck.length - 1)].difficulty)}<span>正解 ${correct}</span></div>
     <div class="bar"><div style="width:${(done / game.deck.length) * 100}%"></div></div>`;
 }
 
@@ -864,18 +875,29 @@ window.addEventListener('resize', () => { if (redraw) redraw(); });
 function showStart() {
   redraw = null;
   const rows = MODES.map((m) => {
-    const p = stats.played[m];
+    const key = statsKey(m, difficulty);
+    const size = roundSize(m, difficulty);
+    const p = stats.played[key];
     const rate = p.total ? `${Math.round((p.correct / p.total) * 100)}%` : '-';
-    return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[m]} / ${ROUND_SIZE}　正解率 ${rate}</small></button>`;
+    return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[key]} / ${size}　正解率 ${rate}　${size}問</small></button>`;
   }).join('');
+  const diffLabels = { all: 'すべて', easy: '難易度 星1つ(3段階)', normal: '難易度 星2つ(3段階)', hard: '難易度 星3つ(3段階)' };
+  const diffs = DIFFICULTY_FILTERS.map((d) =>
+    `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${diffLabels[d]}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
-    <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ。</p>
+    <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問(絞り込みで少なくなることがあるよ)だよ。</p>
+    <p class="sec">難易度</p>
+    <div class="diffs">${diffs}</div>
     <div class="choices">${rows}</div>`;
+  app.querySelectorAll('[data-diff]').forEach((b) => b.addEventListener('click', () => {
+    difficulty = b.dataset.diff;
+    showStart();
+  }));
   app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.mode)));
 }
 
 function startGame(mode) {
-  game = { mode, deck: buildDeck(mode, Date.now() % 2147483647), index: 0, results: [] };
+  game = { mode, difficulty, deck: buildDeck(mode, Date.now() % 2147483647, difficulty), index: 0, results: [] };
   showQuestion();
 }
 
@@ -907,7 +929,7 @@ function showQuestion() {
 
 function answer(q, picked) {
   const correct = judge(q, picked);
-  game.results.push({ id: q.id, question: q.question, answer: q.answer, picked, correct });
+  game.results.push({ id: q.id, question: q.question, answer: q.answer, picked, correct, difficulty: q.difficulty });
   showExplain(q, picked, correct);
 }
 
@@ -940,7 +962,7 @@ function next() {
 
 function finish() {
   const summary = summarizeRound(game.results);
-  stats = updateStats(stats, game.mode, summary.correct, summary.total);
+  stats = updateStats(stats, statsKey(game.mode, game.difficulty), summary.correct, summary.total);
   saveStats();
   showResult(summary);
 }
@@ -948,7 +970,7 @@ function finish() {
 function showResult(summary) {
   redraw = null;
   const wrong = summary.wrong.map((r) =>
-    `<li>${esc(r.question)} 正解: ${esc(r.answer)}(あなたの答え: ${esc(r.picked)})</li>`).join('');
+    `<li>${starsBadge(r.difficulty)}${esc(r.question)} 正解: ${esc(r.answer)}(あなたの答え: ${esc(r.picked)})</li>`).join('');
   app.innerHTML = `<h1>結果</h1>
     <p class="score">${summary.correct} / ${summary.total}</p>
     ${wrong ? `<p class="q">間違えた問題</p><ul class="wrong">${wrong}</ul>` : '<p class="lead">全問正解だよ。</p>'}
@@ -961,7 +983,7 @@ function showResult(summary) {
   document.getElementById('again').addEventListener('click', () => startGame(game.mode));
   document.getElementById('top').addEventListener('click', showStart);
   document.getElementById('copy').addEventListener('click', () =>
-    copyResult(formatShareText(game.mode, summary.correct, summary.total)));
+    copyResult(formatShareText(game.mode, summary.correct, summary.total, game.difficulty)));
 }
 
 async function copyResult(text) {

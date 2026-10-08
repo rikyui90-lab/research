@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 このリポジトリは、ビルド工程のない静的ページ2つ(株クイズ、不祥事銘柄の株価ページ)の集まり。説明・コミット・PR は日本語で書く。
 
+# 言語設定
+
+- 返答は日本語で返事する。
+- 語尾に「だよ」をつける。
+
 ## 株クイズ(`stock-quiz/`)
 
 単一ファイル `stock-quiz/index.html`(HTML + CSS + JS)。外部ライブラリもサーバーも使わない。スコアは `localStorage` のみ。設計書は `docs/superpowers/specs/2026-10-06-stock-quiz-design.md`(問題数・難易度表・仕様の根拠はここ)、実装計画は `docs/superpowers/plans/`。

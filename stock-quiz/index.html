@@ -56,6 +56,9 @@ button.primary { background: var(--accent); color: var(--card); text-align: cent
 .result .label { margin: 0; font-size: 13px; }
 .result .answer { margin: 2px 0 0; font-size: 22px; font-weight: 500; }
 .result .exp { margin: 6px 0 0; font-size: 14px; }
+.detail { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.detail .detail-title { margin: 0 0 4px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.detail .detail-body { margin: 0; font-size: 14px; line-height: 1.7; }
 .score { font-size: 32px; font-weight: 500; margin: 8px 0; }
 ul.wrong { padding-left: 20px; font-size: 14px; }
 .actions { display: grid; gap: 8px; margin-top: 12px; }
@@ -708,6 +711,7 @@ function makePatternQuestion(pattern, seed) {
     choices: shuffle([pattern.name, ...others], rng),
     answer: pattern.name,
     explanation: pattern.explanation,
+    detail: pattern.detail,
     difficulty: pattern.difficulty,
   };
 }
@@ -724,6 +728,7 @@ function makeOutlookQuestion(pattern, seed) {
     answer: OUTLOOK_LABELS[pattern.outlook],
     outlook: pattern.outlook,
     explanation: pattern.explanation,
+    detail: pattern.detail,
     difficulty: pattern.difficulty,
   };
 }
@@ -738,6 +743,7 @@ function makeCandleQuestion(candle, rng) {
     choices: shuffle([candle.name, ...others], rng),
     answer: candle.name,
     explanation: candle.explanation,
+    detail: candle.detail,
     difficulty: candle.difficulty,
   };
 }
@@ -750,6 +756,7 @@ function makeTermQuestion(term, rng) {
     choices: shuffle([term.answer, ...term.wrongs], rng),
     answer: term.answer,
     explanation: term.explanation,
+    detail: term.detail,
     difficulty: term.difficulty,
   };
 }
@@ -757,7 +764,7 @@ function makeTermQuestion(term, rng) {
 // 問題に不備があればその説明を、なければ null を返す
 function validateQuestion(q) {
   if (!['pattern', 'outlook', 'candle', 'term'].includes(q.type)) return `type が不正: ${q.type}`;
-  if (!q.id || !q.question || !q.explanation) return `${q.id}: 必須項目がない`;
+  if (!q.id || !q.question || !q.explanation || !q.detail) return `${q.id}: 必須項目がない`;
   const expected = q.type === 'outlook' ? 3 : 4;
   if (q.choices.length !== expected) return `${q.id}: 選択肢が${expected}個ではない`;
   if (new Set(q.choices).size !== q.choices.length) return `${q.id}: 選択肢が重複している`;
@@ -1197,6 +1204,10 @@ function showExplain(q, picked, correct) {
       <p class="label">${correct ? '正解!' : '不正解… 正しい答えは'}</p>
       <p class="answer">${esc(q.answer)}</p>
       <p class="exp">${esc(q.explanation)}</p>
+    </div>
+    <div class="detail">
+      <p class="detail-title">くわしく</p>
+      <p class="detail-body">${esc(q.detail)}</p>
     </div>
     ${shape}
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}

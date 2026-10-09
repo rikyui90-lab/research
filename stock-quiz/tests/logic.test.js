@@ -3220,6 +3220,19 @@ test('株価予想のデータ: 指標の値・単位・説明、銘柄名とコ
   for (const [code, names] of Object.entries(nameByCode)) assert.equal(names.size, 1, `${code} の銘柄名が揺れている: ${[...names]}`);
 });
 
+test('株価予想のデータ: 同じ難易度の中で、(コード, 開始日)の組が重ならない(同じチャートが同じ難易度に2回出ない)', () => {
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const seen = new Set();
+    for (const q of FQ.filter((x) => x.difficulty === level)) {
+      for (const e of q.examples) {
+        const key = `${e.code}|${e.from}`;
+        assert.ok(!seen.has(key), `${level}: ${key} が重なる(${q.id})`);
+        seen.add(key);
+      }
+    }
+  }
+});
+
 test('株価予想のデータ: 文章の質(解説1〜2文・くわしく120〜250字2〜4文、断定語なし、ぼかした言い方がある)', () => {
   const sentences = (s) => s.split('。').filter((x) => x.trim() !== '').length;
   for (const q of FQ) {
@@ -3240,5 +3253,5 @@ test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、�
   assert.ok(html.includes('株価データ: Yahoo Finance(株式分割を調整した、週ごとの終値)'));
   assert.ok(!html.includes('Yahoo!ファイナンス'));
   assert.ok(!html.includes('調整後終値'));
-  for (const w of ['配当を含まない', 'あらかじめ決めた順', '九州・沖縄', '上場廃止', '上がりやすい時期に偏る']) assert.ok(html.includes(w), w);
+  for (const w of ['配当を含まない', 'あらかじめ決めた順', '九州・沖縄', '上場廃止', '上がりやすい時期に偏る', '「一概には言えない」が答えの問いが多いよ']) assert.ok(html.includes(w), w);
 });

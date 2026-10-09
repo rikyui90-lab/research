@@ -1930,10 +1930,68 @@ test('形状の問題の実際の範囲: 目盛りは3〜6本で、範囲内に�
     for (let seed = 1; seed <= 20; seed++) {
       const q = L.makePatternQuestion(p, seed);
       const chart = L.chartForQuestion(q);
-      const last = chart.values[chart.values.length - 1];
-      const { min, max } = L.normalizeRange(chart.values.concat(chart.continuation, chart.continuation.map((v) => 2 * last - v)));
+      const { min, max } = L.chartRange(chart.values, chart.continuation);
       const ticks = L.niceTicks(L.toPrice(min, chart.priceScale), L.toPrice(max, chart.priceScale));
       assert.ok(ticks.length >= 3 && ticks.length <= 6, `${p.id} seed=${seed} ${ticks.length}個`);
+    }
+  }
+});
+
+// ---- 問題の画面で続きの有無が分からないようにする(横幅と縦の範囲は outlook に依らない) ----
+test('chartRange: 続きの実物でも空でも、最後の値からの上下の距離が変わらない(up/down/flat/either 同じ)', () => {
+  const ids = { up: 'double-bottom', down: 'double-top', flat: null, either: 'symmetrical-triangle' };
+  ids.flat = L.PATTERNS.find((p) => p.outlook === 'flat').id;
+  for (const [outlook, id] of Object.entries(ids)) {
+    assert.equal(L.findPattern(id).outlook, outlook, id);
+  }
+  for (const seed of [1, 7, 42, 123]) {
+    const dist = [];
+    for (const id of Object.values(ids)) {
+      const q = L.makePatternQuestion(L.findPattern(id), seed);
+      const chart = L.chartForQuestion(q);
+      const last = chart.values[chart.values.length - 1];
+      for (const cont of [chart.continuation, []]) {
+        const r = L.chartRange(chart.values, cont);
+        const n = chart.values.length + L.CONTINUATION_LENGTH;
+        assert.equal(n, 150, id);
+        dist.push({ id, up: r.max - last, down: last - r.min });
+        // 続きは必ず枠の中に入る
+        for (const v of chart.continuation) assert.ok(v >= r.min && v <= r.max, `${id} seed=${seed}`);
+      }
+      // 続きを見せても見せなくても(空でも)同じ範囲
+      const a = L.chartRange(chart.values, chart.continuation);
+      const b = L.chartRange(chart.values, []);
+      assert.ok(Math.abs(a.min - b.min) < 1e-9 && Math.abs(a.max - b.max) < 1e-9, `${id} seed=${seed}`);
+    }
+  }
+});
+
+test('chartRange: 同じ系列なら、続きが上・下・横ばい・空のどれでも範囲が同じ(50種類 x 複数のシード)', () => {
+  for (const p of L.PATTERNS) {
+    for (const seed of [1, 2, 3, 99]) {
+      const values = L.generateSeries(p, seed);
+      const last = values[values.length - 1];
+      const ref = L.chartRange(values, []);
+      for (const outlook of ['up', 'down', 'flat']) {
+        const r = L.chartRange(values, L.generateContinuation(last, outlook, seed));
+        assert.ok(Math.abs(r.min - ref.min) < 1e-9 && Math.abs(r.max - ref.max) < 1e-9, `${p.id} seed=${seed} ${outlook}`);
+      }
+      const q = L.makePatternQuestion(p, seed);
+      const chart = L.chartForQuestion(q);
+      const own = L.chartRange(chart.values, chart.continuation);
+      assert.ok(Math.abs(own.max - ref.max) < 1e-9 && Math.abs(own.min - ref.min) < 1e-9, `${p.id} seed=${seed} 自分の続き`);
+      // 最後の値からの上下の距離は、系列だけで決まる(outlook で変わらない)
+      assert.ok(own.max - last >= L.CONTINUATION_BAND && last - own.min >= L.CONTINUATION_BAND, `${p.id} seed=${seed}`);
+    }
+  }
+});
+
+test('CONTINUATION_BAND: 続きの値は最後の値の上下 CONTINUATION_BAND を超えない(多数のシード)', () => {
+  for (const outlook of ['up', 'down', 'flat']) {
+    for (let seed = 1; seed <= 300; seed++) {
+      for (const v of L.generateContinuation(50, outlook, seed)) {
+        assert.ok(Math.abs(v - 50) <= L.CONTINUATION_BAND, `${outlook} seed=${seed} ${v}`);
+      }
     }
   }
 });

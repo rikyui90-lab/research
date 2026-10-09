@@ -1530,6 +1530,17 @@ function generateContinuation(lastValue, outlook, seed) {
   return values;
 }
 
+// 続きが取りうる幅(上下とも)。方向への動き(CONTINUATION_MOVE)に、ノイズの最大の偏り(AR(1) の上限)を足す
+const CONTINUATION_BAND = CONTINUATION_MOVE + (SERIES_NOISE / 2) / (1 - NOISE_PERSISTENCE);
+
+// 折れ線の縦軸の範囲。続きの方向(outlook)でも、続きを見せるかどうかでも変わらないよう、
+// 値・実際の続きとその反転・最後の値の上下 CONTINUATION_BAND の幅をすべて含める(問題の画面で答えが分からないようにする)
+function chartRange(values, continuation) {
+  const cont = continuation || [];
+  const last = values[values.length - 1];
+  return normalizeRange(values.concat(cont, cont.map((v) => 2 * last - v), [last + CONTINUATION_BAND, last - CONTINUATION_BAND]));
+}
+
 function movingAverage(values, window) {
   return values.map((_, i) => {
     if (i < window - 1) return null;
@@ -1836,11 +1847,9 @@ function header() {
 const AXIS_W = 44; // 価格の目盛り(右端の文字)の列の幅
 function drawLines(ctx, w, h, chart, reveal, colors) {
   const cont = chart.continuation || [];
-  const all = chart.values.concat(cont);
-  // 続きの方向を軸でほのめかさないよう、最後の値を中心に上下対称な範囲にする
-  const lastValue = chart.values[chart.values.length - 1];
-  const { min, max } = normalizeRange(all.concat(cont.map((v) => 2 * lastValue - v)));
-  const n = all.length;
+  // 横幅も縦の範囲も、続きの有無・方向で変わらないようにする(問題の画面で 'either' の形が見分けられてしまうのを防ぐ)
+  const { min, max } = chartRange(chart.values, cont);
+  const n = chart.values.length + CONTINUATION_LENGTH;
   // 右端の価格の目盛りの列(AXIS_W)の左に、折れ線を描く。移動平均線の名前は、折れ線の右端と目盛りの列のあいだに書く
   const right = AXIS_W + (chart.ma ? 22 : 8);
   const x = (i) => 8 + (i / (n - 1)) * (w - 8 - right);

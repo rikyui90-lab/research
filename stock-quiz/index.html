@@ -454,8 +454,8 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['yukichigai-line', 'bullish-tasuki-line'], ['thrusting-line', 'tweezer-bottom'], ['irikubi-line', 'tweezer-bottom'],
 ];
 const MODES = ['all', 'pattern', 'candle', 'term', 'forecast'];
-// 株価予想モードを画面に出すか。株価の取得元(Yahoo Finance の非公式API)の利用条件を確認するまで false にする
-const FORECAST_PUBLIC = false;
+// 株価予想モードを画面に出すか(false にすると、モード一覧と「全部まぜ」から外れる)
+const FORECAST_PUBLIC = true;
 const MODE_LABELS = {
   all: '全部まぜ',
   pattern: 'チャートの形状',

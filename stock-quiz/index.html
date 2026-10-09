@@ -42,9 +42,6 @@ ul.wrong .stars { margin-right: 6px; }
 button.link { background: none; border: none; color: var(--accent); text-decoration: underline; padding: 6px 0; }
 button.link:hover { border: none; }
 .leave { margin-bottom: 4px; }
-.confirm { border: 0.5px solid var(--border); background: var(--card); border-radius: 8px; padding: 12px; margin: 4px 0 8px; }
-.confirm p { margin: 0 0 8px; font-size: 14px; }
-.confirm .row { display: flex; gap: 8px; flex-wrap: wrap; }
 button { font: inherit; color: var(--text); background: var(--card); border: 0.5px solid var(--border);
   border-radius: 8px; padding: 12px; text-align: left; cursor: pointer; }
 button:hover { border-color: var(--accent); }
@@ -1801,41 +1798,13 @@ function starsBadge(level) {
   return `<span class="stars" role="img" aria-label="${starsAria(level)}">${starsOf(level)}</span>`;
 }
 
-// 「← トップに戻る」とその確認(画面の中に出す。window.confirm は使わない)
-let leaving = false; // 確認を出している間は true(このあいだ、選択肢や「次の問題へ」は答えにしない)
-let confirmAt = 0;
+// 「← トップに戻る」(確認なし。押すとすぐスタート画面に戻り、途中のラウンドは捨てて成績にも残さない)
 function leaveSlot() {
-  return '<div class="leave" id="leave-slot"><button class="link" id="leave">← トップに戻る</button></div>';
+  return '<div class="leave"><button class="link" id="leave">← トップに戻る</button></div>';
 }
 
 function bindLeave() {
-  leaving = false;
-  const slot = document.getElementById('leave-slot');
-  const showLink = () => {
-    leaving = false;
-    slot.innerHTML = '<button class="link" id="leave">← トップに戻る</button>';
-    const link = document.getElementById('leave');
-    link.addEventListener('click', showConfirm);
-    return link;
-  };
-  const showConfirm = () => {
-    leaving = true;
-    slot.innerHTML = `<div class="confirm" role="group" aria-label="トップに戻る確認">
-      <p>今のラウンドは途中でやめるよ。トップに戻っていい?</p>
-      <div class="row"><button id="leave-ok">やめてトップへ</button><button id="leave-cancel">続ける</button></div></div>`;
-    // ダブルクリックの2回目が確認のボタンに当たらないようにする
-    const ok = () => { if (performance.now() - confirmAt >= CLICK_GUARD_MS) { leaving = false; showStart(); } };
-    const cancel = () => {
-      if (performance.now() - confirmAt < CLICK_GUARD_MS) return;
-      showLink().focus();
-      shownAt = performance.now(); // 確認が閉じて内容が上にずれるので、2回目のクリックが選択肢に当たらないようにする
-    };
-    document.getElementById('leave-ok').addEventListener('click', ok);
-    document.getElementById('leave-cancel').addEventListener('click', cancel);
-    confirmAt = performance.now();
-    document.getElementById('leave-cancel').focus();
-  };
-  document.getElementById('leave').addEventListener('click', showConfirm);
+  document.getElementById('leave').addEventListener('click', showStart);
 }
 
 function header() {
@@ -1993,6 +1962,7 @@ window.addEventListener('resize', () => { if (redraw) redraw(); });
 // ---- 画面 ----
 function showStart() {
   redraw = null;
+  game = null; // 途中のラウンドは捨てる(成績にも残さない)
   const rows = MODES.map((m) => {
     const key = statsKey(m, difficulty);
     const size = roundSize(m, difficulty);
@@ -2050,7 +2020,7 @@ function showQuestion() {
   else redraw = null;
   bindLeave();
   app.querySelectorAll('[data-i]').forEach((b) =>
-    b.addEventListener('click', guarded(() => { if (!leaving) answer(q, q.choices[Number(b.dataset.i)]); })));
+    b.addEventListener('click', guarded(() => answer(q, q.choices[Number(b.dataset.i)]))));
   shownAt = performance.now();
 }
 
@@ -2084,7 +2054,7 @@ function showExplain(q, picked, correct) {
   if (hasChart) drawQuestionChart(q, true);
   else redraw = null;
   bindLeave();
-  document.getElementById('next').addEventListener('click', guarded(() => { if (!leaving) next(); }));
+  document.getElementById('next').addEventListener('click', guarded(() => next()));
   shownAt = performance.now();
 }
 

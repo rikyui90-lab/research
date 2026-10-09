@@ -454,6 +454,8 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['yukichigai-line', 'bullish-tasuki-line'], ['thrusting-line', 'tweezer-bottom'], ['irikubi-line', 'tweezer-bottom'],
 ];
 const MODES = ['all', 'pattern', 'candle', 'term', 'forecast'];
+// 株価予想モードを画面に出すか。株価の取得元(Yahoo Finance の非公式API)の利用条件を確認するまで false にする
+const FORECAST_PUBLIC = false;
 const MODE_LABELS = {
   all: '全部まぜ',
   pattern: 'チャートの形状',
@@ -3094,7 +3096,7 @@ function byDifficulty(items, difficulty) {
 }
 
 function buildPool(mode, rng, difficulty = 'all') {
-  const wants = (type) => mode === 'all' || mode === type;
+  const wants = (type) => mode === type || (mode === 'all' && (type !== 'forecast' || FORECAST_PUBLIC));
   const pool = [];
   if (wants('pattern')) {
     // 乱数は、絞り込みに関係なくパターンごとに同じ回数だけ引く(同じシードなら同じ結果にするため)
@@ -3504,7 +3506,7 @@ function levelCards() {
 function showStart() {
   redraw = null;
   game = null; // 途中のラウンドは捨てる(成績にも残さない)
-  const rows = MODES.map((m) => {
+  const rows = MODES.filter((m) => m !== 'forecast' || FORECAST_PUBLIC).map((m) => {
     const key = statsKey(m, difficulty);
     const size = roundSize(m, difficulty);
     const p = stats.played[key];
@@ -3517,7 +3519,7 @@ function showStart() {
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
-    <p class="lead">チャートの形、ローソク足、用語、株価予想をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
+    <p class="lead">チャートの形、ローソク足、用語${FORECAST_PUBLIC ? '、株価予想' : ''}をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <p class="sec">あなたのレベルは?</p>
     <div class="levels">${levelCards()}</div>
     <p class="sec">難易度</p>

@@ -8,6 +8,53 @@ test('index.html のデータとロジックを読み込める', () => {
 
 const L = loadLogic();
 
+// v6 で追加したチャートの形20種類: id -> [名前, outlook, 難易度](表の順。PATTERNS の末尾にこの順で並ぶ)
+const NEW_CHART20 = {
+  'box-breakout-up': ['ボックス上抜け(上放れ)', 'up', 'easy'],
+  'box-breakout-down': ['ボックス下抜け(下放れ)', 'down', 'normal'],
+  'n-wave-up': ['N字上昇(上昇N波動)', 'up', 'hard'],
+  'broadening-top': ['拡大三角形(ブロードニングトップ)', 'either', 'hard'],
+  'n-wave-down': ['N字下降(逆N波動)', 'down', 'expert'],
+  'false-breakout-up': ['上抜けダマシ(フォールスブレイクアウト・上)', 'down', 'expert'],
+  'false-breakout-down': ['下抜けダマシ(フォールスブレイクアウト・下)', 'up', 'expert'],
+  'triangle-breakout-up': ['三角保ち合い上放れ', 'up', 'expert'],
+  'triangle-breakout-down': ['三角保ち合い下放れ', 'down', 'expert'],
+  'return-move-up': ['リターンムーブ(上抜け後の押し戻し)', 'up', 'expert'],
+  'return-move-down': ['リターンムーブ(下抜け後の戻り)', 'down', 'expert'],
+  'elliott-impulse-up': ['エリオット波動 上昇5波(推進波)', 'either', 'master'],
+  'elliott-impulse-down': ['エリオット波動 下降5波(推進波)', 'either', 'master'],
+  'elliott-cycle-up': ['エリオット波動 上昇5波+調整3波(1サイクル)', 'up', 'master'],
+  'elliott-cycle-down': ['エリオット波動 下降5波+調整3波(1サイクル)', 'down', 'master'],
+  'falling-wedge-breakout-up': ['下降ウェッジ上抜け(上放れ)', 'up', 'expert'],
+  'rising-wedge-breakout-down': ['上昇ウェッジ下抜け(下放れ)', 'down', 'master'],
+  'ascending-channel-breakdown': ['上昇チャネル下抜け', 'down', 'master'],
+  'descending-channel-breakout-up': ['下降チャネル上抜け', 'up', 'master'],
+  'selling-climax': ['セリングクライマックス(急落の最終局面)', 'up', 'master'],
+};
+// 各形の「紛らわしい組」(topics の confusable_with)。両方向で isConfusable になる
+const NEW_CHART20_CONFUSABLE = {
+  'box-breakout-up': ['box-range', 'ascending-triangle', 'box-breakout-down'],
+  'box-breakout-down': ['box-range', 'descending-triangle', 'box-breakout-up'],
+  'n-wave-up': ['ascending-channel', 'bull-flag', 'bullish-perfect-order', 'n-wave-down'],
+  'broadening-top': ['symmetrical-triangle', 'diamond-top', 'head-shoulders', 'falling-wedge'],
+  'n-wave-down': ['descending-channel', 'bear-flag', 'bearish-perfect-order', 'n-wave-up'],
+  'false-breakout-up': ['box-breakout-up', 'box-breakout-down', 'double-top', 'false-breakout-down'],
+  'false-breakout-down': ['box-breakout-up', 'box-breakout-down', 'double-bottom', 'false-breakout-up'],
+  'triangle-breakout-up': ['symmetrical-triangle', 'ascending-triangle', 'pennant', 'triangle-breakout-down'],
+  'triangle-breakout-down': ['symmetrical-triangle', 'descending-triangle', 'bear-pennant', 'triangle-breakout-up'],
+  'return-move-up': ['n-wave-up', 'false-breakout-up', 'box-breakout-up', 'return-move-down'],
+  'return-move-down': ['n-wave-down', 'false-breakout-down', 'box-breakout-down', 'return-move-up'],
+  'elliott-impulse-up': ['bullish-perfect-order', 'ascending-channel', 'elliott-cycle-up', 'elliott-impulse-down'],
+  'elliott-impulse-down': ['bearish-perfect-order', 'descending-channel', 'elliott-cycle-down', 'elliott-impulse-up'],
+  'elliott-cycle-up': ['elliott-impulse-up', 'double-top', 'head-shoulders', 'elliott-cycle-down'],
+  'elliott-cycle-down': ['elliott-impulse-down', 'double-bottom', 'inverse-head-shoulders', 'elliott-cycle-up'],
+  'falling-wedge-breakout-up': ['falling-wedge', 'bull-flag', 'triangle-breakout-up', 'rising-wedge-breakout-down'],
+  'rising-wedge-breakout-down': ['rising-wedge', 'bear-flag', 'triangle-breakout-down', 'falling-wedge-breakout-up'],
+  'ascending-channel-breakdown': ['ascending-channel', 'double-top', 'rising-wedge-breakout-down', 'descending-channel-breakout-up'],
+  'descending-channel-breakout-up': ['descending-channel', 'double-bottom', 'falling-wedge-breakout-up', 'ascending-channel-breakdown'],
+  'selling-climax': ['v-bottom', 'falling-wedge', 'saucer-bottom', 'elliott-impulse-down'],
+};
+
 test('createRng: 同じシードなら同じ列になる', () => {
   const a = L.createRng(42);
   const b = L.createRng(42);
@@ -55,12 +102,13 @@ test('normalizeRange: 値が1つでも min < max になる', () => {
   assert.ok(r.min < r.max);
 });
 
-test('PATTERNS: 30個あり、id と name が重複せず、定義が正しい', () => {
-  assert.equal(L.PATTERNS.length, 30);
-  assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 30);
-  assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 30);
+test('PATTERNS: 50個あり、id と name が重複せず、定義が正しい', () => {
+  assert.equal(L.PATTERNS.length, 50);
+  assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 50);
+  assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 50);
   for (const p of L.PATTERNS) {
-    assert.ok(['up', 'down', 'flat'].includes(p.outlook), p.id);
+    assert.ok(['up', 'down', 'flat', 'either'].includes(p.outlook), p.id);
+    assert.equal(p.outlookQuiz, undefined, p.id);
     assert.ok(p.explanation.length > 0, p.id);
     assert.equal(p.points[0][0], 0, p.id);
     assert.equal(p.points[p.points.length - 1][0], 1, p.id);
@@ -93,6 +141,7 @@ test('generateContinuation: 30点で、方向が outlook と一致する', () =>
     const up = L.generateContinuation(50, 'up', seed);
     const down = L.generateContinuation(50, 'down', seed);
     const flat = L.generateContinuation(50, 'flat', seed);
+    assert.deepEqual(L.generateContinuation(50, 'either', seed), []);
     assert.equal(up.length, L.CONTINUATION_LENGTH);
     assert.ok(up[up.length - 1] > 50 + 5, `up seed=${seed}`);
     assert.ok(down[down.length - 1] < 50 - 5, `down seed=${seed}`);
@@ -208,14 +257,19 @@ test('findPattern: 存在しない id は例外', () => {
 });
 
 test('MODES と MODE_LABELS が揃っている', () => {
-  assert.deepEqual(L.MODES, ['all', 'pattern', 'outlook', 'candle', 'term']);
+  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term']);
   for (const m of L.MODES) assert.ok(L.MODE_LABELS[m], m);
+  assert.equal(L.MODE_LABELS.outlook, undefined);
+  assert.throws(() => L.makeOutlookQuestion, ReferenceError);
+  assert.throws(() => L.OUTLOOK_CHOICES, ReferenceError);
+  // 答え合わせ画面は「この後の値動き: 」にこの文言をそのままつなげて出す(either の特別扱いはしない)
+  assert.equal(L.OUTLOOK_LABELS.either, '上下どちらに動くかは、この形だけでは決められないよ');
 });
 
-test('CANDLE_PATTERNS: 30個で、ローソク足の値が矛盾していない', () => {
-  assert.equal(L.CANDLE_PATTERNS.length, 30);
-  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 30);
-  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 30);
+test('CANDLE_PATTERNS: 50個(既存30+追加20)で、ローソク足の値が矛盾していない', () => {
+  assert.equal(L.CANDLE_PATTERNS.length, 50);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 50);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 50);
   for (const c of L.CANDLE_PATTERNS) {
     assert.ok(c.candles.length >= 1 && c.candles.length <= 5, c.id);
     for (const k of c.candles) {
@@ -225,9 +279,9 @@ test('CANDLE_PATTERNS: 30個で、ローソク足の値が矛盾していない'
   }
 });
 
-test('TERMS: 40個で、id が重複せず、間違いの選択肢が3つある', () => {
-  assert.equal(L.TERMS.length, 40);
-  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 40);
+test('TERMS: 120個(既存40+追加80)で、id が重複せず、間違いの選択肢が3つある', () => {
+  assert.equal(L.TERMS.length, 120);
+  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 120);
   for (const t of L.TERMS) {
     assert.equal(t.wrongs.length, 3, t.id);
     assert.ok(!t.wrongs.includes(t.answer), t.id);
@@ -251,20 +305,52 @@ test('makePatternQuestion: 同じシードなら同じ問題', () => {
   assert.deepEqual(L.makePatternQuestion(p, 3), L.makePatternQuestion(p, 3));
 });
 
-test('makeOutlookQuestion: 3択固定順で、正解が outlook に対応し、続きの方向が一致する', () => {
+test('形状の問題: outlook を持ち、チャートの続きの方向がそれと一致する(either は空)', () => {
   for (const p of L.PATTERNS) {
-    const q = L.makeOutlookQuestion(p, 21);
-    assert.equal(L.validateQuestion(q), null);
-    assert.deepEqual(q.choices, ['上がりやすい', '下がりやすい', '横ばい']);
-    assert.equal(q.answer, L.OUTLOOK_LABELS[p.outlook]);
-    assert.equal(q.patternName, p.name);
+    const q = L.makePatternQuestion(p, 21);
+    assert.equal(q.type, 'pattern');
+    assert.equal(q.outlook, p.outlook, p.id);
+    assert.ok(L.OUTLOOK_LABELS[q.outlook], p.id);
     const chart = L.chartForQuestion(q);
+    assert.ok(Array.isArray(chart.continuation), p.id);
     const last = chart.values[chart.values.length - 1];
     const end = chart.continuation[chart.continuation.length - 1];
     if (p.outlook === 'up') assert.ok(end > last + 5, p.id);
     if (p.outlook === 'down') assert.ok(end < last - 5, p.id);
     if (p.outlook === 'flat') assert.ok(Math.abs(end - last) < 6, p.id);
+    if (p.outlook === 'either') assert.deepEqual(chart.continuation, [], p.id);
+    else assert.equal(chart.continuation.length, L.CONTINUATION_LENGTH, p.id);
   }
+});
+
+test('三角持ち合い・拡大三角形・エリオット推進波(上・下)の outlook は either(方向は抜けるまで分からない)', () => {
+  const eitherIds = ['symmetrical-triangle', 'broadening-top', 'elliott-impulse-up', 'elliott-impulse-down'];
+  for (const id of eitherIds) assert.equal(L.findPattern(id).outlook, 'either', id);
+  assert.deepEqual(L.PATTERNS.filter((p) => p.outlook === 'either').map((p) => p.id).sort(), eitherIds.slice().sort());
+});
+
+test('either の形は続きの点線が空(拡大三角形・エリオット推進波の上・下)', () => {
+  for (const id of ['broadening-top', 'elliott-impulse-up', 'elliott-impulse-down']) {
+    assert.deepEqual(L.generateContinuation(50, L.findPattern(id).outlook, 7), [], id);
+    for (let seed = 1; seed <= 20; seed++) {
+      const q = L.makePatternQuestion(L.findPattern(id), seed);
+      assert.equal(q.outlook, 'either', id);
+      assert.deepEqual(L.chartForQuestion(q).continuation, [], `${id} seed=${seed}`);
+    }
+  }
+});
+
+test('outlook の問題・モードはどこにもない', () => {
+  for (const mode of L.MODES) {
+    for (let seed = 1; seed <= 10; seed++) {
+      for (const q of L.buildDeck(mode, seed)) {
+        assert.notEqual(q.type, 'outlook');
+        assert.ok(!q.id.startsWith('outlook:'), q.id);
+      }
+    }
+  }
+  assert.ok(L.validateQuestion({ id: 'x', type: 'outlook', question: 'q', explanation: 'e', detail: 'd',
+    choices: ['a', 'b', 'c', 'd'], answer: 'a', difficulty: 'easy' }).includes('type'));
 });
 
 test('chartForQuestion: 移動平均線つきのパターンだけ ma を持つ', () => {
@@ -317,12 +403,12 @@ test('buildDeck: どのモードでも10問で、問題が重複せず、全部�
 });
 
 test('buildDeck: モードごとの問題の種類が合っている', () => {
-  for (const mode of ['pattern', 'outlook', 'candle', 'term']) {
+  for (const mode of ['pattern', 'candle', 'term']) {
     for (const q of L.buildDeck(mode, 3)) assert.equal(q.type, mode);
   }
   const types = new Set();
   for (let seed = 1; seed <= 10; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
-  assert.equal(types.size, 4);
+  assert.deepEqual([...types].sort(), ['candle', 'pattern', 'term']);
 });
 
 test('buildDeck: 同じシードなら同じ、違うシードなら違う順番', () => {
@@ -393,15 +479,6 @@ test('formatShareText: モード名と正解数が入る', () => {
   assert.ok(t.includes('チャートの形状') && t.includes('7') && t.includes('10'));
 });
 
-test("buildDeck('all'): 同じ形の「チャートの形状」と「値動き」が同じ回に出ない", () => {
-  for (let seed = 1; seed <= 40; seed++) {
-    const ids = L.buildDeck('all', seed).map((q) => q.id);
-    for (const id of ids.filter((i) => i.startsWith('pattern:'))) {
-      assert.ok(!ids.includes('outlook:' + id.slice('pattern:'.length)), `seed=${seed} ${id}`);
-    }
-  }
-});
-
 test("buildDeck('all'): 10問・重複なし・有効で、同じシードなら同じ", () => {
   for (let seed = 1; seed <= 40; seed++) {
     const deck = L.buildDeck('all', seed);
@@ -412,10 +489,17 @@ test("buildDeck('all'): 10問・重複なし・有効で、同じシードなら
   }
 });
 
-test("buildDeck('all'): チャートの形状も値動きも、たくさんの回のどこかには出る", () => {
+test("buildDeck('all'): チャートの形状・ローソク足・用語が、たくさんの回のどこかには出る", () => {
   const types = new Set();
   for (let seed = 1; seed <= 40; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
-  assert.ok(types.has('pattern') && types.has('outlook'));
+  assert.ok(types.has('pattern') && types.has('candle') && types.has('term'));
+});
+
+test("buildPool('all'): 各パターンが形状の問題を1問ずつ出し(全50問)、同じ形が重ならない", () => {
+  const pool = L.buildPool('all', L.createRng(5));
+  const ids = pool.filter((q) => q.type === 'pattern').map((q) => q.id);
+  assert.equal(ids.length, L.PATTERNS.length);
+  assert.equal(new Set(ids).size, ids.length);
 });
 
 test('isConfusable: 順不同で、定義した組だけ true', () => {
@@ -444,13 +528,7 @@ test('紛らわしい組は、同じ問題の選択肢に同時に出ない', ()
   }
 });
 
-test('三角持ち合いは値動き予想に出ない(チャートの形状には出る)', () => {
-  for (let seed = 1; seed <= 60; seed++) {
-    const outlookDeck = L.buildDeck('outlook', seed);
-    assert.ok(!outlookDeck.some((q) => q.patternId === 'symmetrical-triangle'), `outlook seed=${seed}`);
-    const allDeck = L.buildDeck('all', seed);
-    assert.ok(!allDeck.some((q) => q.type === 'outlook' && q.patternId === 'symmetrical-triangle'), `all seed=${seed}`);
-  }
+test('三角持ち合いは、チャートの形状で出題される', () => {
   let seen = false;
   for (let seed = 1; seed <= 60 && !seen; seed++) {
     seen = L.buildDeck('pattern', seed).some((q) => q.patternId === 'symmetrical-triangle');
@@ -494,8 +572,8 @@ test('用語の修正: 決算の答えと権利確定日の説明', () => {
 
 // 用語の事実確認の指摘(v4)
 test('新規の用語20問: 正解が選択肢の中で一番長い問題は4割未満で、誤りの選択肢が重複しない', () => {
-  // 全40問で数えると、元の20問だけで長い答えが13問あり、基準を超えてしまうため、今回の20問に絞って確かめる
-  const newTerms = L.TERMS.slice(20);
+  // 全40問で数えると、元の20問だけで長い答えが13問あり、基準を超えてしまうため、v4 で足した20問(TERMS の21〜40番目)に絞って確かめる
+  const newTerms = L.TERMS.slice(20, 40);
   assert.equal(newTerms.length, 20);
   const longest = newTerms.filter((t) => t.answer.length > Math.max(...t.wrongs.map((w) => w.length)));
   assert.ok((newTerms.length - longest.length) / newTerms.length > 0.6, '一番長い答え: ' + longest.map((t) => t.id).join(','));
@@ -505,13 +583,14 @@ test('新規の用語20問: 正解が選択肢の中で一番長い問題は4割
   }
 });
 
-test('用語の修正: 単元株は内国株式に限り、サーキットブレーカーは10分程度と書く', () => {
+test('用語の修正: 単元株は内国株式に限り、サーキットブレーカーは時間の数字を書かず、一時的な停止と個別株との違いを書く', () => {
   const unit = L.TERMS.find((t) => t.id === 'trading-unit');
   assert.ok(unit.answer.includes('国内の上場会社') || unit.answer.includes('内国株式'));
   assert.ok(unit.explanation.includes('内国株式'));
   const cb = L.TERMS.find((t) => t.id === 'circuit-breaker');
-  assert.ok(cb.explanation.includes('10分程度'));
-  assert.ok(!cb.explanation.includes('10分以上'));
+  assert.ok(cb.explanation.includes('一時的'));
+  assert.ok(cb.explanation.includes('個別株'));
+  assert.ok(!/10分/.test(cb.explanation), '出典で10分間と10分間以上が割れるため、数字は書かない');
 });
 
 test('単元株の選択肢: 重複がなく、答えが一番長くても2番目より8文字以内の差', () => {
@@ -574,13 +653,14 @@ test('続きの値動きも滑らか: 隣り合う点の差が大きくない', 
   for (const outlook of ['up', 'down', 'flat']) {
     for (let seed = 1; seed <= 30; seed++) {
       const c = L.generateContinuation(50, outlook, seed);
+      assert.equal(c.length, L.CONTINUATION_LENGTH);
       for (let i = 1; i < c.length; i++) assert.ok(Math.abs(c[i] - c[i - 1]) < 3, `${outlook} seed=${seed}`);
     }
   }
 });
 
-test('PATTERNS: 30個で、追加した9個が揃っている', () => {
-  assert.equal(L.PATTERNS.length, 30);
+test('PATTERNS: 50個で、追加した9個が揃っている', () => {
+  assert.equal(L.PATTERNS.length, 50);
   for (const id of ['triple-top', 'triple-bottom', 'ascending-triangle', 'descending-triangle',
     'bear-flag', 'bear-pennant', 'cup-with-handle', 'saucer-bottom', 'box-range']) {
     assert.ok(L.findPattern(id), id);
@@ -709,7 +789,7 @@ test('ボックス圏: 上限と下限のあいだを往復する(幅が小さ�
   }
 });
 
-test('追加後の出題: どのモードも10問が成立し、値動き予想の続きが outlook と一致する', () => {
+test('追加後の出題: どのモードも10問が成立し、形状の問題の続きが outlook と一致する', () => {
   for (const mode of L.MODES) {
     for (let seed = 1; seed <= 20; seed++) {
       const deck = L.buildDeck(mode, seed);
@@ -717,8 +797,8 @@ test('追加後の出題: どのモードも10問が成立し、値動き予想�
       for (const q of deck) assert.equal(L.validateQuestion(q), null);
     }
   }
-  for (const p of L.PATTERNS.filter((x) => x.outlookQuiz !== false)) {
-    const q = L.makeOutlookQuestion(p, 33);
+  for (const p of L.PATTERNS.filter((x) => x.outlook !== 'either')) {
+    const q = L.makePatternQuestion(p, 33);
     const c = L.chartForQuestion(q);
     const last = c.values[c.values.length - 1];
     const end = c.continuation[c.continuation.length - 1];
@@ -800,10 +880,26 @@ test('紛らわしいローソク足の組は、同じ問題の選択肢に同�
   const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
   const candleIds = new Set(L.CANDLE_PATTERNS.map((c) => c.id));
   const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => candleIds.has(a) && candleIds.has(b));
-  // ローソク足どうしの紛らわしい組の数(窓を含む足の6組を足して 27 + 6 = 33)。数が変わったら、意図した変更か確かめること
-  assert.equal(pairs.length, 33);
+  // ローソク足どうしの紛らわしい組の数(v5 までの 33 組に、ローソク足20種類の追加で 61 組、その確認で 3 組を足して 97)。数が変わったら、意図した変更か確かめること
+  assert.equal(pairs.length, 97);
   for (let seed = 1; seed <= 40; seed++) {
     for (const [a, b] of pairs) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
+        assert.ok(!q.choices.includes(nameOf(y)), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null);
+      }
+    }
+  }
+});
+
+test('確認で足したローソク足3組(行き違い線/陽のたすき線、差し込み線・入り首線/毛抜き底): 両方向で isConfusable で、選択肢に同時に出ない', () => {
+  const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
+  const checkPairs = [['yukichigai-line', 'bullish-tasuki-line'], ['thrusting-line', 'tweezer-bottom'], ['irikubi-line', 'tweezer-bottom']];
+  for (const [a, b] of checkPairs) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+    for (let seed = 1; seed <= 60; seed++) {
       for (const [x, y] of [[a, b], [b, a]]) {
         const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
         assert.ok(!q.choices.includes(nameOf(y)), `${x} vs ${y} seed=${seed}`);
@@ -854,12 +950,10 @@ test('追加した紛らわしい組は、同じ問題の選択肢に同時に�
   }
 });
 
-test('どのモードでも出題プールが ROUND_SIZE 以上で、値動き予想に三角持ち合いが入らない', () => {
+test('どのモードでも出題プールが ROUND_SIZE 以上', () => {
   for (const mode of L.MODES) {
     assert.ok(L.buildPool(mode, L.createRng(1)).length >= L.ROUND_SIZE, mode);
   }
-  const pool = L.buildPool('outlook', L.createRng(1));
-  assert.ok(!pool.some((q) => q.patternId === 'symmetrical-triangle'));
 });
 
 test('はらみ足の名前は「強気」「弱気」で、旧名は残っていない', () => {
@@ -883,26 +977,57 @@ test('毛抜き天井・底の説明に「そろう」が入っている', () =>
   }
 });
 
+// 追加の用語80問(用語50・テクニカル30)。各難易度に用語10問+テクニカル6問
+const NEW80 = {
+  easy: {
+    term: ['stock-share', 'investment-trust', 'etf', 'stock-exchange', 'ipo', 'prime-market', 'capital-gain', 'bull-market', 'securities-code', 'dollar-cost-averaging'],
+    technical: ['technical-vs-fundamental', 'trend', 'support-resistance-line', 'trendline', 'candle-timeframes', 'oscillator'],
+  },
+  normal: {
+    term: ['topix', 'specific-account', 'year-high', 'capital-increase', 'shareholders-meeting', 'voting-rights', 'trading-value', 'equity-ratio', 'preferred-stock', 'reit'],
+    technical: ['rsi', 'macd', 'bollinger-bands', 'ma-deviation', 'psychological-line', 'breakout'],
+  },
+  hard: {
+    term: ['bps', 'tob', 'pts', 'securities-report', 'convertible-bond', 'stock-option', 'third-party-allotment', 'book-building', 'margin-call', 'stock-lending'],
+    technical: ['stochastics', 'ichimoku-kinko-hyo', 'dow-theory', 'parabolic-sar', 'vwap', 'momentum'],
+  },
+  expert: {
+    term: ['ebitda', 'peg-ratio', 'doe', 'free-cash-flow', 'roic', 'beta', 'index-futures', 'options-trading', 'current-ratio', 'interest-coverage-ratio'],
+    technical: ['dmi-adx', 'fibonacci-retracement', 'advance-decline-ratio', 'volume-ratio', 'atr', 'cci'],
+  },
+  master: {
+    term: ['sharpe-ratio', 'dcf', 'wacc', 'goodwill', 'cross-shareholding', 'poison-pill', 'squeeze-out', 'nikkei-vi', 'short-squeeze', 'corporate-governance-code'],
+    technical: ['elliott-wave', 'divergence', 'heikin-ashi', 'point-and-figure', 'rci', 'volume-by-price'],
+  },
+};
+
 const LEVEL_TABLE = {
   patterns: {
     easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range',
-      'ascending-channel', 'descending-channel'],
+      'ascending-channel', 'descending-channel', 'box-breakout-up'],
     normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge',
-      'v-bottom', 'v-top'],
+      'v-bottom', 'v-top', 'box-breakout-down'],
     hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom',
-      'bullish-perfect-order', 'bearish-perfect-order'],
-    expert: ['rounding-top', 'inverted-cup-with-handle'],
-    master: ['diamond-top', 'diamond-bottom'],
+      'bullish-perfect-order', 'bearish-perfect-order', 'n-wave-up', 'broadening-top'],
+    expert: ['rounding-top', 'inverted-cup-with-handle', 'n-wave-down', 'false-breakout-up', 'false-breakout-down',
+      'triangle-breakout-up', 'triangle-breakout-down', 'return-move-up', 'return-move-down', 'falling-wedge-breakout-up'],
+    master: ['diamond-top', 'diamond-bottom', 'elliott-impulse-up', 'elliott-impulse-down', 'elliott-cycle-up', 'elliott-cycle-down',
+      'rising-wedge-breakout-down', 'ascending-channel-breakdown', 'descending-channel-breakout-up', 'selling-climax'],
   },
   candles: {
     easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top',
-      'lower-shadow-bullish', 'upper-shadow-bearish'],
+      'lower-shadow-bullish', 'upper-shadow-bearish',
+      'bullish-marubozu'],
     normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji',
-      'gap-up', 'gap-down'],
+      'gap-up', 'gap-down',
+      'bearish-marubozu'],
     hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover',
-      'bullish-harami-cross', 'bearish-harami-cross'],
-    expert: ['rising-three-methods', 'falling-three-methods'],
-    master: ['abandoned-baby-bottom', 'abandoned-baby-top'],
+      'bullish-harami-cross', 'bearish-harami-cross',
+      'four-price-doji', 'bullish-opening-marubozu'],
+    expert: ['rising-three-methods', 'falling-three-methods',
+      'bearish-opening-marubozu', 'three-gaps-up', 'three-gaps-down', 'upward-gap-side-by-side-white', 'downward-gap-side-by-side-black', 'thrusting-line', 'irikubi-line', 'yukichigai-line'],
+    master: ['abandoned-baby-bottom', 'abandoned-baby-top',
+      'bullish-deai-line', 'bearish-deai-line', 'bullish-tasuki-line', 'bearish-tasuki-line', 'upward-gap-star', 'downward-gap-star', 'three-soldiers-stalled', 'three-soldiers-deliberation'],
   },
   terms: {
     easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa',
@@ -915,6 +1040,8 @@ const LEVEL_TABLE = {
     master: ['payout-ratio', 'buyback', 'stock-split', 'circuit-breaker'],
   },
 };
+// 用語の表には、追加の80問も足す
+for (const level of Object.keys(NEW80)) LEVEL_TABLE.terms[level].push(...NEW80[level].term, ...NEW80[level].technical);
 
 test('下影陽線 / 上影陰線: 実体が値幅の30〜50%で、ヒゲが実体より長い', () => {
   const [a] = candleOf('lower-shadow-bullish');
@@ -1048,7 +1175,8 @@ test('新規10個のローソク足: 問題が有効で難易度が表どおり�
 test('新規の用語20問: 難易度どおりで、問題が validateQuestion を通る', () => {
   const newIds = [];
   for (const level of L.DIFFICULTY_LEVELS) {
-    const added = LEVEL_TABLE.terms[level].filter((id) => !['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa', 'per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up', 'roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'].includes(id));
+    const newIds80 = Object.values(NEW80).flatMap((lv) => [...lv.term, ...lv.technical]);
+    const added = LEVEL_TABLE.terms[level].filter((id) => !newIds80.includes(id)).filter((id) => ![ 'market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa', 'per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up', 'roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'].includes(id));
     assert.equal(added.length, 4, level);
     for (const id of added) {
       newIds.push(id);
@@ -1090,7 +1218,6 @@ test('難易度の割り当て: 決めた表どおりで、全項目に付いて
 test('問題オブジェクトに難易度が入り、validateQuestion が見る', () => {
   const p = L.findPattern('cup-with-handle');
   assert.equal(L.makePatternQuestion(p, 1).difficulty, 'hard');
-  assert.equal(L.makeOutlookQuestion(p, 1).difficulty, 'hard');
   assert.equal(L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === 'doji'), L.createRng(1)).difficulty, 'easy');
   assert.equal(L.makeTermQuestion(L.TERMS.find((t) => t.id === 'per'), L.createRng(1)).difficulty, 'normal');
   const q = L.makeTermQuestion(L.TERMS[0], L.createRng(1));
@@ -1101,10 +1228,12 @@ test('問題オブジェクトに難易度が入り、validateQuestion が見る
 
 test('モード×難易度の問題数: どの組み合わせも1問以上で、表の数と合う', () => {
   const expected = {
-    pattern: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
-    outlook: { easy: 9, normal: 8, hard: 8, expert: 2, master: 2 },
-    candle: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
-    term: { easy: 11, normal: 11, hard: 10, expert: 4, master: 4 },
+    // チャートの形は、どの難易度も10種類(v6 で 30 → 50 種類にした)
+    pattern: { easy: 10, normal: 10, hard: 10, expert: 10, master: 10 },
+    // ローソク足も、どの難易度も10種類(v6 で 30 → 50 種類にした)
+    candle: { easy: 10, normal: 10, hard: 10, expert: 10, master: 10 },
+    // 用語は、v4 までの40問(11/11/10/4/4)に追加の80問(各16)を足した数。内容を足したらここも直す
+    term: { easy: 27, normal: 27, hard: 26, expert: 20, master: 20 },
   };
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_LEVELS) {
@@ -1113,8 +1242,9 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
       if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
     }
   }
-  // all モード: expert / master は 用語4 + ローソク足2 + チャート2(形状か値動きの一方)= 8
-  for (const level of ['expert', 'master']) assert.equal(L.buildPool('all', L.createRng(1), level).length, 8, `all/${level}`);
+  // all モード: 用語 + ローソク足10 + チャートの形状10(内容に依存する数)。expert / master は 20+10+10 = 40
+  const allExpected = { easy: 47, normal: 47, hard: 46, expert: 40, master: 40 };
+  for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.buildPool('all', L.createRng(1), level).length, allExpected[level], `all/${level}`);
 });
 
 const NEW_IDS = {
@@ -1125,7 +1255,7 @@ const NEW_IDS = {
   master: { term: ['payout-ratio', 'buyback', 'stock-split', 'circuit-breaker'], candle: ['abandoned-baby-bottom', 'abandoned-baby-top'], pattern: ['diamond-top', 'diamond-bottom'] },
 };
 
-test('各難易度に、新しく追加した問題がちょうど10問ある(用語4・ローソク足2・形状2・値動き2)', () => {
+test('各難易度に、新しく追加した問題がちょうど8問ある(用語4・ローソク足2・形状2)', () => {
   for (const level of L.DIFFICULTY_LEVELS) {
     const ids = NEW_IDS[level];
     let total = 0;
@@ -1140,15 +1270,14 @@ test('各難易度に、新しく追加した問題がちょうど10問ある(�
     assert.equal(count('term', ids.term), 4, `term ${level}`);
     assert.equal(count('candle', ids.candle), 2, `candle ${level}`);
     assert.equal(count('pattern', ids.pattern), 2, `pattern ${level}`);
-    assert.equal(count('outlook', ids.pattern), 2, `outlook ${level}`);
-    assert.equal(total, 10, `合計 ${level}`);
+    assert.equal(total, 8, `合計 ${level}`);
   }
 });
 
-test('roundSize: all は easy/normal/hard で10、expert/master で8。どの組み合わせも1〜10', () => {
-  for (const level of ['easy', 'normal', 'hard']) assert.equal(L.roundSize('all', level), 10, `all/${level}`);
-  assert.equal(L.roundSize('all', 'expert'), 8);
-  assert.equal(L.roundSize('all', 'master'), 8);
+test('roundSize: all は、どの難易度でも10(expert/master の候補は 20+10+10=40 問)。チャートの形状も、どの難易度でも10。どの組み合わせも1〜10', () => {
+  for (const level of ['easy', 'normal', 'hard', 'expert', 'master']) assert.equal(L.roundSize('all', level), 10, `all/${level}`);
+  for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.roundSize('pattern', level), 10, `pattern/${level}`);
+  for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.roundSize('candle', level), 10, `candle/${level}`);
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
@@ -1177,17 +1306,17 @@ test('buildDeck: 難易度の絞り込みで、問題数・重複・難易度・
   }
 });
 
-test('全部まぜ+難易度: 同じ形の「名前」と「値動き」が両方出ない / 三角持ち合いは値動きに出ない', () => {
+test('全部まぜ+難易度: 同じ形の問題が重ならず、outlook の問題は出ない', () => {
   for (const level of L.DIFFICULTY_FILTERS) {
     for (let seed = 1; seed <= 60; seed++) {
       const deck = L.buildDeck('all', seed, level);
       const byPattern = {};
       for (const q of deck) {
-        if (q.type === 'pattern' || q.type === 'outlook') {
+        assert.notEqual(q.type, 'outlook');
+        if (q.type === 'pattern') {
           assert.ok(!byPattern[q.patternId], `${level} seed=${seed} ${q.patternId}`);
           byPattern[q.patternId] = q.type;
         }
-        assert.ok(!(q.type === 'outlook' && q.patternId === 'symmetrical-triangle'));
       }
     }
   }
@@ -1227,6 +1356,22 @@ test('保存データ: 難易度ごとのキーが使え、古い形(難易度�
   assert.equal(parsed.best['all:hard'], 0);
 });
 
+test('保存データ: 値動き予想(outlook)の古いキーが残っていても、無視して読める', () => {
+  const old = JSON.stringify({
+    best: { all: 7, outlook: 9, 'outlook:hard': 4, pattern: 5 },
+    played: { outlook: { correct: 9, total: 10 }, 'outlook:hard': { correct: 4, total: 8 }, pattern: { correct: 5, total: 10 } },
+  });
+  const parsed = L.parseStats(old);
+  assert.equal(parsed.best.all, 7);
+  assert.equal(parsed.best.pattern, 5);
+  assert.deepEqual(parsed.played.pattern, { correct: 5, total: 10 });
+  assert.equal(parsed.best.outlook, undefined);
+  assert.equal(parsed.played['outlook:hard'], undefined);
+  assert.equal(Object.keys(parsed.best).length, 24);
+  assert.equal(L.STATS_KEYS.length, 24);
+  assert.ok(L.STATS_KEYS.every((k) => !k.startsWith('outlook')));
+});
+
 test('formatShareText: 難易度つき', () => {
   assert.equal(L.formatShareText('pattern', 7, 10), '株クイズ(チャートの形状)で 10問中7問正解!');
   const t = L.formatShareText('pattern', 7, 10, 'normal');
@@ -1234,7 +1379,7 @@ test('formatShareText: 難易度つき', () => {
   assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
 });
 
-test('reshuffleChoices: 選択肢の集合と正解が変わらず、元の問題を変更しない。outlook は固定順', () => {
+test('reshuffleChoices: 選択肢の集合と正解が変わらず、元の問題を変更しない', () => {
   const deck = L.buildDeck('all', 4);
   for (const q of deck) {
     const before = JSON.stringify(q);
@@ -1244,7 +1389,6 @@ test('reshuffleChoices: 選択肢の集合と正解が変わらず、元の問�
     assert.equal(r.answer, q.answer);
     assert.equal(r.id, q.id);
     assert.equal(L.validateQuestion(r), null);
-    if (q.type === 'outlook') assert.deepEqual(r.choices, q.choices);
   }
 });
 
@@ -1310,7 +1454,7 @@ function slopeOf(idxs, values) {
   return num / den;
 }
 
-test('新規チャート10種類: id・outlook・難易度・outlookQuiz が表どおり', () => {
+test('新規チャート10種類: id・outlook・難易度が表どおり', () => {
   const want = {
     'ascending-channel': ['up', 'easy'], 'descending-channel': ['down', 'easy'],
     'v-bottom': ['up', 'normal'], 'v-top': ['down', 'normal'],
@@ -1323,10 +1467,8 @@ test('新規チャート10種類: id・outlook・難易度・outlookQuiz が表�
     const p = L.findPattern(id);
     assert.equal(p.outlook, outlook, id);
     assert.equal(p.difficulty, level, id);
-    assert.notEqual(p.outlookQuiz, false, id);
     assert.ok(p.explanation.endsWith('よ。'), id);
     assert.equal(L.validateQuestion(L.makePatternQuestion(p, 5)), null, id);
-    assert.equal(L.validateQuestion(L.makeOutlookQuestion(p, 5)), null, id);
   }
 });
 
@@ -1400,7 +1542,7 @@ test('パーフェクトオーダー: 最後の点で 短期>中期>長期(下�
 test('パーフェクトオーダーだけが chart.ma を3本返し、ほかの新規チャートは ma が undefined', () => {
   for (const id of NEW_CHART_IDS) {
     const p = L.findPattern(id);
-    for (const q of [L.makePatternQuestion(p, 4), L.makeOutlookQuestion(p, 4)]) {
+    for (const q of [L.makePatternQuestion(p, 4)]) {
       const c = L.chartForQuestion(q);
       if (id.endsWith('perfect-order')) {
         assert.equal(p.ma, true, id);
@@ -1490,8 +1632,8 @@ test('新規チャートの紛らわしい組が両方向で isConfusable で、
   }
 });
 
-test('新規チャート: どの難易度でも pattern / outlook / all の出題が有効', () => {
-  for (const mode of ['pattern', 'outlook', 'all']) {
+test('新規チャート: どの難易度でも pattern / all の出題が有効', () => {
+  for (const mode of ['pattern', 'all']) {
     for (const level of L.DIFFICULTY_FILTERS) {
       for (let seed = 1; seed <= 10; seed++) {
         for (const q of L.buildDeck(mode, seed, level)) assert.equal(L.validateQuestion(q), null, `${mode}/${level}`);
@@ -1532,4 +1674,1181 @@ test('逆カップウィズハンドル: 取っ手は、カップ(山)の高さ�
     const ratio = (handle - right) / (top - right);
     assert.ok(ratio > 0.2 && ratio < 0.4, `seed=${seed} 戻りの割合 ${ratio}`);
   }
+});
+
+// ---- 「くわしく」(detail)と、追加の用語80問 ----
+const countChars = (s) => [...s].length;
+const countSentences = (s) => (s.match(/。/g) || []).length;
+const FORBIDDEN_WORDS = ['必ず', '絶対', '買うべき', '売るべき'];
+
+test('detail の網羅: 形状50・ローソク足50・用語120の全220項目に、空でない detail がある', () => {
+  assert.equal(L.PATTERNS.length, 50);
+  assert.equal(L.CANDLE_PATTERNS.length, 50);
+  assert.equal(L.TERMS.length, 120);
+  for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS]) {
+    assert.equal(typeof x.detail, 'string', x.id);
+    assert.ok(x.detail.trim().length > 0, x.id);
+  }
+});
+
+test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の最初の40)だけを持ち、追加の80問・追加の形状20種類・追加のローソク足20種類は入っていない', () => {
+  const D = L.DETAIL_BY_ID;
+  assert.deepEqual(Object.keys(D).sort(), ['candles', 'patterns', 'terms']);
+  assert.deepEqual(Object.keys(D.patterns).sort(), L.PATTERNS.slice(0, 30).map((x) => x.id).sort());
+  for (const id of Object.keys(NEW_CHART20)) {
+    assert.ok(!(id in D.patterns), `${id} は DETAIL_BY_ID に入れない(自分の detail を持つ)`);
+    assert.equal(typeof L.findPattern(id).detail, 'string', id);
+  }
+  assert.deepEqual(Object.keys(D.candles).sort(), L.CANDLE_PATTERNS.slice(0, 30).map((x) => x.id).sort());
+  for (const id of Object.keys(NEW_CANDLE20)) {
+    assert.ok(!(id in D.candles), `${id} は DETAIL_BY_ID に入れない(自分の detail を持つ)`);
+    assert.equal(typeof L.CANDLE_PATTERNS.find((x) => x.id === id).detail, 'string', id);
+  }
+  const oldTermIds = L.TERMS.slice(0, 40).map((x) => x.id);
+  assert.deepEqual(Object.keys(D.terms).sort(), oldTermIds.slice().sort());
+  assert.equal(Object.keys(D.patterns).length + Object.keys(D.candles).length + Object.keys(D.terms).length, 100);
+  const newIds = Object.values(NEW80).flatMap((lv) => [...lv.term, ...lv.technical]);
+  assert.equal(newIds.length, 80);
+  for (const id of newIds) {
+    assert.ok(!(id in D.terms) && !(id in D.patterns) && !(id in D.candles), `${id} は DETAIL_BY_ID に入れない`);
+    const t = L.TERMS.find((x) => x.id === id);
+    assert.ok(t && typeof t.detail === 'string' && t.detail.length > 0, `${id} は自分の detail を持つ`);
+  }
+  // 表の文が、そのまま各項目に付いている
+  for (const [group, items] of [['patterns', L.PATTERNS.slice(0, 30)], ['candles', L.CANDLE_PATTERNS.slice(0, 30)], ['terms', L.TERMS.slice(0, 40)]]) {
+    for (const x of items) assert.equal(x.detail, D[group][x.id], x.id);
+  }
+});
+
+test('detail の質: 120〜250字・2〜4文・「。」で終わり、220個すべて違う文', () => {
+  const all = [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS];
+  assert.equal(all.length, 220);
+  for (const x of all) {
+    const n = countChars(x.detail);
+    assert.ok(n >= 120 && n <= 250, `${x.id}: ${n}字`);
+    const s = countSentences(x.detail);
+    assert.ok(s >= 2 && s <= 4, `${x.id}: ${s}文`);
+    assert.ok(x.detail.endsWith('。'), x.id);
+  }
+  assert.equal(new Set(all.map((x) => x.detail)).size, 220);
+});
+
+test('detail の質: explanation と同じ・explanation を含む detail はなく、断定や助言の言葉を使わない', () => {
+  for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS]) {
+    assert.notEqual(x.detail, x.explanation, x.id);
+    assert.ok(!x.detail.includes(x.explanation), `${x.id}: detail が explanation を含む`);
+    for (const w of FORBIDDEN_WORDS) {
+      assert.ok(!x.detail.includes(w), `${x.id}: detail に「${w}」`);
+      assert.ok(!x.explanation.includes(w), `${x.id}: explanation に「${w}」`);
+    }
+  }
+});
+
+test('形状とローソク足の detail は、特定の問題を指す「正解」「この問題」を含まない', () => {
+  for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS]) {
+    assert.ok(!x.detail.includes('正解'), x.id);
+    assert.ok(!x.detail.includes('この問題'), x.id);
+  }
+});
+
+test('validateQuestion: detail が無い問題は不備として見つける', () => {
+  const makers = [
+    L.makeTermQuestion(L.TERMS[0], L.createRng(1)),
+    L.makeCandleQuestion(L.CANDLE_PATTERNS[0], L.createRng(1)),
+    L.makePatternQuestion(L.PATTERNS[0], 1),
+  ];
+  for (const q of makers) {
+    assert.equal(L.validateQuestion(q), null, q.id);
+    const broken = { ...q };
+    delete broken.detail;
+    assert.equal(typeof L.validateQuestion(broken), 'string', q.id);
+    assert.equal(typeof L.validateQuestion({ ...q, detail: '' }), 'string', q.id);
+  }
+});
+
+test('形状の問題は、パターン定義の detail を使う', () => {
+  for (const p of L.PATTERNS) {
+    assert.equal(L.makePatternQuestion(p, 1).detail, p.detail, p.id);
+  }
+});
+
+test('追加の用語80問: id が重複せず既存の40問と重ならず、category は term か technical', () => {
+  const added = L.TERMS.slice(40);
+  assert.equal(added.length, 80);
+  const oldIds = new Set(L.TERMS.slice(0, 40).map((t) => t.id));
+  assert.equal(new Set(added.map((t) => t.id)).size, 80);
+  for (const t of added) {
+    assert.ok(!oldIds.has(t.id), t.id);
+    assert.ok(['term', 'technical'].includes(t.category), `${t.id}: ${t.category}`);
+  }
+  assert.equal(added.filter((t) => t.category === 'term').length, 50);
+  assert.equal(added.filter((t) => t.category === 'technical').length, 30);
+});
+
+test('追加の用語80問: 各難易度にちょうど用語10問+テクニカル6問で、id の表と一致し、難易度が表どおり', () => {
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const { term, technical } = NEW80[level];
+    assert.equal(term.length, 10, level);
+    assert.equal(technical.length, 6, level);
+    const inLevel = L.TERMS.slice(40).filter((t) => t.difficulty === level);
+    assert.deepEqual(inLevel.map((t) => t.id).sort(), [...term, ...technical].sort(), level);
+    assert.deepEqual(inLevel.filter((t) => t.category === 'term').map((t) => t.id).sort(), term.slice().sort(), `${level} 用語`);
+    assert.deepEqual(inLevel.filter((t) => t.category === 'technical').map((t) => t.id).sort(), technical.slice().sort(), `${level} テクニカル`);
+    // buildPool から出る問題の難易度も、その難易度になる
+    const pool = L.buildPool('term', L.createRng(1), level);
+    for (const id of [...term, ...technical]) {
+      const q = pool.find((x) => x.id === `term:${id}`);
+      assert.ok(q, `${level}: ${id} が出題の候補にある`);
+      assert.equal(q.difficulty, level, id);
+    }
+  }
+});
+
+test('追加の用語80問: 選択肢は4つで重複せず、解説は1〜2文', () => {
+  for (const t of L.TERMS.slice(40)) {
+    assert.equal(t.wrongs.length, 3, t.id);
+    assert.equal(new Set([t.answer, ...t.wrongs]).size, 4, t.id);
+    assert.ok(!t.wrongs.includes(t.answer), t.id);
+    const s = countSentences(t.explanation);
+    assert.ok(s >= 1 && s <= 2, `${t.id}: 解説${s}文`);
+    assert.ok(t.question.includes('「') && t.question.endsWith('?'), t.id);
+  }
+});
+
+test('追加の用語80問: 正解が選択肢の中で唯一いちばん長い問題は、全体で24問以内・各難易度で7問以内', () => {
+  // 上限は内容に依存する数。現状は全体20問・各難易度の最大6問。問題を足す・直すときは実数を見て直す
+  const isStrictlyLongest = (t) => countChars(t.answer) > Math.max(...t.wrongs.map(countChars));
+  const added = L.TERMS.slice(40);
+  const longest = added.filter(isStrictlyLongest);
+  assert.ok(longest.length <= 24, `全体 ${longest.length} 問: ${longest.map((t) => t.id).join(',')}`);
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const n = longest.filter((t) => t.difficulty === level).length;
+    assert.ok(n <= 7, `${level}: ${n} 問`);
+  }
+});
+
+test('追加の用語80問: どの項目から作った問題も validateQuestion を通り、difficulty と detail を持つ', () => {
+  for (const t of L.TERMS.slice(40)) {
+    for (let seed = 1; seed <= 5; seed++) {
+      const q = L.makeTermQuestion(t, L.createRng(seed));
+      assert.equal(L.validateQuestion(q), null, t.id);
+      assert.ok(L.DIFFICULTY_LEVELS.includes(q.difficulty), t.id);
+      assert.equal(q.detail, t.detail, t.id);
+      assert.ok(q.detail.length > 0, t.id);
+    }
+  }
+});
+
+// ---- 価格の目盛り(チャートの形状) ----
+test('priceScaleFor: 同じシードなら同じ。base は300〜4000円ほどで10円刻み、span は base の15〜40%', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const a = L.priceScaleFor(seed);
+    assert.deepEqual(a, L.priceScaleFor(seed), `seed=${seed}`);
+    assert.ok(a.base >= 300 && a.base <= 4000, `seed=${seed} base=${a.base}`);
+    assert.equal(a.base % 10, 0, `seed=${seed}`);
+    assert.ok(a.span >= a.base * 0.14 && a.span <= a.base * 0.41, `seed=${seed} span=${a.span}`);
+  }
+  const bases = new Set();
+  for (let seed = 1; seed <= 50; seed++) bases.add(L.priceScaleFor(seed).base);
+  assert.ok(bases.size > 20, 'シードごとに基準が変わる');
+});
+
+test('priceScaleFor: シードだけで決まり、問題の系列の乱数も、ほかの呼び出しも変えない', () => {
+  const p = L.findPattern('double-top');
+  const before = L.generateSeries(p, 77);
+  L.priceScaleFor(77);
+  assert.deepEqual(L.generateSeries(p, 77), before);
+  const q = L.makePatternQuestion(p, 77);
+  assert.deepEqual(L.chartForQuestion(q).priceScale, L.priceScaleFor(77));
+  // 問題のパターンやほかの引数に依存しない
+  assert.deepEqual(L.chartForQuestion(L.makePatternQuestion(L.findPattern('v-top'), 77)).priceScale, L.priceScaleFor(77));
+});
+
+test('toPrice: 単調に増え、v が -20〜120 でも常に正', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const s = L.priceScaleFor(seed);
+    let prev = -Infinity;
+    for (let v = -20; v <= 120; v += 5) {
+      const price = L.toPrice(v, s);
+      assert.ok(price > 0, `seed=${seed} v=${v}`);
+      assert.ok(price > prev, `seed=${seed} v=${v}`);
+      prev = price;
+    }
+    assert.equal(L.toPrice(0, s), s.base);
+    assert.ok(Math.abs(L.toPrice(100, s) - (s.base + s.span)) < 1e-9);
+    assert.ok(Math.abs(L.fromPrice(L.toPrice(37, s), s) - 37) < 1e-9);
+  }
+});
+
+test('niceTicks: 1・2・5 × 10^k の刻みで、昇順・範囲内・3〜6個', () => {
+  const isNice = (step) => {
+    const mag = Math.pow(10, Math.floor(Math.log10(step) + 1e-9));
+    return [1, 2, 5].some((m) => Math.abs(step - m * mag) < mag * 1e-6);
+  };
+  const rng = L.createRng(2024);
+  for (let i = 0; i < 2000; i++) {
+    const min = rng() * 4000 * rng();
+    const max = min + Math.pow(10, rng() * 4 - 1);
+    const t = L.niceTicks(min, max);
+    assert.ok(t.length >= 3 && t.length <= 6, `${min}〜${max} → ${t.length}個`);
+    for (let k = 0; k < t.length; k++) {
+      assert.ok(t[k] >= min - 1e-9 && t[k] <= max + 1e-9, `${min}〜${max} 範囲外 ${t[k]}`);
+      if (k > 0) {
+        assert.ok(t[k] > t[k - 1]);
+        assert.ok(isNice(t[k] - t[k - 1]), `${min}〜${max} 刻み ${t[k] - t[k - 1]}`);
+      }
+    }
+  }
+});
+
+test('niceTicks: 例と決定性と target', () => {
+  assert.deepEqual(L.niceTicks(0, 100), [0, 50, 100]);
+  assert.deepEqual(L.niceTicks(0, 100, 6), [0, 20, 40, 60, 80, 100]);
+  assert.deepEqual(L.niceTicks(1003, 1497), [1100, 1200, 1300, 1400]);
+  assert.deepEqual(L.niceTicks(1003, 1497), L.niceTicks(1003, 1497));
+  assert.ok(L.niceTicks(0, 100, 6).length >= L.niceTicks(0, 100, 3).length);
+});
+
+test('niceTicks: 幅が0や極端に小さい範囲でも壊れない', () => {
+  assert.deepEqual(L.niceTicks(500, 500), [500]);
+  for (const [min, max] of [[500, 500.001], [1000, 1000.5], [0, 0.003]]) {
+    const t = L.niceTicks(min, max);
+    assert.ok(t.length >= 1 && t.length <= 6, `${min}〜${max}`);
+    assert.ok(t.every((v) => Number.isFinite(v) && v >= min - 1e-9 && v <= max + 1e-9));
+  }
+});
+
+test('formatPrice: 3桁区切りで円記号なし', () => {
+  assert.equal(L.formatPrice(950), '950');
+  assert.equal(L.formatPrice(1200), '1,200');
+  assert.equal(L.formatPrice(1234567), '1,234,567');
+  assert.equal(L.formatPrice(1200.4), '1,200');
+});
+
+test('形状の問題の実際の範囲: 目盛りは3〜6本で、範囲内に収まる', () => {
+  for (const p of L.PATTERNS) {
+    for (let seed = 1; seed <= 20; seed++) {
+      const q = L.makePatternQuestion(p, seed);
+      const chart = L.chartForQuestion(q);
+      const { min, max } = L.chartRange(chart.values, chart.continuation);
+      const ticks = L.niceTicks(L.toPrice(min, chart.priceScale), L.toPrice(max, chart.priceScale));
+      assert.ok(ticks.length >= 3 && ticks.length <= 6, `${p.id} seed=${seed} ${ticks.length}個`);
+    }
+  }
+});
+
+// ---- 問題の画面で続きの有無が分からないようにする(横幅と縦の範囲は outlook に依らない) ----
+test('chartRange: 続きの実物でも空でも、最後の値からの上下の距離が変わらない(up/down/flat/either 同じ)', () => {
+  const ids = { up: 'double-bottom', down: 'double-top', flat: null, either: 'symmetrical-triangle' };
+  ids.flat = L.PATTERNS.find((p) => p.outlook === 'flat').id;
+  for (const [outlook, id] of Object.entries(ids)) {
+    assert.equal(L.findPattern(id).outlook, outlook, id);
+  }
+  for (const seed of [1, 7, 42, 123]) {
+    const dist = [];
+    for (const id of Object.values(ids)) {
+      const q = L.makePatternQuestion(L.findPattern(id), seed);
+      const chart = L.chartForQuestion(q);
+      const last = chart.values[chart.values.length - 1];
+      for (const cont of [chart.continuation, []]) {
+        const r = L.chartRange(chart.values, cont);
+        const n = chart.values.length + L.CONTINUATION_LENGTH;
+        assert.equal(n, 150, id);
+        dist.push({ id, up: r.max - last, down: last - r.min });
+        // 続きは必ず枠の中に入る
+        for (const v of chart.continuation) assert.ok(v >= r.min && v <= r.max, `${id} seed=${seed}`);
+      }
+      // 続きを見せても見せなくても(空でも)同じ範囲
+      const a = L.chartRange(chart.values, chart.continuation);
+      const b = L.chartRange(chart.values, []);
+      assert.ok(Math.abs(a.min - b.min) < 1e-9 && Math.abs(a.max - b.max) < 1e-9, `${id} seed=${seed}`);
+    }
+  }
+});
+
+test('chartRange: 同じ系列なら、続きが上・下・横ばい・空のどれでも範囲が同じ(50種類 x 複数のシード)', () => {
+  for (const p of L.PATTERNS) {
+    for (const seed of [1, 2, 3, 99]) {
+      const values = L.generateSeries(p, seed);
+      const last = values[values.length - 1];
+      const ref = L.chartRange(values, []);
+      for (const outlook of ['up', 'down', 'flat']) {
+        const r = L.chartRange(values, L.generateContinuation(last, outlook, seed));
+        assert.ok(Math.abs(r.min - ref.min) < 1e-9 && Math.abs(r.max - ref.max) < 1e-9, `${p.id} seed=${seed} ${outlook}`);
+      }
+      const q = L.makePatternQuestion(p, seed);
+      const chart = L.chartForQuestion(q);
+      const own = L.chartRange(chart.values, chart.continuation);
+      assert.ok(Math.abs(own.max - ref.max) < 1e-9 && Math.abs(own.min - ref.min) < 1e-9, `${p.id} seed=${seed} 自分の続き`);
+      // 最後の値からの上下の距離は、系列だけで決まる(outlook で変わらない)
+      assert.ok(own.max - last >= L.CONTINUATION_BAND && last - own.min >= L.CONTINUATION_BAND, `${p.id} seed=${seed}`);
+    }
+  }
+});
+
+test('CONTINUATION_BAND: 続きの値は最後の値の上下 CONTINUATION_BAND を超えない(多数のシード)', () => {
+  for (const outlook of ['up', 'down', 'flat']) {
+    for (let seed = 1; seed <= 300; seed++) {
+      for (const v of L.generateContinuation(50, outlook, seed)) {
+        assert.ok(Math.abs(v - 50) <= L.CONTINUATION_BAND, `${outlook} seed=${seed} ${v}`);
+      }
+    }
+  }
+});
+
+// ---- 新規チャート20種類(v6: 30 → 50 種類。各難易度10種類) ----
+// 形の判定は、どれも「定義から決めたしきい値」で見る。MARGINS=1 で実行すると、各しきい値の最悪の余裕(単位: チャートの値)を表示する
+const MARGINS = {};
+if (process.env.MARGINS) {
+  process.on('exit', () => {
+    for (const k of Object.keys(MARGINS).sort()) console.log(`margin ${k} = ${MARGINS[k].toFixed(2)}`);
+  });
+}
+function atLeast(label, value, threshold, ctx = '') {
+  MARGINS[label] = Math.min(MARGINS[label] ?? Infinity, value - threshold);
+  assert.ok(value >= threshold, `${label} ${ctx}: ${value} < ${threshold}`);
+}
+function atMost(label, value, threshold, ctx = '') {
+  MARGINS[label] = Math.min(MARGINS[label] ?? Infinity, threshold - value);
+  assert.ok(value <= threshold, `${label} ${ctx}: ${value} > ${threshold}`);
+}
+// シード 1〜300(SEEDS=3000 のように環境変数で増やして、しきい値の余裕を調べられる)
+const SEEDS300 = Array.from({ length: Number(process.env.SEEDS) || 300 }, (_, i) => i + 1);
+// 上昇の向きにそろえた系列(sign=-1 なら上下を反転する)
+const seriesOf = (id, seed, sign = 1) => L.generateSeries(L.findPattern(id), seed).map((x) => x * sign);
+const at = (v, t) => v[Math.round(t * (v.length - 1))];
+const winMax = (v, a, b) => Math.max(...sliceAt(v, [a, b]));
+const winMin = (v, a, b) => Math.min(...sliceAt(v, [a, b]));
+const winMean = (v, a, b) => { const w = sliceAt(v, [a, b]); return w.reduce((x, y) => x + y, 0) / w.length; };
+const idxOfMax = (v, a, b) => { const lo = Math.floor(v.length * a); return lo + sliceAt(v, [a, b]).reduce((m, x, i, arr) => (x > arr[m] ? i : m), 0); };
+const idxOfMin = (v, a, b) => { const lo = Math.floor(v.length * a); return lo + sliceAt(v, [a, b]).reduce((m, x, i, arr) => (x < arr[m] ? i : m), 0); };
+// 最小二乗の直線(傾きは時刻 0〜1 あたり)。idxs は点の番号、n は系列の長さ
+function lineFit(idxs, values, n) {
+  const xs = idxs.map((i) => i / (n - 1));
+  const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const my = values.reduce((a, b) => a + b, 0) / values.length;
+  let num = 0;
+  let den = 0;
+  xs.forEach((x, i) => { num += (x - mx) * (values[i] - my); den += (x - mx) ** 2; });
+  const slope = num / den;
+  return { slope, at: (t) => my + slope * (t - mx) };
+}
+// 中心線 mid の上下 h より外へ出た「往復」の列。各要素は { type: 'hi'|'lo', ext: その往復での最大(最小), start, end }
+function excursions(v, mid, h) {
+  const out = [];
+  let cur = null;
+  v.forEach((x, i) => {
+    const type = x > mid + h ? 'hi' : x < mid - h ? 'lo' : null;
+    if (!type) { if (cur) cur.end = i; return; }
+    if (cur && cur.type === type) { cur.ext = type === 'hi' ? Math.max(cur.ext, x) : Math.min(cur.ext, x); cur.end = i; } else { cur = { type, ext: x, start: i, end: i }; out.push(cur); }
+  });
+  return out;
+}
+// ボックスの上限・下限に2回以上ずつ触れ(往復)、触れた高さがそろっていることを確かめる。box は上限と下限をふくむ系列の部分
+function checkBox(box, label, ctx, tol = 8) {
+  const mid = (Math.max(...box) + Math.min(...box)) / 2;
+  const ex = excursions(box, mid, 4);
+  const his = ex.filter((e) => e.type === 'hi');
+  const los = ex.filter((e) => e.type === 'lo');
+  atLeast(label + ' 上限に触れる回数', his.length, 2, ctx);
+  atLeast(label + ' 下限に触れる回数', los.length, 2, ctx);
+  // 途中の往復(両端で切れたものをのぞく)の高さがそろう
+  const inner = ex.slice(1, -1);
+  const hiExt = inner.filter((e) => e.type === 'hi').map((e) => e.ext);
+  const loExt = inner.filter((e) => e.type === 'lo').map((e) => e.ext);
+  if (hiExt.length > 1) atMost(label + ' 上限のそろい', rangeOf2(hiExt), tol, ctx);
+  if (loExt.length > 1) atMost(label + ' 下限のそろい', rangeOf2(loExt), tol, ctx);
+  return ex;
+}
+const strictlyMonotone = (arr, dir, minStep) => arr.every((x, k) => k === 0 || (x - arr[k - 1]) * dir >= minStep);
+
+test('新規チャート20種類: id・名前・outlook・難易度・位置が表どおり(各難易度10種類)', () => {
+  const ids = Object.keys(NEW_CHART20);
+  assert.equal(ids.length, 20);
+  assert.deepEqual(L.PATTERNS.slice(30).map((p) => p.id), ids, '末尾に表の順で並ぶ');
+  for (const [id, [name, outlook, level]] of Object.entries(NEW_CHART20)) {
+    const p = L.findPattern(id);
+    assert.equal(p.name, name, id);
+    assert.equal(p.outlook, outlook, id);
+    assert.equal(p.difficulty, level, id);
+    assert.equal(p.title, undefined, id);
+    assert.equal(p.level, undefined, id);
+    assert.equal(p.sources, undefined, id);
+    assert.equal(p.note, undefined, id);
+    assert.equal(p.ma, undefined, id);
+  }
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.equal(L.PATTERNS.filter((p) => p.difficulty === level).length, 10, `形は${level}で10種類`);
+    assert.equal(L.DIFFICULTY_BY_ID.patterns[level].length, 10, `表も${level}で10`);
+  }
+  assert.equal(L.PATTERNS.filter((p) => !p.difficulty).length, 0);
+  for (const id of ids) {
+    for (const level of L.DIFFICULTY_LEVELS) {
+      const inTable = L.DIFFICULTY_BY_ID.patterns[level].includes(id);
+      assert.equal(inTable, NEW_CHART20[id][2] === level, `${id}/${level}`);
+    }
+  }
+});
+
+test('新規チャート20種類: 骨格が正しく、問題が有効で、続きの点線は outlook の方向に伸びる', () => {
+  for (const id of Object.keys(NEW_CHART20)) {
+    const p = L.findPattern(id);
+    assert.ok(p.points.length >= 4, id);
+    for (const [t, v] of p.points) assert.ok(t >= 0 && t <= 1 && v >= 0 && v <= 100, `${id} ${t},${v}`);
+    for (let seed = 1; seed <= 20; seed++) {
+      const q = L.makePatternQuestion(p, seed);
+      assert.equal(L.validateQuestion(q), null, id);
+      assert.ok(q.detail && q.explanation, id);
+      assert.equal(q.difficulty, NEW_CHART20[id][2], id);
+      const c = L.chartForQuestion(q);
+      assert.equal(c.values.length, 120, id);
+      assert.equal(c.continuation.length, p.outlook === 'either' ? 0 : 30, id);
+      assert.equal(c.ma, undefined, id);
+      const last = c.values[119];
+      const end = c.continuation[29];
+      if (p.outlook === 'up') assert.ok(end > last + 5, `${id} 続きは上`);
+      if (p.outlook === 'down') assert.ok(end < last - 5, `${id} 続きは下`);
+    }
+  }
+});
+
+test('ボックス上抜け / ボックス下抜け: 水平なボックスを往復して(上下2回以上ずつ触れる)、最後に大きく抜ける(300シード)', () => {
+  for (const [id, sign] of [['box-breakout-up', 1], ['box-breakout-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const box = sliceAt(v, [0, 0.66]);
+      atMost(`${id} ボックスの幅`, rangeOf2(box), 29, ctx);
+      atLeast(`${id} ボックスの幅(狭すぎない)`, rangeOf2(box), 14, ctx);
+      checkBox(box, id, ctx); // 上限・下限に2回以上ずつ触れ、触れた高さがそろう(ほぼ水平)
+      const top = Math.max(...box);
+      atLeast(`${id} 最後の抜けの大きさ`, v[n - 1] - top, 12, ctx);
+      atLeast(`${id} 最後が高値`, v[n - 1], Math.max(...v) - 4, ctx);
+    }
+  }
+});
+
+test('N字上昇 / N字下降: 上昇→押し(出発点より上)→前の高値を更新する3つの波(300シード)', () => {
+  for (const [id, sign] of [['n-wave-up', 1], ['n-wave-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const start = v[0];
+      const high = winMax(v, 0.2, 0.5);
+      const dip = winMin(v, 0.45, 0.75);
+      atLeast(`${id} 第1波の上げ`, high - start, 35, ctx);
+      atLeast(`${id} 押しの深さ`, high - dip, 15, ctx);
+      atLeast(`${id} 押しは出発点より上`, dip - start, 10, ctx);
+      atLeast(`${id} 最後に前の高値を更新`, v[n - 1] - high, 12, ctx);
+      atLeast(`${id} 最後が高値`, v[n - 1], Math.max(...v) - 4, ctx);
+      const highAt = idxOfMax(v, 0.2, 0.5);
+      const dipAt = idxOfMin(v, 0.45, 0.75);
+      assert.ok(highAt > n * 0.27 && highAt < n * 0.43, `${ctx} 前の高値の位置 ${highAt}`);
+      assert.ok(dipAt > n * 0.5 && dipAt < n * 0.68, `${ctx} 押しの位置 ${dipAt}`);
+    }
+  }
+});
+
+test('拡大三角形: 高値は切り上がり安値は切り下がって値幅が広がり、最後に安値を割る(300シード)', () => {
+  for (const seed of SEEDS300) {
+    const v = seriesOf('broadening-top', seed);
+    const n = v.length;
+    const ctx = `seed=${seed}`;
+    // 山 P1〜P3 と谷 T1〜T3(最後の谷 T3 は平らになりやすいので、時間の窓の最小値でとる)
+    const p = [winMax(v, 0.03, 0.17), winMax(v, 0.28, 0.44), winMax(v, 0.55, 0.72)];
+    const t = [winMin(v, 0.15, 0.3), winMin(v, 0.42, 0.58), winMin(v, 0.72, 0.95)];
+    const order = [idxOfMax(v, 0.03, 0.17), idxOfMin(v, 0.15, 0.3), idxOfMax(v, 0.28, 0.44), idxOfMin(v, 0.42, 0.58),
+      idxOfMax(v, 0.55, 0.72), idxOfMin(v, 0.72, 0.95)];
+    assert.ok(strictlyMonotone(order, 1, 4), `${ctx} 山谷の順 ${order}`);
+    for (let k = 1; k < 3; k++) {
+      atLeast('拡大三角形 高値の切り上がり', p[k] - p[k - 1], 8, ctx);
+      atLeast('拡大三角形 安値の切り下がり', t[k - 1] - t[k], 8, ctx);
+    }
+    // 山から谷への振れ幅が、どんどん広がる
+    atLeast('拡大三角形 振れ幅の拡大(2回目/1回目)', p[1] - t[1], (p[0] - t[0]) * 1.4, ctx);
+    atLeast('拡大三角形 振れ幅の拡大(3回目/2回目)', p[2] - t[2], (p[1] - t[1]) * 1.3, ctx);
+    atLeast('拡大三角形 最後の山の高さ', p[2], v[0] + 40, ctx);
+    // 最後は直前までの安値を割ったところで終わる
+    atMost('拡大三角形 最後は直前の安値より下', v[n - 1], t[1], ctx);
+  }
+});
+
+test('上抜けダマシ / 下抜けダマシ: ボックスを一時的に抜けるが戻り、逆側に抜けて終わる(300シード)', () => {
+  for (const [id, sign] of [['false-breakout-up', 1], ['false-breakout-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const box = sliceAt(v, [0, 0.52]);
+      const top = Math.max(...box);
+      const bottom = Math.min(...box);
+      atMost(`${id} ボックスの幅`, top - bottom, 28, ctx);
+      checkBox(box, id, ctx);
+      const spike = winMax(v, 0.56, 0.76);
+      atLeast(`${id} 一時的な抜け`, spike - top, 8, ctx);
+      const spikeAt = idxOfMax(v, 0.56, 0.76);
+      assert.ok(spikeAt > n * 0.58 && spikeAt < n * 0.72, `${ctx} 抜けの位置 ${spikeAt}`);
+      // 抜けは長く続かない: 上限より高い点が少ない
+      atMost(`${id} 抜けた点の数`, v.filter((x, i) => i > n * 0.5 && x > top + 2).length, 24, ctx);
+      // ボックスの中へ戻り、さらに下限を割って終わる
+      atMost(`${id} 戻り`, at(v, 0.8), top - 8, ctx);
+      atMost(`${id} 最後は下限の下`, v[n - 1], bottom - 10, ctx);
+      atMost(`${id} 最後が安値`, v[n - 1], Math.min(...v) + 4, ctx);
+    }
+  }
+});
+
+test('三角保ち合い上放れ / 下放れ: 高値が切り下がり安値が切り上がって収束し、最後に抜ける(300シード)', () => {
+  for (const [id, sign] of [['triangle-breakout-up', 1], ['triangle-breakout-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const r1 = rangeOf2(sliceAt(v, [0.04, 0.3]));
+      const r2 = rangeOf2(sliceAt(v, [0.3, 0.52]));
+      const r3 = rangeOf2(sliceAt(v, [0.52, 0.72]));
+      atLeast(`${id} 値幅が狭まる(前半/中盤)`, r1 - r2 * 1.15, 0, ctx);
+      atLeast(`${id} 値幅が狭まる(中盤/後半)`, r2 - r3 * 1.15, 0, ctx);
+      const tri = sliceAt(v, [0, 0.76]);
+      const ps = onePeak(tri, 6, 8);
+      const ts = oneTrough(tri, 6, 8);
+      atLeast(`${id} 山の数`, ps.length, 3, ctx);
+      atLeast(`${id} 谷の数`, ts.length, 3, ctx);
+      const ph = ps.map((i) => tri[i]);
+      const th = ts.map((i) => tri[i]);
+      assert.ok(strictlyMonotone(ph, -1, 2), `${ctx} 高値の切り下がり ${ph}`);
+      assert.ok(strictlyMonotone(th, 1, 2), `${ctx} 安値の切り上がり ${th}`);
+      atLeast(`${id} 最後の抜け(最後の高値より上)`, v[n - 1] - ph[ph.length - 1], 15, ctx);
+      atLeast(`${id} 最後が高値`, v[n - 1], Math.max(...v) - 4, ctx);
+    }
+  }
+});
+
+test('リターンムーブ(上・下): ボックスを抜け、抜けた線まで押し戻されてから、再び抜けた方向へ進む(300シード)', () => {
+  for (const [id, sign] of [['return-move-up', 1], ['return-move-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const box = sliceAt(v, [0, 0.46]);
+      const top = Math.max(...box);
+      atMost(`${id} ボックスの幅`, top - Math.min(...box), 28, ctx);
+      checkBox(box, id, ctx);
+      const peak = winMax(v, 0.55, 0.72);
+      atLeast(`${id} 上抜けの大きさ`, peak - top, 12, ctx);
+      const pull = winMin(v, 0.7, 0.82);
+      atMost(`${id} 押し戻しは抜けた線の近く(上側)`, pull - top, 9, ctx);
+      atLeast(`${id} 押し戻しは抜けた線の近く(下側)`, pull - top, -9, ctx);
+      atLeast(`${id} 押し戻しの深さ`, peak - pull, 12, ctx);
+      atLeast(`${id} 再上昇`, v[n - 1] - peak, 6, ctx);
+      atLeast(`${id} 最後が高値`, v[n - 1], Math.max(...v) - 4, ctx);
+    }
+  }
+});
+
+test('下降ウェッジ上抜け / 上昇ウェッジ下抜け: 高値と安値が同じ向きに傾いて収束し、最後に反対側へ抜ける(300シード)', () => {
+  for (const [id, sign] of [['falling-wedge-breakout-up', 1], ['rising-wedge-breakout-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign); // 以後は「下降ウェッジを上に抜ける」向き
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      // 高値(Pa,Pb,Pc)と安値(Ta,Tb,Tc)を時間の窓でとる
+      const pa = winMax(v, 0.15, 0.3);
+      const pb = winMax(v, 0.4, 0.52);
+      const pc = winMax(v, 0.6, 0.7);
+      const ta = winMin(v, 0.28, 0.42);
+      const tb = winMin(v, 0.52, 0.64);
+      const tc = winMin(v, 0.68, 0.8);
+      atLeast(`${id} 高値の切り下がり(1→2)`, pa - pb, 8, ctx);
+      atLeast(`${id} 高値の切り下がり(2→3)`, pb - pc, 6, ctx);
+      atLeast(`${id} 安値の切り下がり(1→2)`, ta - tb, 3, ctx);
+      atLeast(`${id} 安値の切り下がり(2→3)`, tb - tc, 3, ctx);
+      // 上の線のほうが急に下がって、2本の線が近づく(収束)。下げ幅・戻り幅がだんだん小さくなる
+      atLeast(`${id} 上の線のほうが急`, (pa - pc) - (ta - tc), 6, ctx);
+      atLeast(`${id} 下げ幅が縮む(1→2)`, (pa - ta) - (pb - tb), 4, ctx);
+      atLeast(`${id} 下げ幅が縮む(2→3)`, (pb - tb) - (pc - tc), 2, ctx);
+      atLeast(`${id} 戻り幅が縮む`, (pb - ta) - (pc - tb), 0, ctx);
+      // 最後は、ウェッジの最後の高値より上へ抜けて終わる
+      atLeast(`${id} 最後の抜け`, v[n - 1] - pc, 15, ctx);
+      const lowAt = idxOfMin(v, 0.5, 0.86);
+      assert.ok(lowAt > n * 0.66 && lowAt < n * 0.82, `${ctx} ウェッジの安値の位置 ${lowAt}`);
+      atLeast(`${id} 最後は安値から大きく戻す`, v[n - 1] - v[lowAt], 30, ctx);
+    }
+  }
+});
+
+test('エリオット波動 上昇5波 / 下降5波: 5つの波で、第3波が最大・第4波は第1波に重ならず・第2波は出発点を割らない(300シード)', () => {
+  for (const [id, sign] of [['elliott-impulse-up', 1], ['elliott-impulse-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const start = v[0];
+      const p1 = winMax(v, 0.08, 0.2);
+      const t2 = winMin(v, 0.17, 0.3);
+      const p3 = winMax(v, 0.44, 0.58);
+      const t4 = winMin(v, 0.56, 0.7);
+      const p5 = winMax(v, 0.8, 0.94);
+      atLeast(`${id} 第1波の上げ`, p1 - start, 15, ctx);
+      atLeast(`${id} 第2波は出発点を割らない`, t2 - start, 6, ctx);
+      atLeast(`${id} 第2波の押し`, p1 - t2, 6, ctx);
+      atLeast(`${id} 第3波は第1波の高値を超える`, p3 - p1, 25, ctx);
+      atLeast(`${id} 第4波は第1波の高値に重ならない`, t4 - p1, 6, ctx);
+      atLeast(`${id} 第4波の押し`, p3 - t4, 15, ctx);
+      atLeast(`${id} 第5波は第3波の高値を超える`, p5 - p3, 6, ctx);
+      const w1 = p1 - start;
+      const w3 = p3 - t2;
+      const w5 = p5 - t4;
+      atLeast(`${id} 第3波は第1波の1.5倍以上`, w3 / w1, 1.5, ctx);
+      atLeast(`${id} 第3波は第5波より大きい`, w3 / w5, 1.15, ctx);
+      atLeast(`${id} 最後は5波目の高値圏`, v[n - 1], p5 - 12, ctx);
+      // 時間の並び
+      const order = [idxOfMax(v, 0.08, 0.2), idxOfMin(v, 0.17, 0.3), idxOfMax(v, 0.44, 0.58), idxOfMin(v, 0.56, 0.7), idxOfMax(v, 0.8, 0.94)];
+      assert.ok(strictlyMonotone(order, 1, 3), `${ctx} 波の順 ${order}`);
+    }
+  }
+});
+
+test('エリオット波動 5波+調整3波(上・下): 5波のあとに下・上・下(上・下・上)の3波が続き、1サイクルをなす(300シード)', () => {
+  for (const [id, sign] of [['elliott-cycle-up', 1], ['elliott-cycle-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const start = v[0];
+      const p1 = winMax(v, 0.03, 0.14);
+      const t2 = winMin(v, 0.12, 0.22);
+      const p3 = winMax(v, 0.25, 0.37);
+      const t4 = winMin(v, 0.34, 0.46);
+      const p5 = winMax(v, 0.48, 0.62);
+      const a = winMin(v, 0.6, 0.72);
+      const b = winMax(v, 0.72, 0.84);
+      const c = winMin(v, 0.84, 0.96);
+      atLeast(`${id} 第1波の上げ`, p1 - start, 15, ctx);
+      atLeast(`${id} 第2波は出発点を割らない`, t2 - start, 5, ctx);
+      atLeast(`${id} 第2波の押し`, p1 - t2, 6, ctx);
+      atLeast(`${id} 第3波は第1波の高値を超える`, p3 - p1, 25, ctx);
+      atLeast(`${id} 第4波は第1波の高値に重ならない`, t4 - p1, 6, ctx);
+      atLeast(`${id} 第4波の押し`, p3 - t4, 10, ctx);
+      atLeast(`${id} 第5波は第3波の高値を超える`, p5 - p3, 8, ctx);
+      atLeast(`${id} 第3波は第1波の1.4倍以上`, (p3 - t2) / (p1 - start), 1.4, ctx);
+      atLeast(`${id} 第3波は第5波より大きい`, (p3 - t2) / (p5 - t4), 1.1, ctx);
+      // 調整: A は5波の天井からはっきり下げ、B で戻しても天井には届かず、C は A より低い
+      atLeast(`${id} A波の下げ`, p5 - a, 20, ctx);
+      atLeast(`${id} B波の戻し`, b - a, 8, ctx);
+      atLeast(`${id} B波は天井に届かない`, p5 - b, 6, ctx);
+      atLeast(`${id} C波はA波より低い`, a - c, 8, ctx);
+      atLeast(`${id} C波はB波からの下げ`, b - c, 20, ctx);
+      atMost(`${id} 最後は天井より下`, v[n - 1], p5 - 25, ctx);
+      const order = [idxOfMax(v, 0.03, 0.14), idxOfMin(v, 0.12, 0.22), idxOfMax(v, 0.25, 0.37), idxOfMin(v, 0.34, 0.46),
+        idxOfMax(v, 0.48, 0.62), idxOfMin(v, 0.6, 0.72), idxOfMax(v, 0.72, 0.84), idxOfMin(v, 0.84, 0.96)];
+      assert.ok(strictlyMonotone(order, 1, 3), `${ctx} 波の順 ${order}`);
+    }
+  }
+});
+
+test('上昇チャネル下抜け / 下降チャネル上抜け: 平行なチャネルのあと、最後に反対側へ抜ける(300シード)', () => {
+  for (const [id, sign] of [['ascending-channel-breakdown', 1], ['descending-channel-breakout-up', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign); // 以後は「上昇チャネルを下に抜ける」向き
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const body = sliceAt(v, [0, 0.72]);
+      const ps = onePeak(body, 6, 5);
+      const ts = oneTrough(body, 6, 5);
+      atLeast(`${id} 山の数`, ps.length, 4, ctx);
+      atLeast(`${id} 谷の数`, ts.length, 3, ctx);
+      const sp = slopeOf(ps, ps.map((i) => body[i]));
+      const st = slopeOf(ts, ts.map((i) => body[i]));
+      atLeast(`${id} 高値の傾き`, sp, 0.25, ctx);
+      atLeast(`${id} 安値の傾き`, st, 0.25, ctx);
+      atMost(`${id} 平行(傾きの差の割合)`, Math.abs(sp - st) / Math.max(sp, st), 0.3, ctx);
+      assert.ok(strictlyMonotone(ps.map((i) => body[i]), 1, 3), `${ctx} 高値の切り上げ`);
+      assert.ok(strictlyMonotone(ts.map((i) => body[i]), 1, 3), `${ctx} 安値の切り上げ`);
+      // 最後は、チャネルの下の線を大きく割る
+      const lower = lineFit(ts, ts.map((i) => body[i]), n);
+      atMost(`${id} 下の線の割り込み(終点)`, v[n - 1], lower.at(1) - 25, ctx);
+      atMost(`${id} 下の線の割り込み(途中)`, at(v, 0.86), lower.at(0.86) - 10, ctx);
+      atMost(`${id} 最後が安値`, v[n - 1], Math.min(...v) + 4, ctx);
+      atLeast(`${id} 最後の山から大きく下げる`, body[ps[ps.length - 1]] - v[n - 1], 40, ctx);
+    }
+  }
+});
+
+test('セリングクライマックス: 下落が次第に加速し、最後に急落して底をつけ、少し戻して終わる(300シード)', () => {
+  for (const seed of SEEDS300) {
+    const v = seriesOf('selling-climax', seed);
+    const n = v.length;
+    const ctx = `seed=${seed}`;
+    const low = Math.min(...v);
+    const lowAt = v.indexOf(low);
+    assert.ok(lowAt > n * 0.84 && lowAt < n * 0.96, `${ctx} 底の位置 ${lowAt}`);
+    atLeast('セリングクライマックス 全体の下げ', v[0] - low, 60, ctx);
+    // 区間ごとの下落の速さ(1点あたり)が、前半 < 中盤 < 終盤と上がる
+    const rate = (a, b) => (at(v, a) - at(v, b)) / ((b - a) * (n - 1));
+    const r1 = rate(0, 0.3);
+    const r2 = rate(0.3, 0.68);
+    const r3 = rate(0.68, 0.86);
+    atMost('セリングクライマックス 前半はゆるやか', r1, 0.4, ctx);
+    atLeast('セリングクライマックス 終盤の加速(中盤の2.2倍)', r3 / r2, 2.2, ctx);
+    atLeast('セリングクライマックス 中盤の加速(前半の1.5倍)', r2 / Math.max(r1, 0.05), 1.5, ctx);
+    atLeast('セリングクライマックス 最後の急落の大きさ', at(v, 0.68) - low, 30, ctx);
+    // 底のあと、少し戻して終わる(戻りすぎない)
+    atLeast('セリングクライマックス 底からの戻り', v[n - 1] - low, 6, ctx);
+    atMost('セリングクライマックス 戻りすぎない', v[n - 1] - low, 30, ctx);
+  }
+});
+
+test('新規チャート20種類は、ほかのどの形ともはっきり違う骨格を持つ(見分けがつく)', () => {
+  // 全50種類の骨格をならした形(ノイズなし・縦を0〜100にそろえる)を比べて、近すぎる組がないことを見る
+  const sampled = (p) => {
+    const f = L.makeSpline(p.points);
+    return Array.from({ length: 60 }, (_, i) => f(i / 59));
+  };
+  const dist = (a, b) => Math.sqrt(a.reduce((s, x, i) => s + (x - b[i]) ** 2, 0) / a.length);
+  const norm = (a) => { const mn = Math.min(...a); const mx = Math.max(...a); return a.map((x) => ((x - mn) / (mx - mn)) * 100); };
+  const shapes = L.PATTERNS.map((p) => ({ id: p.id, y: norm(sampled(p)) }));
+  let nearest = Infinity;
+  for (const s of shapes) {
+    if (!NEW_CHART20[s.id]) continue;
+    for (const o of shapes) {
+      if (o.id === s.id) continue;
+      const d = dist(s.y, o.y);
+      nearest = Math.min(nearest, d);
+      assert.ok(d > 7, `${s.id} と ${o.id} の骨格が近すぎる: ${d.toFixed(1)}`);
+    }
+  }
+  MARGINS['骨格の近さ(最小距離-7)'] = nearest - 7;
+});
+
+test('新規チャート20種類: 滑らかさ(2階差)は既存のしきい値(2.65)のまま、シード1〜300でも超えない', () => {
+  let worst = 0;
+  for (const id of Object.keys(NEW_CHART20)) {
+    for (const seed of SEEDS300) {
+      const v = L.generateSeries(L.findPattern(id), seed);
+      for (let i = 1; i < v.length - 1; i++) worst = Math.max(worst, Math.abs(v[i + 1] - 2 * v[i] + v[i - 1]));
+    }
+  }
+  MARGINS['滑らかさ(2.65-最大の2階差)'] = 2.65 - worst;
+  assert.ok(worst < 2.65, `worst=${worst}`);
+});
+
+test('新規チャート20種類の紛らわしい組が両方向で isConfusable で、形状の選択肢に同時に出ない', () => {
+  const entries = Object.entries(NEW_CHART20_CONFUSABLE);
+  assert.equal(entries.length, 20);
+  for (const [id, others] of entries) {
+    for (const other of others) {
+      assert.ok(L.PATTERNS.some((p) => p.id === other), `${id} の相手 ${other} が存在する`);
+      assert.equal(L.isConfusable(id, other), true, `${id}/${other}`);
+      assert.equal(L.isConfusable(other, id), true, `${other}/${id}`);
+      for (let seed = 1; seed <= 60; seed++) {
+        for (const [x, y] of [[id, other], [other, id]]) {
+          const q = L.makePatternQuestion(L.findPattern(x), seed);
+          assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
+        }
+      }
+    }
+  }
+  // 実装で足した組
+  for (const [a, b] of [['ascending-channel-breakdown', 'rising-wedge'], ['descending-channel-breakout-up', 'falling-wedge'],
+    ['elliott-impulse-up', 'n-wave-up'], ['elliott-impulse-down', 'n-wave-down']]) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+  }
+});
+
+// v6 の確認で足した、チャートの形どうしの紛らわしい組(14組)
+const CHART20_CHECK_PAIRS = [
+  ['box-breakout-down', 'triple-top'], ['box-breakout-up', 'triple-bottom'],
+  ['false-breakout-up', 'triple-top'], ['false-breakout-down', 'triple-bottom'],
+  ['false-breakout-up', 'return-move-down'], ['false-breakout-down', 'return-move-up'],
+  ['elliott-cycle-up', 'ascending-channel-breakdown'], ['elliott-cycle-down', 'descending-channel-breakout-up'],
+  ['elliott-cycle-up', 'rising-wedge-breakout-down'], ['elliott-cycle-down', 'falling-wedge-breakout-up'],
+  ['selling-climax', 'rounding-top'], ['selling-climax', 'bearish-perfect-order'],
+  ['triangle-breakout-up', 'box-breakout-up'], ['triangle-breakout-down', 'box-breakout-down'],
+];
+
+test('確認で足したチャートの形14組: 両方向で isConfusable で、形状の選択肢に同時に出ない', () => {
+  assert.equal(CHART20_CHECK_PAIRS.length, 14);
+  for (const [a, b] of CHART20_CHECK_PAIRS) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+    for (let seed = 1; seed <= 60; seed++) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makePatternQuestion(L.findPattern(x), seed);
+        assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null, `${x} seed=${seed}`);
+      }
+    }
+  }
+});
+
+// 最終確認で足した、チャートの形どうしの紛らわしい組(2組)
+test('最終確認で足したエリオット推進波とウェッジの2組: 両方向で isConfusable で、形状の選択肢に同時に出ない', () => {
+  for (const [a, b] of [['elliott-impulse-up', 'rising-wedge'], ['elliott-impulse-down', 'falling-wedge']]) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+    for (let seed = 1; seed <= 60; seed++) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makePatternQuestion(L.findPattern(x), seed);
+        assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null, `${x} seed=${seed}`);
+      }
+    }
+  }
+});
+
+test('チャートの形どうしの紛らわしい組の数は 111(確認前の 95 組に 14 組、最終確認で 2 組を足した)', () => {
+  const patternIds = new Set(L.PATTERNS.map((p) => p.id));
+  const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => patternIds.has(a) && patternIds.has(b));
+  assert.equal(pairs.length, 111);
+  assert.equal(new Set(pairs.map(([a, b]) => [a, b].sort().join('|'))).size, 111, '重複なし');
+});
+
+test('新規チャート20種類: 各難易度の形状のラウンドは10問で、その難易度の10種類がちょうど1回ずつ出る', () => {
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.equal(L.roundSize('pattern', level), 10, level);
+    for (let seed = 1; seed <= 30; seed++) {
+      const deck = L.buildDeck('pattern', seed, level);
+      assert.equal(deck.length, 10, `${level} seed=${seed}`);
+      assert.deepEqual(deck.map((q) => q.patternId).sort(), L.DIFFICULTY_BY_ID.patterns[level].slice().sort(), `${level} seed=${seed}`);
+      for (const q of deck) {
+        assert.equal(L.validateQuestion(q), null, q.id);
+        assert.equal(q.difficulty, level, q.id);
+      }
+    }
+  }
+});
+
+test('新規チャート20種類: explanation は「よ。」で終わり、detail は特定の問題を指さない', () => {
+  for (const id of Object.keys(NEW_CHART20)) {
+    const p = L.findPattern(id);
+    assert.ok(p.explanation.endsWith('よ。'), id);
+    assert.ok(p.detail.endsWith('。'), id);
+    assert.ok(!p.detail.includes('正解') && !p.detail.includes('この問題'), id);
+  }
+});
+
+// ---- v6: ローソク足20種類の追加(30 → 50 種類。各難易度10種類) ----
+// id -> [名前, 難易度](表の順。CANDLE_PATTERNS の末尾にこの順で並ぶ)
+const NEW_CANDLE20 = {
+  'bullish-marubozu': ['陽の丸坊主', 'easy'],
+  'bearish-marubozu': ['陰の丸坊主', 'normal'],
+  'four-price-doji': ['四値同時線', 'hard'],
+  'bullish-opening-marubozu': ['陽の寄り付き坊主', 'hard'],
+  'bearish-opening-marubozu': ['陰の寄り付き坊主', 'expert'],
+  'three-gaps-up': ['三空踏み上げ', 'expert'],
+  'three-gaps-down': ['三空叩き込み', 'expert'],
+  'upward-gap-side-by-side-white': ['上放れ並び赤', 'expert'],
+  'downward-gap-side-by-side-black': ['下放れ並び黒', 'expert'],
+  'thrusting-line': ['差し込み線', 'expert'],
+  'irikubi-line': ['入り首線', 'expert'],
+  'yukichigai-line': ['行き違い線', 'expert'],
+  'bullish-deai-line': ['陽の出合い線', 'master'],
+  'bearish-deai-line': ['陰の出合い線', 'master'],
+  'bullish-tasuki-line': ['陽のたすき線', 'master'],
+  'bearish-tasuki-line': ['陰のたすき線', 'master'],
+  'upward-gap-star': ['上放れの星', 'master'],
+  'downward-gap-star': ['下放れの星', 'master'],
+  'three-soldiers-stalled': ['赤三兵先詰まり', 'master'],
+  'three-soldiers-deliberation': ['赤三兵思案星', 'master'],
+};
+// 各足の「紛らわしい組」(topics の confusable_with に、見た目が近い組を足したもの)。両方向で isConfusable になる
+const NEW_CANDLE20_CONFUSABLE = {
+  'bullish-marubozu': ['big-bullish', 'bearish-marubozu', 'bullish-opening-marubozu'],
+  'bearish-marubozu': ['big-bearish', 'bullish-marubozu', 'bearish-opening-marubozu'],
+  'four-price-doji': ['doji', 'dragonfly-doji', 'gravestone-doji'],
+  'bullish-opening-marubozu': ['shooting-star', 'upper-shadow-bearish', 'bullish-marubozu', 'big-bullish', 'bearish-opening-marubozu'],
+  'bearish-opening-marubozu': ['hammer', 'lower-shadow-bullish', 'bearish-marubozu', 'big-bearish'],
+  'three-gaps-up': ['gap-up', 'three-white-soldiers', 'three-gaps-down', 'upward-gap-side-by-side-white'],
+  'three-gaps-down': ['gap-down', 'three-black-crows', 'downward-gap-side-by-side-black'],
+  'upward-gap-side-by-side-white': ['gap-up', 'three-white-soldiers', 'downward-gap-side-by-side-black', 'upward-gap-star', 'three-soldiers-deliberation'],
+  'downward-gap-side-by-side-black': ['gap-down', 'three-black-crows', 'downward-gap-star'],
+  'thrusting-line': ['piercing-line', 'bullish-engulfing', 'irikubi-line', 'tweezer-bottom'],
+  'irikubi-line': ['piercing-line', 'bearish-harami', 'bullish-deai-line', 'tweezer-bottom'],
+  'yukichigai-line': ['bullish-deai-line', 'bullish-engulfing', 'gap-up', 'bearish-deai-line', 'bullish-tasuki-line'],
+  'bullish-deai-line': ['thrusting-line', 'piercing-line', 'bearish-deai-line'],
+  'bearish-deai-line': ['dark-cloud-cover', 'bearish-engulfing'],
+  'bullish-tasuki-line': ['bullish-engulfing', 'piercing-line', 'bearish-tasuki-line', 'yukichigai-line'],
+  'bearish-tasuki-line': ['bearish-engulfing', 'dark-cloud-cover'],
+  'upward-gap-star': ['evening-star', 'gap-up', 'spinning-top', 'three-soldiers-deliberation'],
+  'downward-gap-star': ['morning-star', 'gap-down', 'spinning-top'],
+  'three-soldiers-stalled': ['three-white-soldiers', 'three-soldiers-deliberation'],
+  'three-soldiers-deliberation': ['three-white-soldiers', 'gap-up'],
+};
+
+test('新規ローソク足20種類: 50個になり、末尾に表の順で並び、名前と id が重複しない', () => {
+  assert.equal(L.CANDLE_PATTERNS.length, 50);
+  assert.deepEqual(L.CANDLE_PATTERNS.slice(30).map((c) => c.id), Object.keys(NEW_CANDLE20));
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 50);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 50);
+  for (const [id, [name, level]] of Object.entries(NEW_CANDLE20)) {
+    const item = L.CANDLE_PATTERNS.find((c) => c.id === id);
+    assert.equal(item.name, name, id);
+    assert.equal(item.difficulty, level, id);
+    assert.deepEqual(Object.keys(item).sort(), ['candles', 'detail', 'difficulty', 'explanation', 'id', 'name'], id);
+    assert.ok(item.candles.length >= 1 && item.candles.length <= 5, id);
+    for (const k of item.candles) {
+      assert.ok(k.h >= Math.max(k.o, k.c) && k.l <= Math.min(k.o, k.c), `${id}: 値が矛盾`);
+      for (const v of [k.o, k.h, k.l, k.c]) assert.ok(v >= 0 && v <= 100, `${id}: 0〜100 の外`);
+    }
+  }
+});
+
+test('新規ローソク足20種類: 難易度の表に入り、各難易度ちょうど10種類(足の追加は +1/+1/+2/+8/+8)', () => {
+  const added = { easy: 1, normal: 1, hard: 2, expert: 8, master: 8 };
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.equal(L.DIFFICULTY_BY_ID.candles[level].length, 10, level);
+    const mine = Object.entries(NEW_CANDLE20).filter(([, v]) => v[1] === level).map(([id]) => id);
+    assert.equal(mine.length, added[level], level);
+    for (const id of mine) assert.ok(L.DIFFICULTY_BY_ID.candles[level].includes(id), `${level}/${id}`);
+    assert.equal(L.CANDLE_PATTERNS.filter((c) => c.difficulty === level).length, 10, level);
+  }
+});
+
+test('新規ローソク足20種類: 紛らわしい組が両方向で isConfusable で、選択肢に同時に出ない(シード1〜40)', () => {
+  const idSet = new Set(L.CANDLE_PATTERNS.map((c) => c.id));
+  const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
+  for (const [id, others] of Object.entries(NEW_CANDLE20_CONFUSABLE)) {
+    assert.ok(others.length >= 2, id);
+    for (const other of others) {
+      assert.ok(idSet.has(other), `${id}/${other}: 知らない id`);
+      assert.equal(L.isConfusable(id, other), true, `${id}/${other}`);
+      assert.equal(L.isConfusable(other, id), true, `${other}/${id}`);
+      for (let seed = 1; seed <= 40; seed++) {
+        for (const [x, y] of [[id, other], [other, id]]) {
+          const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
+          assert.ok(!q.choices.includes(nameOf(y)), `${x} vs ${y} seed=${seed}`);
+          assert.equal(L.validateQuestion(q), null, `${x} seed=${seed}`);
+        }
+      }
+    }
+  }
+});
+
+test('新規ローソク足20種類: 問題は validateQuestion を通り、explanation は「よ。」で終わり、detail を自分で持つ', () => {
+  for (const [id, [, level]] of Object.entries(NEW_CANDLE20)) {
+    const item = L.CANDLE_PATTERNS.find((c) => c.id === id);
+    assert.ok(item.explanation.endsWith('よ。'), id);
+    assert.ok(item.detail.endsWith('よ。'), id);
+    assert.ok(!(id in L.DETAIL_BY_ID.candles), `${id} は DETAIL_BY_ID に入れない`);
+    for (let seed = 1; seed <= 10; seed++) {
+      const q = L.makeCandleQuestion(item, L.createRng(seed));
+      assert.equal(L.validateQuestion(q), null, id);
+      assert.equal(q.difficulty, level, id);
+      assert.equal(q.detail, item.detail, id);
+      assert.equal(q.explanation, item.explanation, id);
+      assert.deepEqual(q.candles, item.candles, id);
+    }
+  }
+});
+
+test('新規ローソク足20種類: ローソク足のラウンドは、どの難易度も10問で、その難易度の10種類がちょうど1回ずつ出る', () => {
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.equal(L.roundSize('candle', level), 10, level);
+    assert.equal(L.buildPool('candle', L.createRng(1), level).length, 10, level);
+    for (let seed = 1; seed <= 30; seed++) {
+      const deck = L.buildDeck('candle', seed, level);
+      assert.equal(deck.length, 10, `${level} seed=${seed}`);
+      assert.deepEqual(deck.map((q) => q.id.replace('candle:', '')).sort(), L.DIFFICULTY_BY_ID.candles[level].slice().sort(), `${level} seed=${seed}`);
+      for (const q of deck) {
+        assert.equal(L.validateQuestion(q), null, q.id);
+        assert.equal(q.difficulty, level, q.id);
+      }
+    }
+  }
+});
+
+// 定義の確認用の道具: 陽線・陰線、上ヒゲ・下ヒゲ、実体の中心
+const isBull = (k) => k.c > k.o;
+const isBear = (k) => k.c < k.o;
+const upperOf = (k) => k.h - Math.max(k.o, k.c);
+const lowerOf = (k) => Math.min(k.o, k.c) - k.l;
+const midOf = (k) => (k.o + k.c) / 2;
+const GAP = 8; // 窓や食い込みは、画面で見える 8 以上の差をつける
+
+test('陽の丸坊主 / 陰の丸坊主: 上下にヒゲがなく、実体が長い(大陽線・大陰線には小さなヒゲがある)', () => {
+  const [a] = candleOf('bullish-marubozu');
+  assert.ok(a.o === a.l && a.c === a.h && bodyOf(a) >= 30);
+  const [b] = candleOf('bearish-marubozu');
+  assert.ok(b.o === b.h && b.c === b.l && bodyOf(b) >= 30);
+  for (const id of ['big-bullish', 'big-bearish']) {
+    const [k] = candleOf(id);
+    assert.ok(upperOf(k) > 0 && lowerOf(k) > 0, `${id} にはヒゲがある`);
+  }
+  assert.equal(candleOf('bullish-marubozu').length, 1);
+  assert.equal(candleOf('bearish-marubozu').length, 1);
+});
+
+test('四値同時線: 始値=高値=安値=終値の1本(実体もヒゲもない)', () => {
+  const ks = candleOf('four-price-doji');
+  assert.equal(ks.length, 1);
+  const [k] = ks;
+  assert.ok(k.o === k.h && k.h === k.l && k.l === k.c);
+});
+
+test('陽の寄り付き坊主: 始値=安値(下ヒゲなし)、上ヒゲが見えて、実体のほうが長い陽線', () => {
+  const [k] = candleOf('bullish-opening-marubozu');
+  assert.ok(isBull(k) && k.o === k.l);
+  assert.ok(upperOf(k) >= GAP && k.c < k.h, '上ヒゲが見える');
+  assert.ok(bodyOf(k) >= upperOf(k) * 1.5 && bodyOf(k) >= 20, '実体のほうが長い');
+});
+
+test('陰の寄り付き坊主: 始値=高値(上ヒゲなし)、下ヒゲが見えて、実体のほうが長い陰線', () => {
+  const [k] = candleOf('bearish-opening-marubozu');
+  assert.ok(isBear(k) && k.o === k.h);
+  assert.ok(lowerOf(k) >= GAP && k.c > k.l, '下ヒゲが見える');
+  assert.ok(bodyOf(k) >= lowerOf(k) * 1.5 && bodyOf(k) >= 20, '実体のほうが長い');
+});
+
+test('三空踏み上げ: 4本の陽線で、各足の安値が前の足の高値より 8 以上高い窓が3回続く', () => {
+  const ks = candleOf('three-gaps-up');
+  assert.equal(ks.length, 4);
+  for (const k of ks) assert.ok(isBull(k));
+  for (let i = 1; i < 4; i++) assert.ok(ks[i].l >= ks[i - 1].h + GAP, `${i} 本目の窓`);
+});
+
+test('三空叩き込み: 4本の陰線で、各足の高値が前の足の安値より 8 以上低い窓が3回続く', () => {
+  const ks = candleOf('three-gaps-down');
+  assert.equal(ks.length, 4);
+  for (const k of ks) assert.ok(isBear(k));
+  for (let i = 1; i < 4; i++) assert.ok(ks[i].h <= ks[i - 1].l - GAP, `${i} 本目の窓`);
+});
+
+test('上放れ並び赤: 陽線のあと上に窓を空けて、始値と実体がほぼ同じ高さの陽線が2本並ぶ(切り上がらない)', () => {
+  const [a, b, c] = candleOf('upward-gap-side-by-side-white');
+  assert.equal(candleOf('upward-gap-side-by-side-white').length, 3);
+  assert.ok(isBull(a) && isBull(b) && isBull(c));
+  assert.ok(b.l >= a.h + GAP && c.l > a.h, '1本目との間に窓');
+  assert.ok(Math.abs(b.o - c.o) <= 3 && Math.abs(b.c - c.c) <= 3, '2本の始値・終値がほぼ同じ');
+  assert.ok(c.o >= b.o - 3 && c.o <= b.c, '3本目の始値は2本目の実体の中');
+});
+
+test('下放れ並び黒: 陰線のあと下に窓を空けて、始値と実体がほぼ同じ高さの陰線が2本並ぶ(切り下がらない)', () => {
+  const [a, b, c] = candleOf('downward-gap-side-by-side-black');
+  assert.equal(candleOf('downward-gap-side-by-side-black').length, 3);
+  assert.ok(isBear(a) && isBear(b) && isBear(c));
+  assert.ok(b.h <= a.l - GAP && c.h < a.l, '1本目との間に窓');
+  assert.ok(Math.abs(b.o - c.o) <= 3 && Math.abs(b.c - c.c) <= 3, '2本の始値・終値がほぼ同じ');
+  assert.ok(c.o <= b.o + 3 && c.o >= b.c, '3本目の始値は2本目の実体の中');
+});
+
+test('差し込み線: 大陰線のあと、前日の終値より安く始まる陽線が、前日の実体の中心より下で終わる', () => {
+  const [a, b] = candleOf('thrusting-line');
+  assert.equal(candleOf('thrusting-line').length, 2);
+  assert.ok(isBear(a) && bodyOf(a) >= 30);
+  assert.ok(isBull(b) && b.o <= a.c - GAP, '前日の終値より安く始まる');
+  assert.ok(b.c >= a.c + GAP, '前日の終値よりはっきり上');
+  assert.ok(b.c <= midOf(a) - 6, '実体の中心に届かない');
+});
+
+test('入り首線: 大陰線のあと、前日の終値より安く始まる陽線が、前日の安値をわずかに上回って終わる(差し込み線より戻りが小さい)', () => {
+  const [a, b] = candleOf('irikubi-line');
+  const [, t] = candleOf('thrusting-line');
+  assert.equal(candleOf('irikubi-line').length, 2);
+  assert.ok(isBear(a) && bodyOf(a) >= 30);
+  assert.ok(isBull(b) && b.o <= a.c - GAP, '前日の終値より安く始まる');
+  assert.ok(b.c > a.c && b.c > a.l && b.c - a.l <= 8, '前日の安値をわずかに上回る');
+  assert.ok(b.c <= t.c - 5, '差し込み線の終値より低い');
+});
+
+test('行き違い線: 逆色の2本で、始値がほぼ同じ・実体の長さがほぼ同じ・終値は大きく離れる', () => {
+  const [a, b] = candleOf('yukichigai-line');
+  assert.equal(candleOf('yukichigai-line').length, 2);
+  assert.ok(isBear(a) && isBull(b));
+  assert.ok(Math.abs(a.o - b.o) <= 2, '始値がそろう');
+  assert.ok(Math.abs(bodyOf(a) - bodyOf(b)) <= 3, '実体の長さがほぼ同じ');
+  assert.ok(Math.abs(a.c - b.c) >= 20, '終値は離れる(出合い線との違い)');
+});
+
+test('陽の出合い線: 陰線のあと前日の終値より安く始まる陽線が、前日の終値ちょうどに戻り、実体の長さがほぼ同じ', () => {
+  const [a, b] = candleOf('bullish-deai-line');
+  assert.equal(candleOf('bullish-deai-line').length, 2);
+  assert.ok(isBear(a) && isBull(b));
+  assert.ok(b.o <= a.c - GAP, '前日の終値より安く始まる');
+  assert.ok(Math.abs(b.c - a.c) <= 1, '終値がそろう');
+  assert.ok(Math.abs(bodyOf(a) - bodyOf(b)) <= 4, '実体の長さがほぼ同じ');
+  assert.ok(Math.abs(a.o - b.o) >= 20, '始値は離れる(行き違い線との違い)');
+});
+
+test('陰の出合い線: 陽線のあと前日の終値より高く始まる陰線が、前日の終値ちょうどに戻り、実体の長さがほぼ同じ', () => {
+  const [a, b] = candleOf('bearish-deai-line');
+  assert.equal(candleOf('bearish-deai-line').length, 2);
+  assert.ok(isBull(a) && isBear(b));
+  assert.ok(b.o >= a.c + GAP, '前日の終値より高く始まる');
+  assert.ok(Math.abs(b.c - a.c) <= 1, '終値がそろう');
+  assert.ok(Math.abs(bodyOf(a) - bodyOf(b)) <= 4, '実体の長さがほぼ同じ');
+  assert.ok(Math.abs(a.o - b.o) >= 20, '始値は離れる(行き違い線との違い)');
+});
+
+test('陽のたすき線: 陰線の実体の中で始まる陽線が、前日の高値を 8 以上超えて終わり、値幅は前日とほぼ同じ(前日の終値より安くは始まらない)', () => {
+  const [a, b] = candleOf('bullish-tasuki-line');
+  assert.equal(candleOf('bullish-tasuki-line').length, 2);
+  assert.ok(isBear(a) && isBull(b));
+  assert.ok(b.o <= a.o - GAP && b.o >= a.c + GAP, '前日の実体の中(両端から 8 以上内側)');
+  assert.ok(b.c >= a.h + GAP, '前日の高値を超える');
+  assert.ok(Math.abs(rangeOf(b) - rangeOf(a)) <= 4, '値幅が前日とほぼ同じ');
+});
+
+test('陰のたすき線: 陽線の実体の中で始まる陰線が、前日の安値を 8 以上割って終わり、値幅は前日とほぼ同じ(前日の終値より高くは始まらない)', () => {
+  const [a, b] = candleOf('bearish-tasuki-line');
+  assert.equal(candleOf('bearish-tasuki-line').length, 2);
+  assert.ok(isBull(a) && isBear(b));
+  assert.ok(b.o >= a.o + GAP && b.o <= a.c - GAP, '前日の実体の中(両端から 8 以上内側)');
+  assert.ok(b.c <= a.l - GAP, '前日の安値を割る');
+  assert.ok(Math.abs(rangeOf(b) - rangeOf(a)) <= 4, '値幅が前日とほぼ同じ');
+});
+
+test('上放れの星: 陽線のあと窓を空けて、上下にヒゲのある小さな実体(コマ)が出る', () => {
+  const [a, b] = candleOf('upward-gap-star');
+  assert.equal(candleOf('upward-gap-star').length, 2);
+  assert.ok(isBull(a) && bodyOf(a) >= 15);
+  assert.ok(b.l >= a.h + GAP, '窓');
+  assert.ok(bodyOf(b) > 0 && bodyOf(b) <= 6 && bodyOf(b) * 3 <= bodyOf(a), '小さな実体');
+  assert.ok(upperOf(b) >= 4 && lowerOf(b) >= 2, '上下にヒゲ');
+});
+
+test('下放れの星: 陰線のあと窓を空けて、上下にヒゲのある小さな実体(コマ)が出る', () => {
+  const [a, b] = candleOf('downward-gap-star');
+  assert.equal(candleOf('downward-gap-star').length, 2);
+  assert.ok(isBear(a) && bodyOf(a) >= 15);
+  assert.ok(b.h <= a.l - GAP, '窓');
+  assert.ok(bodyOf(b) > 0 && bodyOf(b) <= 6 && bodyOf(b) * 3 <= bodyOf(a), '小さな実体');
+  assert.ok(upperOf(b) >= 2 && lowerOf(b) >= 4, '上下にヒゲ');
+});
+
+test('赤三兵先詰まり: 切り上がる陽線3本で、3本目に実体より長い上ヒゲがある(赤三兵の3本目にはほぼない)', () => {
+  const ks = candleOf('three-soldiers-stalled');
+  assert.equal(ks.length, 3);
+  for (const k of ks) assert.ok(isBull(k));
+  for (let i = 1; i < 3; i++) {
+    assert.ok(ks[i].o >= ks[i - 1].o && ks[i].o <= ks[i - 1].c, `${i + 1} 本目は前の実体の中で始まる`);
+    assert.ok(ks[i].c >= ks[i - 1].c + GAP, `${i + 1} 本目は終値を切り上げる`);
+  }
+  assert.ok(upperOf(ks[2]) >= 12 && upperOf(ks[2]) > bodyOf(ks[2]), '3本目の長い上ヒゲ');
+  const w = candleOf('three-white-soldiers');
+  assert.ok(upperOf(w[2]) < 4);
+});
+
+test('赤三兵思案星: 陽線2本のあと、3本目が窓を空けて小さな実体で終わる(上ヒゲが目印ではない)', () => {
+  const ks = candleOf('three-soldiers-deliberation');
+  assert.equal(ks.length, 3);
+  assert.ok(isBull(ks[0]) && isBull(ks[1]));
+  assert.ok(ks[1].o >= ks[0].o && ks[1].o <= ks[0].c && ks[1].c >= ks[0].c + GAP, '2本目は切り上がる');
+  assert.ok(ks[2].l >= ks[1].h + GAP, '3本目は窓を空ける');
+  assert.ok(bodyOf(ks[2]) > 0 && bodyOf(ks[2]) <= 6 && bodyOf(ks[2]) * 2 <= bodyOf(ks[1]), '小さな実体');
+  assert.ok(upperOf(ks[2]) >= 4 && lowerOf(ks[2]) >= 2, '上下にヒゲ');
+});
+
+test('見分けが必要な新規ローソク足は、絵が重ならない(同じ値の足がない)', () => {
+  const sig = (c) => JSON.stringify(c.candles);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map(sig)).size, 50);
+});
+
+test('新規ローソク足20種類: DETAIL_BY_ID は既存の30個だけで、新規20個は自分の detail を持ち、全50個で detail が重ならない', () => {
+  assert.deepEqual(Object.keys(L.DETAIL_BY_ID.candles).sort(), L.CANDLE_PATTERNS.slice(0, 30).map((c) => c.id).sort());
+  assert.equal(Object.keys(L.DETAIL_BY_ID.candles).length, 30);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.detail)).size, 50);
 });

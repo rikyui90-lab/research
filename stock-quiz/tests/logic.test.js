@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { loadLogic } = require('./load-logic');
 
 test('index.html のデータとロジックを読み込める', () => {
@@ -7,9 +9,9 @@ test('index.html のデータとロジックを読み込める', () => {
 });
 
 const L = loadLogic();
-// 株価予想(forecast)以外のモード。株価予想の本物のデータは後の工程で入れるので、今は問題プールが空。
-// 「どのモードも10問が成立する」「1問以上ある」を見るテストは、この4つで見る(株価予想は専用のテストで、見本を入れて見る)
-const LEGACY_MODES = ['all', 'pattern', 'candle', 'term'];
+// 全モード(全部まぜ・チャートの形状・ローソク足・用語・株価予想)。「どのモードも10問が成立する」「1問以上ある」を見るテストで使う。
+// 株価予想の仕組みのテストは、本物のデータではなく見本(fixture)を入れた別の評価結果で見る
+const EVERY_MODE = L.MODES;
 
 // v6 で追加したチャートの形20種類: id -> [名前, outlook, 難易度](表の順。PATTERNS の末尾にこの順で並ぶ)
 const NEW_CHART20 = {
@@ -395,7 +397,7 @@ test('validateQuestion: 不正な問題を見つける', () => {
 });
 
 test('buildDeck: どのモードでも10問で、問題が重複せず、全部有効', () => {
-  for (const mode of LEGACY_MODES) {
+  for (const mode of EVERY_MODE) {
     for (let seed = 1; seed <= 30; seed++) {
       const deck = L.buildDeck(mode, seed);
       assert.equal(deck.length, L.ROUND_SIZE, `${mode} seed=${seed}`);
@@ -406,12 +408,12 @@ test('buildDeck: どのモードでも10問で、問題が重複せず、全部�
 });
 
 test('buildDeck: モードごとの問題の種類が合っている', () => {
-  for (const mode of ['pattern', 'candle', 'term']) {
+  for (const mode of ['pattern', 'candle', 'term', 'forecast']) {
     for (const q of L.buildDeck(mode, 3)) assert.equal(q.type, mode);
   }
   const types = new Set();
   for (let seed = 1; seed <= 10; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
-  assert.deepEqual([...types].sort(), ['candle', 'pattern', 'term']);
+  assert.deepEqual([...types].sort(), ['candle', 'forecast', 'pattern', 'term']);
 });
 
 test('buildDeck: 同じシードなら同じ、違うシードなら違う順番', () => {
@@ -793,7 +795,7 @@ test('ボックス圏: 上限と下限のあいだを往復する(幅が小さ�
 });
 
 test('追加後の出題: どのモードも10問が成立し、形状の問題の続きが outlook と一致する', () => {
-  for (const mode of LEGACY_MODES) {
+  for (const mode of EVERY_MODE) {
     for (let seed = 1; seed <= 20; seed++) {
       const deck = L.buildDeck(mode, seed);
       assert.equal(deck.length, L.ROUND_SIZE);
@@ -954,7 +956,7 @@ test('追加した紛らわしい組は、同じ問題の選択肢に同時に�
 });
 
 test('どのモードでも出題プールが ROUND_SIZE 以上', () => {
-  for (const mode of LEGACY_MODES) {
+  for (const mode of EVERY_MODE) {
     assert.ok(L.buildPool(mode, L.createRng(1)).length >= L.ROUND_SIZE, mode);
   }
 });
@@ -1237,16 +1239,18 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
     candle: { easy: 10, normal: 10, hard: 10, expert: 10, master: 10 },
     // 用語は、v4 までの40問(11/11/10/4/4)に追加の80問(各16)を足した数。内容を足したらここも直す
     term: { easy: 27, normal: 27, hard: 26, expert: 20, master: 20 },
+    // 株価予想は、どの難易度も4問(20問)。内容を足したらここも直す
+    forecast: { easy: 4, normal: 4, hard: 4, expert: 4, master: 4 },
   };
-  for (const mode of LEGACY_MODES) {
+  for (const mode of EVERY_MODE) {
     for (const level of L.DIFFICULTY_LEVELS) {
       const n = L.buildPool(mode, L.createRng(1), level).length;
       assert.ok(n >= 1, `${mode}/${level} n=${n}`);
       if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
     }
   }
-  // all モード: 用語 + ローソク足10 + チャートの形状10(内容に依存する数)。expert / master は 20+10+10 = 40
-  const allExpected = { easy: 47, normal: 47, hard: 46, expert: 40, master: 40 };
+  // all モード: 用語 + ローソク足10 + チャートの形状10 + 株価予想4(内容に依存する数)。expert / master は 20+10+10+4 = 44
+  const allExpected = { easy: 51, normal: 51, hard: 50, expert: 44, master: 44 };
   for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.buildPool('all', L.createRng(1), level).length, allExpected[level], `all/${level}`);
 });
 
@@ -1277,18 +1281,19 @@ test('各難易度に、新しく追加した問題がちょうど8問ある(用
   }
 });
 
-test('roundSize: all は、どの難易度でも10(expert/master の候補は 20+10+10=40 問)。チャートの形状も、どの難易度でも10。どの組み合わせも1〜10', () => {
+test('roundSize: all は、どの難易度でも10(expert/master の候補は 20+10+10+4=44 問)。チャートの形状も、どの難易度でも10。どの組み合わせも1〜10', () => {
   for (const level of ['easy', 'normal', 'hard', 'expert', 'master']) assert.equal(L.roundSize('all', level), 10, `all/${level}`);
   for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.roundSize('pattern', level), 10, `pattern/${level}`);
   for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.roundSize('candle', level), 10, `candle/${level}`);
-  for (const mode of LEGACY_MODES) {
+  for (const mode of EVERY_MODE) {
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
       assert.ok(size >= 1 && size <= 10, `${mode}/${level} size=${size}`);
     }
   }
-  // 株価予想の本物のデータは後で入る。入るまでは 0(スタート画面のボタンは「この難易度の問題は、まだないよ」になる)
-  for (const level of L.DIFFICULTY_FILTERS) assert.equal(L.roundSize('forecast', level), 0, `forecast/${level}`);
+  // 株価予想は、難易度ごとに4問、すべてでは20問から10問
+  for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.roundSize('forecast', level), 4, `forecast/${level}`);
+  assert.equal(L.roundSize('forecast', 'all'), 10);
 });
 
 test('buildDeck: 難易度の絞り込みで、問題数・重複・難易度・有効性・決定性が合う', () => {
@@ -1296,7 +1301,7 @@ test('buildDeck: 難易度の絞り込みで、問題数・重複・難易度・
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
       assert.equal(size, Math.min(L.ROUND_SIZE, L.buildPool(mode, L.createRng(1), level).length), `${mode}/${level}`);
-      if (mode !== 'forecast') assert.ok(size >= 1, `${mode}/${level}`); // 株価予想は、データが入るまで 0 問(空のデッキ)
+      assert.ok(size >= 1, `${mode}/${level}`);
       for (let seed = 1; seed <= 20; seed++) {
         const deck = L.buildDeck(mode, seed, level);
         assert.equal(deck.length, size, `${mode}/${level} seed=${seed}`);
@@ -2910,6 +2915,9 @@ function fixtureItem(over = {}) {
 // 見本を入れた、別の評価結果。難易度は DIFFICULTY_BY_ID.forecast の表から付ける(本物のデータと同じ経路)
 function loadWithFixture(items = [fixtureItem()], level = 'normal') {
   const LF = loadLogic();
+  // 本物の20問は外して、見本だけにする(仕組みのテストを、本物の件数から切り離す)
+  LF.FORECAST_QUESTIONS.length = 0;
+  for (const lv of LF.DIFFICULTY_LEVELS) LF.DIFFICULTY_BY_ID.forecast[lv].length = 0;
   for (const it of items) {
     LF.FORECAST_QUESTIONS.push(it);
     LF.DIFFICULTY_BY_ID.forecast[level].push(it.id);
@@ -2918,18 +2926,19 @@ function loadWithFixture(items = [fixtureItem()], level = 'normal') {
   return LF;
 }
 
-test('株価予想: 本物のデータはまだ空で、選択肢は固定の3つ。空のあいだはプールも空で、ほかのモードの出題は変わらない', () => {
+test('株価予想: 選択肢は固定の3つで、データがなければプールは空。ほかのモードの出題は変わらない', () => {
   assert.deepEqual(L.FORECAST_CHOICES, ['上がりやすい', '下がりやすい', '一概には言えない']);
   assert.equal(L.MODE_LABELS.forecast, '株価予想');
-  assert.deepEqual(L.FORECAST_QUESTIONS, []); // 20問のデータは後の工程で入れる。入れたらこのテストと設計書の表を直す
-  for (const level of L.DIFFICULTY_FILTERS) {
-    assert.equal(L.buildPool('forecast', L.createRng(1), level).length, 0, level);
-    assert.equal(L.roundSize('forecast', level), 0, level);
-    assert.deepEqual(L.buildDeck('forecast', 3, level), [], level);
+  // 見本もデータもない状態(本物の20問を外した評価結果)では、プールも出題も空
+  const LE = loadWithFixture([]);
+  assert.deepEqual(LE.FORECAST_QUESTIONS, []);
+  for (const level of LE.DIFFICULTY_FILTERS) {
+    assert.equal(LE.buildPool('forecast', LE.createRng(1), level).length, 0, level);
+    assert.equal(LE.roundSize('forecast', level), 0, level);
+    assert.deepEqual(LE.buildDeck('forecast', 3, level), [], level);
   }
-  // 'all' は、株価予想がなくても今までどおり(株価予想の問題を含まない)
   for (let seed = 1; seed <= 20; seed++) {
-    assert.ok(L.buildDeck('all', seed).every((q) => q.type !== 'forecast'));
+    assert.ok(LE.buildDeck('all', seed).every((q) => q.type !== 'forecast'));
   }
 });
 
@@ -3136,4 +3145,97 @@ test('株価予想: 見本の例は、期間・終値の数・日付の並びが
     assert.equal(ex.prices[ex.prices.length - 1][0], ex.to);
     assert.equal(ex.changePct, L.forecastChange(ex.prices));
   }
+});
+
+// ==== 株価予想の本物のデータ(20問・実在の銘柄の例)。内容を変えたら、件数や分布をここと設計書で一緒に直す ====
+const FQ = L.FORECAST_QUESTIONS;
+const FORECAST_EXAMPLES = FQ.flatMap((q) => q.examples.map((e) => ({ q, e })));
+const dayDiff = (a, b) => (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000;
+
+test('株価予想のデータ: 20問で、id が重複せず、難易度ごとに4問ずつ(DIFFICULTY_BY_ID.forecast と一致)', () => {
+  assert.equal(FQ.length, 20);
+  assert.equal(new Set(FQ.map((q) => q.id)).size, 20);
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const ids = L.DIFFICULTY_BY_ID.forecast[level];
+    assert.equal(ids.length, 4, level);
+    assert.deepEqual(FQ.filter((q) => q.difficulty === level).map((q) => q.id), ids, level);
+  }
+  assert.equal(FQ.filter((q) => !L.DIFFICULTY_LEVELS.includes(q.difficulty)).length, 0);
+  for (const q of FQ) assert.equal(L.validateQuestion(L.makeForecastQuestion(q, L.createRng(1))), null, q.id);
+});
+
+test('株価予想のデータ: 答えは3つの選択肢のどれかで、3種類とも出てくる(分布は内容に依存する数)', () => {
+  for (const q of FQ) assert.ok(L.FORECAST_CHOICES.includes(q.answer), q.id);
+  const n = (a) => FQ.filter((q) => q.answer === a).length;
+  assert.ok(L.FORECAST_CHOICES.every((c) => n(c) >= 1), '3つの答えがどれも1問以上ある');
+  // 内容に依存する数。問題を足したり答えを直したら、設計書の表と一緒に直す
+  assert.equal(n('上がりやすい'), 4);
+  assert.equal(n('下がりやすい'), 1);
+  assert.equal(n('一概には言えない'), 15);
+});
+
+test('株価予想のデータ: 各問に例が2〜3個あり、騰落率は株価から計算した値と合う', () => {
+  for (const q of FQ) {
+    assert.ok(q.examples.length >= 2 && q.examples.length <= 3, q.id);
+    for (const e of q.examples) {
+      assert.ok(Math.abs(e.changePct - L.forecastChange(e.prices)) <= 0.05, `${q.id}/${e.code} changePct`);
+    }
+  }
+});
+
+test('株価予想のデータ: 開始日は2019〜2025年(終了日は2026年6月まで。2025年6月開始の例が1年後に終わる)で、約1年(300〜400日)。株価の最初と最後の日付が from / to と同じ', () => {
+  for (const { q, e } of FORECAST_EXAMPLES) {
+    const label = `${q.id}/${e.code}`;
+    assert.ok(e.from >= '2019-01-01' && e.from <= '2025-12-31', `${label} from`);
+    assert.ok(e.to >= '2019-01-01' && e.to <= '2026-06-30', `${label} to`);
+    const days = dayDiff(e.from, e.to);
+    assert.ok(days >= 300 && days <= 400, `${label} 期間 ${days}日`);
+    assert.equal(e.prices[0][0], e.from, `${label} 最初の日付`);
+    assert.equal(e.prices[e.prices.length - 1][0], e.to, `${label} 最後の日付`);
+    assert.ok(e.prices.every((p) => p[1] > 0), `${label} 終値は正`);
+  }
+});
+
+test('株価予想のデータ: 指標の値・単位・説明、銘柄名とコードの対応、出典URL、(コード,開始日,指標)の重複なし', () => {
+  const INDICATORS = ['PER', 'PBR', '配当利回り', '配当性向', 'ROE', '時価総額'];
+  const seen = new Set();
+  const nameByCode = {};
+  for (const { q, e } of FORECAST_EXAMPLES) {
+    const label = `${q.id}/${e.code}`;
+    assert.ok(INDICATORS.includes(e.indicator), `${label} 指標 ${e.indicator}`);
+    assert.ok(e.value > 0, `${label} value`);
+    assert.ok(typeof e.valueNote === 'string' && e.valueNote.length > 0, `${label} valueNote`);
+    assert.ok(L.indicatorUnit(e) !== '', `${label} 単位がある`);
+    if (e.indicator === '時価総額') assert.equal(e.unit, '億円', label);
+    assert.ok(e.sources.length >= 1 && e.sources.every((s) => /^https?:\/\//.test(s)), `${label} sources`);
+    // 開いていない株価ページのURLは出典に入れない
+    assert.ok(e.sources.every((s) => !/finance\.yahoo\.co\.jp\/quote\//.test(s)), `${label} 株価ページのURL`);
+    const key = `${e.code}|${e.from}|${e.indicator}`;
+    assert.ok(!seen.has(key), `重複 ${key}`);
+    seen.add(key);
+    nameByCode[e.code] = nameByCode[e.code] || new Set();
+    nameByCode[e.code].add(e.name);
+  }
+  for (const [code, names] of Object.entries(nameByCode)) assert.equal(names.size, 1, `${code} の銘柄名が揺れている: ${[...names]}`);
+});
+
+test('株価予想のデータ: 文章の質(解説1〜2文・くわしく120〜250字2〜4文、断定語なし、ぼかした言い方がある)', () => {
+  const sentences = (s) => s.split('。').filter((x) => x.trim() !== '').length;
+  for (const q of FQ) {
+    const text = [q.question, q.explanation, q.detail, ...q.examples.map((e) => e.valueNote)].join('\n');
+    assert.ok(!/必ず|絶対|買うべき|売るべき/.test(text), `${q.id} 断定語`);
+    const len = [...q.detail].length;
+    assert.ok(len >= 120 && len <= 250, `${q.id} detail ${len}字`);
+    assert.ok(sentences(q.detail) >= 2 && sentences(q.detail) <= 4, `${q.id} detail ${sentences(q.detail)}文`);
+    assert.ok(sentences(q.explanation) >= 1 && sentences(q.explanation) <= 2, `${q.id} explanation ${sentences(q.explanation)}文`);
+    assert.notEqual(q.detail, q.explanation, q.id);
+    assert.ok(/とされる|ことが多い|一概には言えない|見方/.test(q.explanation + q.detail), `${q.id} ぼかした言い方`);
+  }
+});
+
+test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、画面の注記は「株式分割を調整した終値」', () => {
+  assert.equal(L.buildPool('all', L.createRng(1)).filter((q) => q.type === 'forecast').length, 20);
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.ok(html.includes('株価データ: Yahoo!ファイナンス(株式分割を調整した終値)'));
+  assert.ok(!html.includes('調整後終値'));
 });

@@ -54,6 +54,17 @@ button.primary { background: var(--accent); color: var(--card); text-align: cent
 .result .label { margin: 0; font-size: 13px; }
 .result .answer { margin: 2px 0 0; font-size: 22px; font-weight: 500; }
 .result .exp { margin: 6px 0 0; font-size: 14px; }
+.examples .sec { margin-top: 16px; }
+.example { background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+.example p { margin: 0; }
+.example .ex-title { font-size: 14px; font-weight: 500; }
+.example .ex-meta { font-size: 13px; color: var(--muted); }
+.example .ex-result { font-size: 14px; margin: 4px 0 6px; }
+.example .ex-chart { margin: 0; }
+.example .ex-dates { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); padding: 2px 52px 0 8px; }
+.chg-up { color: var(--up); font-weight: 600; }
+.chg-down { color: var(--down); font-weight: 600; }
+.chg-flat { font-weight: 600; }
 .detail { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
 .detail .detail-title { margin: 0 0 4px; font-size: 13px; font-weight: 500; color: var(--muted); }
 .detail .detail-body { margin: 0; font-size: 14px; line-height: 1.7; }
@@ -436,16 +447,28 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   // ローソク足20種類の確認(v6)で足した組
   ['yukichigai-line', 'bullish-tasuki-line'], ['thrusting-line', 'tweezer-bottom'], ['irikubi-line', 'tweezer-bottom'],
 ];
-const MODES = ['all', 'pattern', 'candle', 'term'];
+const MODES = ['all', 'pattern', 'candle', 'term', 'forecast'];
 const MODE_LABELS = {
   all: '全部まぜ',
   pattern: 'チャートの形状',
   candle: 'ローソク足',
   term: '用語',
+  forecast: '株価予想',
 };
 
 // 答え合わせで見せる、この後の値動き(教科書的な傾向)
 const OUTLOOK_LABELS = { up: '上がりやすい', down: '下がりやすい', flat: '横ばい', either: '上下どちらに動くかは、この形だけでは決められないよ' };
+
+// 株価予想: 指標の水準(PER・PBR・配当利回り・ROE など)のあと、株価がどうなりやすいかを、3択で答える。
+// 選択肢は、この3つをこの順に固定する(並べ替えない。やり直しでも同じ)。
+const FORECAST_CHOICES = ['上がりやすい', '下がりやすい', '一概には言えない'];
+
+// 株価予想の問題(本物のデータは、あとの工程で入れる。テストの見本はテストファイルの中にだけ置く)。1問の形:
+// { id, question, answer(FORECAST_CHOICES のどれか), explanation, detail(120〜250字・2〜4文。DETAIL_BY_ID には入れない),
+//   examples: [ { name, code, from, to, indicator, value, unit?(省略すると指標名から決まる), valueNote, prices: [['YYYY-MM-DD', 終値(円)], ... 40〜80点],
+//                 changePct(最初から最後までの騰落率・小数1位), sources: ['https://...'] }, ... 2〜3個 ] }
+// 難易度は DIFFICULTY_BY_ID.forecast に id を入れて付ける。
+const FORECAST_QUESTIONS = [];
 
 // ローソク足: o=始値 h=高値 l=安値 c=終値(0〜100 の相対値)
 const CANDLE_PATTERNS = [
@@ -1214,6 +1237,7 @@ const DIFFICULTY_BY_ID = {
     master: ['abandoned-baby-bottom', 'abandoned-baby-top',
       'bullish-deai-line', 'bearish-deai-line', 'bullish-tasuki-line', 'bearish-tasuki-line', 'upward-gap-star', 'downward-gap-star', 'three-soldiers-stalled', 'three-soldiers-deliberation'],
   },
+  forecast: { easy: [], normal: [], hard: [], expert: [], master: [] }, // 株価予想の id は、データを入れるときに足す
   terms: {
     easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa',
       'dividend', 'shareholder-benefit', 'listing', 'trading-unit',
@@ -1242,6 +1266,7 @@ function assignDifficulty(items, table) {
 assignDifficulty(PATTERNS, DIFFICULTY_BY_ID.patterns);
 assignDifficulty(CANDLE_PATTERNS, DIFFICULTY_BY_ID.candles);
 assignDifficulty(TERMS, DIFFICULTY_BY_ID.terms);
+assignDifficulty(FORECAST_QUESTIONS, DIFFICULTY_BY_ID.forecast);
 
 // 「くわしく」(解説の下に出す、120〜250字・2〜4文の補足)。既存の100項目はこの表から付ける。
 // 追加の用語80問は、TERMS の各項目に detail を直接書く(この表には入れない)。
@@ -1610,10 +1635,130 @@ function makeTermQuestion(term, rng) {
   };
 }
 
+// ---- 株価予想 ----
+// 株価予想の問題。選択肢は FORECAST_CHOICES の順に固定(rng は、ほかの make*Question と呼び方をそろえるためだけの引数で、使わない)
+function makeForecastQuestion(item, rng) {
+  return {
+    id: `forecast:${item.id}`,
+    type: 'forecast',
+    question: item.question,
+    choices: FORECAST_CHOICES.slice(),
+    answer: item.answer,
+    explanation: item.explanation,
+    detail: item.detail,
+    difficulty: item.difficulty,
+    examples: item.examples,
+  };
+}
+
+// 終値の列 [[日付, 終値], ...] の、最初から最後までの騰落率(%・小数1位)
+function forecastChange(prices) {
+  const first = prices[0][1];
+  const last = prices[prices.length - 1][1];
+  const v = Math.round((last / first - 1) * 1000) / 10;
+  return v === 0 ? 0 : v; // -0 を 0 にする
+}
+
+// '2023-04-03' → '2023/4/3'
+function formatDateJa(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${y}/${m}/${d}`;
+}
+
+// 騰落率の表示: +12.3% / -4.5% / 0.0%
+function formatChangePct(pct) {
+  return `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+}
+
+// 騰落率の向きを、色に頼らない文字で表す
+function changeDirection(pct) {
+  if (pct > 0) return { kind: 'up', label: '上昇 ↑' };
+  if (pct < 0) return { kind: 'down', label: '下落 ↓' };
+  return { kind: 'flat', label: '横ばい →' };
+}
+
+// 指標の単位。例の unit があればそれ、なければ指標名から決める
+const INDICATOR_UNITS = { PER: '倍', PBR: '倍', PSR: '倍', '配当利回り': '%', ROE: '%', ROA: '%', '自己資本比率': '%', '営業利益率': '%', '配当性向': '%' };
+function indicatorUnit(example) {
+  if (typeof example.unit === 'string') return example.unit;
+  return Object.prototype.hasOwnProperty.call(INDICATOR_UNITS, example.indicator) ? INDICATOR_UNITS[example.indicator] : '';
+}
+
+// 「PER 9.2倍(2023年3月期の実績EPS…で計算)」のような1行
+function formatIndicator(example) {
+  const value = String(Number(example.value.toFixed(2)));
+  const note = example.valueNote ? `(${example.valueNote})` : '';
+  return `${example.indicator} ${value}${indicatorUnit(example)}${note}`;
+}
+
+// 例のチャートの縦軸: 終値の最小〜最大に少し余白をつけた範囲と、3〜6本のきりのよい目盛り
+function forecastAxis(prices) {
+  const { min, max } = normalizeRange(prices.map((p) => p[1]));
+  return { min, max, ticks: niceTicks(min, max) };
+}
+
+const FORECAST_PRICES_MIN = 40;
+const FORECAST_PRICES_MAX = 80;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+function isIsoDate(s) {
+  if (typeof s !== 'string' || !ISO_DATE.test(s)) return false;
+  const t = Date.parse(`${s}T00:00:00Z`);
+  return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === s;
+}
+
+// 株価予想の例に不備があればその説明を、なければ null を返す
+function validateForecastExample(ex, label) {
+  if (!ex || typeof ex !== 'object') return `${label}: 例が不正`;
+  if (typeof ex.name !== 'string' || !ex.name) return `${label}: name がない`;
+  if (typeof ex.code !== 'string' || !/^[0-9A-Za-z.\-]{1,10}$/.test(ex.code)) return `${label}: code が不正`;
+  if (!isIsoDate(ex.from) || !isIsoDate(ex.to)) return `${label}: from / to が日付(YYYY-MM-DD)ではない`;
+  if (!(ex.from < ex.to)) return `${label}: from が to より前ではない`;
+  if (typeof ex.indicator !== 'string' || !ex.indicator) return `${label}: indicator がない`;
+  if (!Number.isFinite(ex.value) || !(ex.value > 0)) return `${label}: value が正の数ではない`;
+  if (ex.unit !== undefined && typeof ex.unit !== 'string') return `${label}: unit が文字列ではない`;
+  if (ex.valueNote !== undefined && typeof ex.valueNote !== 'string') return `${label}: valueNote が文字列ではない`;
+  const prices = ex.prices;
+  if (!Array.isArray(prices) || prices.length < FORECAST_PRICES_MIN || prices.length > FORECAST_PRICES_MAX) {
+    return `${label}: prices が ${FORECAST_PRICES_MIN}〜${FORECAST_PRICES_MAX} 点ではない`;
+  }
+  for (let i = 0; i < prices.length; i++) {
+    const p = prices[i];
+    if (!Array.isArray(p) || p.length !== 2 || !isIsoDate(p[0]) || !Number.isFinite(p[1]) || !(p[1] > 0)) {
+      return `${label}: prices[${i}] が [日付, 正の終値] ではない`;
+    }
+    if (i > 0 && !(p[0] > prices[i - 1][0])) return `${label}: prices の日付が昇順ではない(${i} 点目)`;
+  }
+  if (prices[0][0] !== ex.from) return `${label}: prices の最初の日付が from と違う`;
+  if (prices[prices.length - 1][0] !== ex.to) return `${label}: prices の最後の日付が to と違う`;
+  if (!Number.isFinite(ex.changePct)) return `${label}: changePct が数ではない`;
+  if (Math.abs(ex.changePct - forecastChange(prices)) > 0.05) return `${label}: changePct が prices から計算した値(${forecastChange(prices)})と合わない`;
+  if (!Array.isArray(ex.sources) || ex.sources.length === 0 || !ex.sources.every((s) => typeof s === 'string' && /^https?:\/\/\S+$/.test(s))) {
+    return `${label}: sources が http(s) の URL の配列ではない`;
+  }
+  return null;
+}
+
+// 株価予想の問題の不備(選択肢は FORECAST_CHOICES と同じ3つ・同じ順、例は2〜3個)
+function validateForecastQuestion(q) {
+  if (!String(q.id).startsWith('forecast:')) return `${q.id}: id が forecast: で始まらない`;
+  if (!Array.isArray(q.choices) || q.choices.length !== FORECAST_CHOICES.length || q.choices.some((c, i) => c !== FORECAST_CHOICES[i])) {
+    return `${q.id}: 選択肢が FORECAST_CHOICES と同じ3つ・同じ順ではない`;
+  }
+  if (!q.choices.includes(q.answer)) return `${q.id}: 正解が選択肢にない`;
+  if (!DIFFICULTY_LEVELS.includes(q.difficulty)) return `${q.id}: difficulty が不正: ${q.difficulty}`;
+  if (!Array.isArray(q.examples) || q.examples.length < 2 || q.examples.length > 3) return `${q.id}: 例が2〜3個ではない`;
+  for (let i = 0; i < q.examples.length; i++) {
+    const err = validateForecastExample(q.examples[i], `${q.id} の例${i + 1}`);
+    if (err) return err;
+  }
+  return null;
+}
+
 // 問題に不備があればその説明を、なければ null を返す
 function validateQuestion(q) {
-  if (!['pattern', 'candle', 'term'].includes(q.type)) return `type が不正: ${q.type}`;
+  if (!['pattern', 'candle', 'term', 'forecast'].includes(q.type)) return `type が不正: ${q.type}`;
   if (!q.id || !q.question || !q.explanation || !q.detail) return `${q.id}: 必須項目がない`;
+  if (q.type === 'forecast') return validateForecastQuestion(q);
   if (q.choices.length !== 4) return `${q.id}: 選択肢が4個ではない`;
   if (new Set(q.choices).size !== q.choices.length) return `${q.id}: 選択肢が重複している`;
   if (q.choices.filter((c) => c === q.answer).length !== 1) return `${q.id}: 正解がちょうど1つ含まれていない`;
@@ -1622,7 +1767,7 @@ function validateQuestion(q) {
 }
 
 function chartForQuestion(q) {
-  if (q.type === 'term') return null;
+  if (q.type === 'term' || q.type === 'forecast') return null;
   if (q.type === 'candle') return { kind: 'candles', candles: q.candles };
   const pattern = findPattern(q.patternId);
   const values = generateSeries(pattern, q.seed);
@@ -1671,6 +1816,10 @@ function buildPool(mode, rng, difficulty = 'all') {
   if (wants('term')) {
     for (const t of byDifficulty(TERMS, difficulty)) pool.push(makeTermQuestion(t, rng));
   }
+  if (wants('forecast')) {
+    // 乱数は引かない(ほかのモードの出題を変えないため)
+    for (const f of byDifficulty(FORECAST_QUESTIONS, difficulty)) pool.push(makeForecastQuestion(f, rng));
+  }
   return pool;
 }
 
@@ -1686,6 +1835,7 @@ function roundSize(mode, difficulty = 'all') {
 
 // 選択肢の並びだけを入れ替えた新しい問題を返す(元の問題は変えない)
 function reshuffleChoices(q, rng) {
+  if (q.type === 'forecast') return { ...q, choices: q.choices.slice() }; // 株価予想の選択肢は固定
   return { ...q, choices: shuffle(q.choices, rng) };
 }
 
@@ -1816,6 +1966,29 @@ function header() {
 
 // ---- チャートの描画 ----
 const AXIS_W = 44; // 価格の目盛り(右端の文字)の列の幅
+// 横の点線と、右端の価格の目盛り。yOf は価格から y 座標を返す関数
+function drawPriceGrid(ctx, w, ticks, yOf, colors) {
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (const price of ticks) {
+    const ty = Math.round(yOf(price)) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(8, ty);
+    ctx.lineTo(w - AXIS_W + 4, ty);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = colors.muted;
+    ctx.fillText(formatPrice(price), w - 4, ty);
+    ctx.setLineDash([2, 3]);
+  }
+  ctx.restore();
+}
+
 function drawLines(ctx, w, h, chart, reveal, colors) {
   const cont = chart.continuation || [];
   // 横幅も縦の範囲も、続きの有無・方向で変わらないようにする(問題の画面で 'either' の形が見分けられてしまうのを防ぐ)
@@ -1828,25 +2001,7 @@ function drawLines(ctx, w, h, chart, reveal, colors) {
   // 横の点線と価格の目盛り(グリッドは折れ線より下に描く)
   if (chart.priceScale) {
     const ticks = niceTicks(toPrice(min, chart.priceScale), toPrice(max, chart.priceScale));
-    ctx.save();
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 3]);
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    for (const price of ticks) {
-      const ty = Math.round(y(fromPrice(price, chart.priceScale))) + 0.5;
-      ctx.beginPath();
-      ctx.moveTo(8, ty);
-      ctx.lineTo(w - AXIS_W + 4, ty);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = colors.muted;
-      ctx.fillText(formatPrice(price), w - 4, ty);
-      ctx.setLineDash([2, 3]);
-    }
-    ctx.restore();
+    drawPriceGrid(ctx, w, ticks, (price) => y(fromPrice(price, chart.priceScale)), colors);
   }
   const stroke = (pts, color, width, dash) => {
     ctx.beginPath();
@@ -1915,16 +2070,20 @@ function drawCandles(ctx, w, h, candles, colors) {
   });
 }
 
-function renderChart(canvas, chart, reveal) {
+function chartColors() {
   const css = getComputedStyle(document.documentElement);
   const get = (name) => css.getPropertyValue(name).trim();
-  const colors = {
+  return {
     line: get('--line'), short: get('--ma-short'), mid: get('--ma-mid'), long: get('--ma-long'),
     up: get('--up'), down: get('--down'), cont: get('--cont'),
     grid: get('--border'), muted: get('--muted'), card: get('--card'),
   };
-  const w = canvas.parentElement.clientWidth - 16;
-  const h = Math.round(w * 0.55);
+}
+
+// canvas を、親の幅(左右の余白 pad を除く)に合わせて用意する。高さは幅 × ratio
+function prepareCanvas(canvas, pad, ratio) {
+  const w = canvas.parentElement.clientWidth - pad * 2;
+  const h = Math.round(w * ratio);
   const dpr = window.devicePixelRatio || 1;
   canvas.style.width = `${w}px`;
   canvas.style.height = `${h}px`;
@@ -1933,6 +2092,38 @@ function renderChart(canvas, chart, reveal) {
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, w, h);
+  return { ctx, w, h };
+}
+
+// 株価予想の例: 実際の終値の折れ線(縦軸は円の目盛りと点線、横軸の日付は canvas の下に HTML で添える)
+function drawPriceChart(canvas, example) {
+  const colors = chartColors();
+  const { ctx, w, h } = prepareCanvas(canvas, 0, 0.5);
+  const prices = example.prices;
+  const { min, max, ticks } = forecastAxis(prices);
+  const t0 = Date.parse(`${prices[0][0]}T00:00:00Z`);
+  const t1 = Date.parse(`${prices[prices.length - 1][0]}T00:00:00Z`);
+  const x = (date) => 8 + ((Date.parse(`${date}T00:00:00Z`) - t0) / (t1 - t0)) * (w - 8 - (AXIS_W + 8));
+  const y = (v) => h - 12 - ((v - min) / (max - min)) * (h - 24);
+  drawPriceGrid(ctx, w, ticks, y, colors);
+  ctx.beginPath();
+  prices.forEach(([date, close], i) => (i === 0 ? ctx.moveTo(x(date), y(close)) : ctx.lineTo(x(date), y(close))));
+  ctx.strokeStyle = colors.line;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  // 始点と終点に印をつける
+  ctx.fillStyle = colors.line;
+  for (const [date, close] of [prices[0], prices[prices.length - 1]]) {
+    ctx.beginPath();
+    ctx.arc(x(date), y(close), 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function renderChart(canvas, chart, reveal) {
+  const colors = chartColors();
+  const { ctx, w, h } = prepareCanvas(canvas, 8, 0.55);
   if (chart.kind === 'candles') drawCandles(ctx, w, h, chart.candles, colors);
   else drawLines(ctx, w, h, chart, reveal, colors);
 }
@@ -1944,7 +2135,7 @@ function priceNote(q) {
 
 // 移動平均線がある図には、色の説明を添える
 function maNote(q) {
-  if (q.type === 'term' || q.type === 'candle' || !findPattern(q.patternId).ma) return '';
+  if (q.type !== 'pattern' || !findPattern(q.patternId).ma) return '';
   return `<p class="note">橙の線が短期(${MA_SHORT}本)、緑の線が中期(${MA_MID}本)、紫の線が長期(${MA_LONG}本)の移動平均線だよ。</p>`;
 }
 
@@ -1954,6 +2145,33 @@ function drawQuestionChart(q, reveal) {
   redraw = () => renderChart(canvas, chart, reveal);
   redraw();
   // 描画後に縦スクロールバーが出ると幅が変わるので、もう一度描き直す
+  requestAnimationFrame(() => { if (redraw) redraw(); });
+}
+
+// 株価予想の答え合わせ: 例のカードと、そのチャート(複数の canvas をまとめて描き直す)
+function examplesHtml(q) {
+  const cards = q.examples.map((ex, i) => {
+    const dir = changeDirection(ex.changePct);
+    const first = ex.prices[0][1];
+    const last = ex.prices[ex.prices.length - 1][1];
+    const alt = `${ex.name}の株価の推移。${formatDateJa(ex.from)}の終値${formatPrice(first)}円から、${formatDateJa(ex.to)}の終値${formatPrice(last)}円まで`;
+    return `<div class="example">
+      <p class="ex-title">${esc(ex.name)}(${esc(ex.code)})  ${formatDateJa(ex.from)}〜${formatDateJa(ex.to)}</p>
+      <p class="ex-meta">${esc(formatIndicator(ex))}</p>
+      <p class="ex-result">その後の騰落率: <span class="chg-${dir.kind}">${formatChangePct(ex.changePct)}(${dir.label})</span></p>
+      <div class="ex-chart"><canvas data-ex="${i}" role="img" aria-label="${esc(alt)}"></canvas></div>
+      <div class="ex-dates"><span>${formatDateJa(ex.from)}</span><span>${formatDateJa(ex.to)}</span></div>
+    </div>`;
+  }).join('');
+  return `<div class="examples"><p class="sec">実際の株価の例</p>${cards}
+    <p class="note">過去の例で、将来を保証するものではないよ。特定の銘柄をすすめるものではないよ。</p>
+    <p class="note">株価データ: Yahoo!ファイナンス(調整後終値)</p></div>`;
+}
+
+function drawExampleCharts(q) {
+  const canvases = Array.from(app.querySelectorAll('canvas[data-ex]'));
+  redraw = () => canvases.forEach((c) => drawPriceChart(c, q.examples[Number(c.dataset.ex)]));
+  redraw();
   requestAnimationFrame(() => { if (redraw) redraw(); });
 }
 
@@ -1976,7 +2194,7 @@ function showStart() {
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
-    <p class="lead">チャートの形、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
+    <p class="lead">チャートの形、ローソク足、用語、株価予想をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <p class="sec">難易度</p>
     <div class="diffs">${diffs}</div>
     <div class="choices">${rows}</div>`;
@@ -2008,7 +2226,7 @@ function guarded(fn) {
 
 function showQuestion() {
   const q = game.deck[game.index];
-  const hasChart = q.type !== 'term';
+  const hasChart = q.type === 'pattern' || q.type === 'candle';
   app.innerHTML = `${header()}
     <p class="q">${esc(q.question)}</p>
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
@@ -2031,7 +2249,7 @@ function answer(q, picked) {
 }
 
 function showExplain(q, picked, correct) {
-  const hasChart = q.type !== 'term';
+  const hasChart = q.type === 'pattern' || q.type === 'candle';
   const last = game.index === game.deck.length - 1;
   const tendency = q.type === 'pattern'
     ? `<p class="tendency">この後の値動き: ${esc(OUTLOOK_LABELS[q.outlook])}</p>` : '';
@@ -2046,12 +2264,14 @@ function showExplain(q, picked, correct) {
       <p class="detail-body">${esc(q.detail)}</p>
     </div>
     ${tendency}
+    ${q.type === 'forecast' ? examplesHtml(q) : ''}
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
     ${priceNote(q)}
     ${maNote(q)}
     <p class="sub">あなたの答え: ${esc(picked)}(${correct ? '正解' : '不正解'})</p>
     <button class="primary" id="next">${last ? '結果を見る' : '次の問題へ'}</button>`;
   if (hasChart) drawQuestionChart(q, true);
+  else if (q.type === 'forecast') drawExampleCharts(q);
   else redraw = null;
   bindLeave();
   document.getElementById('next').addEventListener('click', guarded(() => next()));

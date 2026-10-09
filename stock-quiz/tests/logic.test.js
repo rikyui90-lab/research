@@ -225,9 +225,9 @@ test('CANDLE_PATTERNS: 30個で、ローソク足の値が矛盾していない'
   }
 });
 
-test('TERMS: 40個で、id が重複せず、間違いの選択肢が3つある', () => {
-  assert.equal(L.TERMS.length, 40);
-  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 40);
+test('TERMS: 120個(既存40+追加80)で、id が重複せず、間違いの選択肢が3つある', () => {
+  assert.equal(L.TERMS.length, 120);
+  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 120);
   for (const t of L.TERMS) {
     assert.equal(t.wrongs.length, 3, t.id);
     assert.ok(!t.wrongs.includes(t.answer), t.id);
@@ -494,8 +494,8 @@ test('用語の修正: 決算の答えと権利確定日の説明', () => {
 
 // 用語の事実確認の指摘(v4)
 test('新規の用語20問: 正解が選択肢の中で一番長い問題は4割未満で、誤りの選択肢が重複しない', () => {
-  // 全40問で数えると、元の20問だけで長い答えが13問あり、基準を超えてしまうため、今回の20問に絞って確かめる
-  const newTerms = L.TERMS.slice(20);
+  // 全40問で数えると、元の20問だけで長い答えが13問あり、基準を超えてしまうため、v4 で足した20問(TERMS の21〜40番目)に絞って確かめる
+  const newTerms = L.TERMS.slice(20, 40);
   assert.equal(newTerms.length, 20);
   const longest = newTerms.filter((t) => t.answer.length > Math.max(...t.wrongs.map((w) => w.length)));
   assert.ok((newTerms.length - longest.length) / newTerms.length > 0.6, '一番長い答え: ' + longest.map((t) => t.id).join(','));
@@ -505,13 +505,14 @@ test('新規の用語20問: 正解が選択肢の中で一番長い問題は4割
   }
 });
 
-test('用語の修正: 単元株は内国株式に限り、サーキットブレーカーは10分程度と書く', () => {
+test('用語の修正: 単元株は内国株式に限り、サーキットブレーカーは時間の数字を書かず、一時的な停止と個別株との違いを書く', () => {
   const unit = L.TERMS.find((t) => t.id === 'trading-unit');
   assert.ok(unit.answer.includes('国内の上場会社') || unit.answer.includes('内国株式'));
   assert.ok(unit.explanation.includes('内国株式'));
   const cb = L.TERMS.find((t) => t.id === 'circuit-breaker');
-  assert.ok(cb.explanation.includes('10分程度'));
-  assert.ok(!cb.explanation.includes('10分以上'));
+  assert.ok(cb.explanation.includes('一時的'));
+  assert.ok(cb.explanation.includes('個別株'));
+  assert.ok(!/10分/.test(cb.explanation), '出典で10分間と10分間以上が割れるため、数字は書かない');
 });
 
 test('単元株の選択肢: 重複がなく、答えが一番長くても2番目より8文字以内の差', () => {
@@ -883,6 +884,30 @@ test('毛抜き天井・底の説明に「そろう」が入っている', () =>
   }
 });
 
+// 追加の用語80問(用語50・テクニカル30)。各難易度に用語10問+テクニカル6問
+const NEW80 = {
+  easy: {
+    term: ['stock-share', 'investment-trust', 'etf', 'stock-exchange', 'ipo', 'prime-market', 'capital-gain', 'bull-market', 'securities-code', 'dollar-cost-averaging'],
+    technical: ['technical-vs-fundamental', 'trend', 'support-resistance-line', 'trendline', 'candle-timeframes', 'oscillator'],
+  },
+  normal: {
+    term: ['topix', 'specific-account', 'year-high', 'capital-increase', 'shareholders-meeting', 'voting-rights', 'trading-value', 'equity-ratio', 'preferred-stock', 'reit'],
+    technical: ['rsi', 'macd', 'bollinger-bands', 'ma-deviation', 'psychological-line', 'breakout'],
+  },
+  hard: {
+    term: ['bps', 'tob', 'pts', 'securities-report', 'convertible-bond', 'stock-option', 'third-party-allotment', 'book-building', 'margin-call', 'stock-lending'],
+    technical: ['stochastics', 'ichimoku-kinko-hyo', 'dow-theory', 'parabolic-sar', 'vwap', 'momentum'],
+  },
+  expert: {
+    term: ['ebitda', 'peg-ratio', 'doe', 'free-cash-flow', 'roic', 'beta', 'index-futures', 'options-trading', 'current-ratio', 'interest-coverage-ratio'],
+    technical: ['dmi-adx', 'fibonacci-retracement', 'advance-decline-ratio', 'volume-ratio', 'atr', 'cci'],
+  },
+  master: {
+    term: ['sharpe-ratio', 'dcf', 'wacc', 'goodwill', 'cross-shareholding', 'poison-pill', 'squeeze-out', 'nikkei-vi', 'short-squeeze', 'corporate-governance-code'],
+    technical: ['elliott-wave', 'divergence', 'heikin-ashi', 'point-and-figure', 'rci', 'volume-by-price'],
+  },
+};
+
 const LEVEL_TABLE = {
   patterns: {
     easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range',
@@ -915,6 +940,8 @@ const LEVEL_TABLE = {
     master: ['payout-ratio', 'buyback', 'stock-split', 'circuit-breaker'],
   },
 };
+// 用語の表には、追加の80問も足す
+for (const level of Object.keys(NEW80)) LEVEL_TABLE.terms[level].push(...NEW80[level].term, ...NEW80[level].technical);
 
 test('下影陽線 / 上影陰線: 実体が値幅の30〜50%で、ヒゲが実体より長い', () => {
   const [a] = candleOf('lower-shadow-bullish');
@@ -1048,7 +1075,8 @@ test('新規10個のローソク足: 問題が有効で難易度が表どおり�
 test('新規の用語20問: 難易度どおりで、問題が validateQuestion を通る', () => {
   const newIds = [];
   for (const level of L.DIFFICULTY_LEVELS) {
-    const added = LEVEL_TABLE.terms[level].filter((id) => !['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa', 'per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up', 'roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'].includes(id));
+    const newIds80 = Object.values(NEW80).flatMap((lv) => [...lv.term, ...lv.technical]);
+    const added = LEVEL_TABLE.terms[level].filter((id) => !newIds80.includes(id)).filter((id) => ![ 'market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa', 'per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up', 'roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'].includes(id));
     assert.equal(added.length, 4, level);
     for (const id of added) {
       newIds.push(id);
@@ -1104,7 +1132,8 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
     pattern: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
     outlook: { easy: 9, normal: 8, hard: 8, expert: 2, master: 2 },
     candle: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
-    term: { easy: 11, normal: 11, hard: 10, expert: 4, master: 4 },
+    // 用語は、v4 までの40問(11/11/10/4/4)に追加の80問(各16)を足した数。内容を足したらここも直す
+    term: { easy: 27, normal: 27, hard: 26, expert: 20, master: 20 },
   };
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_LEVELS) {
@@ -1113,8 +1142,8 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
       if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
     }
   }
-  // all モード: expert / master は 用語4 + ローソク足2 + チャート2(形状か値動きの一方)= 8
-  for (const level of ['expert', 'master']) assert.equal(L.buildPool('all', L.createRng(1), level).length, 8, `all/${level}`);
+  // all モード: expert / master は 用語20 + ローソク足2 + チャート2(形状か値動きの一方)= 24(内容に依存する数)
+  for (const level of ['expert', 'master']) assert.equal(L.buildPool('all', L.createRng(1), level).length, 24, `all/${level}`);
 });
 
 const NEW_IDS = {
@@ -1145,10 +1174,8 @@ test('各難易度に、新しく追加した問題がちょうど10問ある(�
   }
 });
 
-test('roundSize: all は easy/normal/hard で10、expert/master で8。どの組み合わせも1〜10', () => {
-  for (const level of ['easy', 'normal', 'hard']) assert.equal(L.roundSize('all', level), 10, `all/${level}`);
-  assert.equal(L.roundSize('all', 'expert'), 8);
-  assert.equal(L.roundSize('all', 'master'), 8);
+test('roundSize: all は、どの難易度でも10(expert/master の候補は 20+2+2=24 問)。どの組み合わせも1〜10', () => {
+  for (const level of ['easy', 'normal', 'hard', 'expert', 'master']) assert.equal(L.roundSize('all', level), 10, `all/${level}`);
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
@@ -1531,5 +1558,162 @@ test('逆カップウィズハンドル: 取っ手は、カップ(山)の高さ�
     const top = Math.max(...sliceAt(v, [0.4, 0.6]));
     const ratio = (handle - right) / (top - right);
     assert.ok(ratio > 0.2 && ratio < 0.4, `seed=${seed} 戻りの割合 ${ratio}`);
+  }
+});
+
+// ---- 「くわしく」(detail)と、追加の用語80問 ----
+const countChars = (s) => [...s].length;
+const countSentences = (s) => (s.match(/。/g) || []).length;
+const FORBIDDEN_WORDS = ['必ず', '絶対', '買うべき', '売るべき'];
+
+test('detail の網羅: 形状30・ローソク足30・用語120の全180項目に、空でない detail がある', () => {
+  assert.equal(L.PATTERNS.length, 30);
+  assert.equal(L.CANDLE_PATTERNS.length, 30);
+  assert.equal(L.TERMS.length, 120);
+  for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS]) {
+    assert.equal(typeof x.detail, 'string', x.id);
+    assert.ok(x.detail.trim().length > 0, x.id);
+  }
+});
+
+test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の最初の40)だけを持ち、追加の80問は入っていない', () => {
+  const D = L.DETAIL_BY_ID;
+  assert.deepEqual(Object.keys(D).sort(), ['candles', 'patterns', 'terms']);
+  assert.deepEqual(Object.keys(D.patterns).sort(), L.PATTERNS.map((x) => x.id).sort());
+  assert.deepEqual(Object.keys(D.candles).sort(), L.CANDLE_PATTERNS.map((x) => x.id).sort());
+  const oldTermIds = L.TERMS.slice(0, 40).map((x) => x.id);
+  assert.deepEqual(Object.keys(D.terms).sort(), oldTermIds.slice().sort());
+  assert.equal(Object.keys(D.patterns).length + Object.keys(D.candles).length + Object.keys(D.terms).length, 100);
+  const newIds = Object.values(NEW80).flatMap((lv) => [...lv.term, ...lv.technical]);
+  assert.equal(newIds.length, 80);
+  for (const id of newIds) {
+    assert.ok(!(id in D.terms) && !(id in D.patterns) && !(id in D.candles), `${id} は DETAIL_BY_ID に入れない`);
+    const t = L.TERMS.find((x) => x.id === id);
+    assert.ok(t && typeof t.detail === 'string' && t.detail.length > 0, `${id} は自分の detail を持つ`);
+  }
+  // 表の文が、そのまま各項目に付いている
+  for (const [group, items] of [['patterns', L.PATTERNS], ['candles', L.CANDLE_PATTERNS], ['terms', L.TERMS.slice(0, 40)]]) {
+    for (const x of items) assert.equal(x.detail, D[group][x.id], x.id);
+  }
+});
+
+test('detail の質: 120〜250字・2〜4文・「。」で終わり、180個すべて違う文', () => {
+  const all = [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS];
+  assert.equal(all.length, 180);
+  for (const x of all) {
+    const n = countChars(x.detail);
+    assert.ok(n >= 120 && n <= 250, `${x.id}: ${n}字`);
+    const s = countSentences(x.detail);
+    assert.ok(s >= 2 && s <= 4, `${x.id}: ${s}文`);
+    assert.ok(x.detail.endsWith('。'), x.id);
+  }
+  assert.equal(new Set(all.map((x) => x.detail)).size, 180);
+});
+
+test('detail の質: explanation と同じ・explanation を含む detail はなく、断定や助言の言葉を使わない', () => {
+  for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS]) {
+    assert.notEqual(x.detail, x.explanation, x.id);
+    assert.ok(!x.detail.includes(x.explanation), `${x.id}: detail が explanation を含む`);
+    for (const w of FORBIDDEN_WORDS) {
+      assert.ok(!x.detail.includes(w), `${x.id}: detail に「${w}」`);
+      assert.ok(!x.explanation.includes(w), `${x.id}: explanation に「${w}」`);
+    }
+  }
+});
+
+test('形状とローソク足の detail は、特定の問題を指す「正解」「この問題」を含まない', () => {
+  for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS]) {
+    assert.ok(!x.detail.includes('正解'), x.id);
+    assert.ok(!x.detail.includes('この問題'), x.id);
+  }
+});
+
+test('validateQuestion: detail が無い問題は不備として見つける', () => {
+  const makers = [
+    L.makeTermQuestion(L.TERMS[0], L.createRng(1)),
+    L.makeCandleQuestion(L.CANDLE_PATTERNS[0], L.createRng(1)),
+    L.makePatternQuestion(L.PATTERNS[0], 1),
+    L.makeOutlookQuestion(L.PATTERNS[0], 1),
+  ];
+  for (const q of makers) {
+    assert.equal(L.validateQuestion(q), null, q.id);
+    const broken = { ...q };
+    delete broken.detail;
+    assert.equal(typeof L.validateQuestion(broken), 'string', q.id);
+    assert.equal(typeof L.validateQuestion({ ...q, detail: '' }), 'string', q.id);
+  }
+});
+
+test('形状の問題と値動きの問題は、同じ detail を使う', () => {
+  for (const p of L.PATTERNS) {
+    assert.equal(L.makePatternQuestion(p, 1).detail, p.detail, p.id);
+    assert.equal(L.makeOutlookQuestion(p, 1).detail, p.detail, p.id);
+  }
+});
+
+test('追加の用語80問: id が重複せず既存の40問と重ならず、category は term か technical', () => {
+  const added = L.TERMS.slice(40);
+  assert.equal(added.length, 80);
+  const oldIds = new Set(L.TERMS.slice(0, 40).map((t) => t.id));
+  assert.equal(new Set(added.map((t) => t.id)).size, 80);
+  for (const t of added) {
+    assert.ok(!oldIds.has(t.id), t.id);
+    assert.ok(['term', 'technical'].includes(t.category), `${t.id}: ${t.category}`);
+  }
+  assert.equal(added.filter((t) => t.category === 'term').length, 50);
+  assert.equal(added.filter((t) => t.category === 'technical').length, 30);
+});
+
+test('追加の用語80問: 各難易度にちょうど用語10問+テクニカル6問で、id の表と一致し、難易度が表どおり', () => {
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const { term, technical } = NEW80[level];
+    assert.equal(term.length, 10, level);
+    assert.equal(technical.length, 6, level);
+    const inLevel = L.TERMS.slice(40).filter((t) => t.difficulty === level);
+    assert.deepEqual(inLevel.map((t) => t.id).sort(), [...term, ...technical].sort(), level);
+    assert.deepEqual(inLevel.filter((t) => t.category === 'term').map((t) => t.id).sort(), term.slice().sort(), `${level} 用語`);
+    assert.deepEqual(inLevel.filter((t) => t.category === 'technical').map((t) => t.id).sort(), technical.slice().sort(), `${level} テクニカル`);
+    // buildPool から出る問題の難易度も、その難易度になる
+    const pool = L.buildPool('term', L.createRng(1), level);
+    for (const id of [...term, ...technical]) {
+      const q = pool.find((x) => x.id === `term:${id}`);
+      assert.ok(q, `${level}: ${id} が出題の候補にある`);
+      assert.equal(q.difficulty, level, id);
+    }
+  }
+});
+
+test('追加の用語80問: 選択肢は4つで重複せず、解説は1〜2文', () => {
+  for (const t of L.TERMS.slice(40)) {
+    assert.equal(t.wrongs.length, 3, t.id);
+    assert.equal(new Set([t.answer, ...t.wrongs]).size, 4, t.id);
+    assert.ok(!t.wrongs.includes(t.answer), t.id);
+    const s = countSentences(t.explanation);
+    assert.ok(s >= 1 && s <= 2, `${t.id}: 解説${s}文`);
+    assert.ok(t.question.includes('「') && t.question.endsWith('?'), t.id);
+  }
+});
+
+test('追加の用語80問: 正解が選択肢の中で唯一いちばん長い問題は、全体で24問以内・各難易度で7問以内', () => {
+  // 上限は内容に依存する数。現状は全体20問・各難易度の最大6問。問題を足す・直すときは実数を見て直す
+  const isStrictlyLongest = (t) => countChars(t.answer) > Math.max(...t.wrongs.map(countChars));
+  const added = L.TERMS.slice(40);
+  const longest = added.filter(isStrictlyLongest);
+  assert.ok(longest.length <= 24, `全体 ${longest.length} 問: ${longest.map((t) => t.id).join(',')}`);
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const n = longest.filter((t) => t.difficulty === level).length;
+    assert.ok(n <= 7, `${level}: ${n} 問`);
+  }
+});
+
+test('追加の用語80問: どの項目から作った問題も validateQuestion を通り、difficulty と detail を持つ', () => {
+  for (const t of L.TERMS.slice(40)) {
+    for (let seed = 1; seed <= 5; seed++) {
+      const q = L.makeTermQuestion(t, L.createRng(seed));
+      assert.equal(L.validateQuestion(q), null, t.id);
+      assert.ok(L.DIFFICULTY_LEVELS.includes(q.difficulty), t.id);
+      assert.equal(q.detail, t.detail, t.id);
+      assert.ok(q.detail.length > 0, t.id);
+    }
   }
 });

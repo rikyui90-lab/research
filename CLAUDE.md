@@ -66,7 +66,8 @@ python .claude/skills/fushoji-page/scripts/build_pages.py fushoji/companies.json
 ## 運用
 
 - `main` に直接コミットしない。ブランチ → PR → マージ。マージ済みのブランチは `main` から作り直す。
-- 株クイズの公開(Pages への反映)は、ユーザーが明示的に許可するまで行わない(設計書 §1)。
+- 頼まれた変更が終わったら、PR の作成と main へのマージは、聞かずに自動で行う。
+- 株クイズの公開(Pages への反映)は、main へのマージで行われる。マージの許可に含む。
 
 ## エージェント(サブエージェント)を使うときの決まり
 

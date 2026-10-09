@@ -1742,3 +1742,102 @@ test('追加の用語80問: どの項目から作った問題も validateQuestio
     }
   }
 });
+
+// ---- 価格の目盛り(チャートの形状) ----
+test('priceScaleFor: 同じシードなら同じ。base は300〜4000円ほどで10円刻み、span は base の15〜40%', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const a = L.priceScaleFor(seed);
+    assert.deepEqual(a, L.priceScaleFor(seed), `seed=${seed}`);
+    assert.ok(a.base >= 300 && a.base <= 4000, `seed=${seed} base=${a.base}`);
+    assert.equal(a.base % 10, 0, `seed=${seed}`);
+    assert.ok(a.span >= a.base * 0.14 && a.span <= a.base * 0.41, `seed=${seed} span=${a.span}`);
+  }
+  const bases = new Set();
+  for (let seed = 1; seed <= 50; seed++) bases.add(L.priceScaleFor(seed).base);
+  assert.ok(bases.size > 20, 'シードごとに基準が変わる');
+});
+
+test('priceScaleFor: シードだけで決まり、問題の系列の乱数も、ほかの呼び出しも変えない', () => {
+  const p = L.findPattern('double-top');
+  const before = L.generateSeries(p, 77);
+  L.priceScaleFor(77);
+  assert.deepEqual(L.generateSeries(p, 77), before);
+  const q = L.makePatternQuestion(p, 77);
+  assert.deepEqual(L.chartForQuestion(q).priceScale, L.priceScaleFor(77));
+  // 問題のパターンやほかの引数に依存しない
+  assert.deepEqual(L.chartForQuestion(L.makePatternQuestion(L.findPattern('v-top'), 77)).priceScale, L.priceScaleFor(77));
+});
+
+test('toPrice: 単調に増え、v が -20〜120 でも常に正', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const s = L.priceScaleFor(seed);
+    let prev = -Infinity;
+    for (let v = -20; v <= 120; v += 5) {
+      const price = L.toPrice(v, s);
+      assert.ok(price > 0, `seed=${seed} v=${v}`);
+      assert.ok(price > prev, `seed=${seed} v=${v}`);
+      prev = price;
+    }
+    assert.equal(L.toPrice(0, s), s.base);
+    assert.ok(Math.abs(L.toPrice(100, s) - (s.base + s.span)) < 1e-9);
+    assert.ok(Math.abs(L.fromPrice(L.toPrice(37, s), s) - 37) < 1e-9);
+  }
+});
+
+test('niceTicks: 1・2・5 × 10^k の刻みで、昇順・範囲内・3〜6個', () => {
+  const isNice = (step) => {
+    const mag = Math.pow(10, Math.floor(Math.log10(step) + 1e-9));
+    return [1, 2, 5].some((m) => Math.abs(step - m * mag) < mag * 1e-6);
+  };
+  const rng = L.createRng(2024);
+  for (let i = 0; i < 2000; i++) {
+    const min = rng() * 4000 * rng();
+    const max = min + Math.pow(10, rng() * 4 - 1);
+    const t = L.niceTicks(min, max);
+    assert.ok(t.length >= 3 && t.length <= 6, `${min}〜${max} → ${t.length}個`);
+    for (let k = 0; k < t.length; k++) {
+      assert.ok(t[k] >= min - 1e-9 && t[k] <= max + 1e-9, `${min}〜${max} 範囲外 ${t[k]}`);
+      if (k > 0) {
+        assert.ok(t[k] > t[k - 1]);
+        assert.ok(isNice(t[k] - t[k - 1]), `${min}〜${max} 刻み ${t[k] - t[k - 1]}`);
+      }
+    }
+  }
+});
+
+test('niceTicks: 例と決定性と target', () => {
+  assert.deepEqual(L.niceTicks(0, 100), [0, 50, 100]);
+  assert.deepEqual(L.niceTicks(0, 100, 6), [0, 20, 40, 60, 80, 100]);
+  assert.deepEqual(L.niceTicks(1003, 1497), [1100, 1200, 1300, 1400]);
+  assert.deepEqual(L.niceTicks(1003, 1497), L.niceTicks(1003, 1497));
+  assert.ok(L.niceTicks(0, 100, 6).length >= L.niceTicks(0, 100, 3).length);
+});
+
+test('niceTicks: 幅が0や極端に小さい範囲でも壊れない', () => {
+  assert.deepEqual(L.niceTicks(500, 500), [500]);
+  for (const [min, max] of [[500, 500.001], [1000, 1000.5], [0, 0.003]]) {
+    const t = L.niceTicks(min, max);
+    assert.ok(t.length >= 1 && t.length <= 6, `${min}〜${max}`);
+    assert.ok(t.every((v) => Number.isFinite(v) && v >= min - 1e-9 && v <= max + 1e-9));
+  }
+});
+
+test('formatPrice: 3桁区切りで円記号なし', () => {
+  assert.equal(L.formatPrice(950), '950');
+  assert.equal(L.formatPrice(1200), '1,200');
+  assert.equal(L.formatPrice(1234567), '1,234,567');
+  assert.equal(L.formatPrice(1200.4), '1,200');
+});
+
+test('形状の問題の実際の範囲: 目盛りは3〜6本で、範囲内に収まる', () => {
+  for (const p of L.PATTERNS) {
+    for (let seed = 1; seed <= 20; seed++) {
+      const q = L.makePatternQuestion(p, seed);
+      const chart = L.chartForQuestion(q);
+      const last = chart.values[chart.values.length - 1];
+      const { min, max } = L.normalizeRange(chart.values.concat(chart.continuation, chart.continuation.map((v) => 2 * last - v)));
+      const ticks = L.niceTicks(L.toPrice(min, chart.priceScale), L.toPrice(max, chart.priceScale));
+      assert.ok(ticks.length >= 3 && ticks.length <= 6, `${p.id} seed=${seed} ${ticks.length}個`);
+    }
+  }
+});

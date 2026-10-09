@@ -1120,6 +1120,52 @@ function normalizeRange(values) {
   return { min: min - pad, max: max + pad };
 }
 
+// ---- 価格の目盛り(チャートの形状の縦軸) ----
+// チャートの値(相対値 0〜100)を、架空の株価(円)に読み替える。形を読みやすくするための目安で、実在の価格ではない。
+// 問題の系列の乱数とは別の乱数(seed + 104729)で決めるので、チャートの形は変わらない
+function priceScaleFor(seed) {
+  const rng = createRng(seed + 104729);
+  const base = Math.round((300 + rng() * 3700) / 10) * 10;
+  const span = Math.round(base * (0.15 + rng() * 0.25));
+  return { base, span };
+}
+
+// 相対値 v を価格に直す(v が 0〜100 のとき base〜base+span)
+function toPrice(v, scale) {
+  return scale.base + (v * scale.span) / 100;
+}
+
+function fromPrice(price, scale) {
+  return ((price - scale.base) * 100) / scale.span;
+}
+
+// min〜max の中に、1・2・5 × 10^k の刻みの目盛りを3〜6本(target に近い数)選んで昇順で返す。幅が0なら [min]
+function niceTicks(min, max, target = 4) {
+  if (!(max > min)) return [min];
+  const e = Math.floor(Math.log10((max - min) / target));
+  let best = null;
+  for (let k = e - 1; k <= e + 1; k++) {
+    for (const m of [1, 2, 5]) {
+      const step = m * Math.pow(10, k);
+      const first = Math.ceil(min / step - 1e-9);
+      const last = Math.floor(max / step + 1e-9);
+      const count = last - first + 1;
+      const score = (count >= 3 && count <= 7 ? 0 : 100) + Math.abs(count - target);
+      if (!best || score < best.score) best = { score, step, first, last };
+    }
+  }
+  if (best.last - best.first + 1 > 6) best.last -= 1; // 7本になったときは、いちばん上を1本減らす
+  const decimals = Math.max(0, -Math.floor(Math.log10(best.step)));
+  const ticks = [];
+  for (let i = best.first; i <= best.last; i++) ticks.push(Number((i * best.step).toFixed(decimals)));
+  return ticks;
+}
+
+// 価格の表示用: 整数に丸めて3桁ごとにカンマを入れる(円記号なし)
+function formatPrice(price) {
+  return String(Math.round(price)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 const SERIES_LENGTH = 120;
 const CONTINUATION_LENGTH = 30;
 const SERIES_NOISE = 1.2;
@@ -1299,6 +1345,7 @@ function chartForQuestion(q) {
   }
   // 続きは答え合わせのときだけ描く(描画側の reveal)。'either' は空
   chart.continuation = generateContinuation(values[values.length - 1], pattern.outlook, q.seed);
+  chart.priceScale = priceScaleFor(q.seed);
   return chart;
 }
 
@@ -1505,6 +1552,7 @@ function header() {
 }
 
 // ---- チャートの描画 ----
+const AXIS_W = 44; // 価格の目盛り(右端の文字)の列の幅
 function drawLines(ctx, w, h, chart, reveal, colors) {
   const cont = chart.continuation || [];
   const all = chart.values.concat(cont);
@@ -1512,9 +1560,33 @@ function drawLines(ctx, w, h, chart, reveal, colors) {
   const lastValue = chart.values[chart.values.length - 1];
   const { min, max } = normalizeRange(all.concat(cont.map((v) => 2 * lastValue - v)));
   const n = all.length;
-  const right = chart.ma ? 22 : 8; // 移動平均線の名前を右端に書くための余白
+  // 右端の価格の目盛りの列(AXIS_W)の左に、折れ線を描く。移動平均線の名前は、折れ線の右端と目盛りの列のあいだに書く
+  const right = AXIS_W + (chart.ma ? 22 : 8);
   const x = (i) => 8 + (i / (n - 1)) * (w - 8 - right);
   const y = (v) => h - 12 - ((v - min) / (max - min)) * (h - 24);
+  // 横の点線と価格の目盛り(グリッドは折れ線より下に描く)
+  if (chart.priceScale) {
+    const ticks = niceTicks(toPrice(min, chart.priceScale), toPrice(max, chart.priceScale));
+    ctx.save();
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (const price of ticks) {
+      const ty = Math.round(y(fromPrice(price, chart.priceScale))) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(8, ty);
+      ctx.lineTo(w - AXIS_W + 4, ty);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = colors.muted;
+      ctx.fillText(formatPrice(price), w - 4, ty);
+      ctx.setLineDash([2, 3]);
+    }
+    ctx.restore();
+  }
   const stroke = (pts, color, width, dash) => {
     ctx.beginPath();
     // 点の中点を通る2次曲線でなめらかにつなぐ
@@ -1547,6 +1619,9 @@ function drawLines(ctx, w, h, chart, reveal, colors) {
     ctx.textBaseline = 'middle';
     for (const [label, series, color] of lines) {
       const last = series.length - 1;
+      // 点線が文字に重ならないよう、文字の背に地色の板を敷く
+      ctx.fillStyle = colors.card;
+      ctx.fillRect(x(last) + 2, y(series[last]) - 7, 14, 14);
       ctx.fillStyle = color;
       ctx.fillText(label, x(last) + 4, y(series[last]));
     }
@@ -1585,6 +1660,7 @@ function renderChart(canvas, chart, reveal) {
   const colors = {
     line: get('--line'), short: get('--ma-short'), mid: get('--ma-mid'), long: get('--ma-long'),
     up: get('--up'), down: get('--down'), cont: get('--cont'),
+    grid: get('--border'), muted: get('--muted'), card: get('--card'),
   };
   const w = canvas.parentElement.clientWidth - 16;
   const h = Math.round(w * 0.55);
@@ -1598,6 +1674,11 @@ function renderChart(canvas, chart, reveal) {
   ctx.clearRect(0, 0, w, h);
   if (chart.kind === 'candles') drawCandles(ctx, w, h, chart.candles, colors);
   else drawLines(ctx, w, h, chart, reveal, colors);
+}
+
+// チャートの形状の図は、価格が架空であることを添える
+function priceNote(q) {
+  return q.type === 'pattern' ? '<p class="note">価格は架空の例だよ(目盛りは形を読みやすくするための目安だよ)。</p>' : '';
 }
 
 // 移動平均線がある図には、色の説明を添える
@@ -1670,6 +1751,7 @@ function showQuestion() {
     <p class="q">${esc(q.question)}</p>
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
     ${q.type === 'candle' ? '<p class="note">赤が陽線(上昇)、青が陰線(下落)だよ。</p>' : ''}
+    ${priceNote(q)}
     ${maNote(q)}
     <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
   if (hasChart) drawQuestionChart(q, false);
@@ -1705,6 +1787,7 @@ function showExplain(q, picked, correct) {
     </div>
     ${tendency}
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
+    ${priceNote(q)}
     ${maNote(q)}
     <p class="sub">あなたの答え: ${esc(picked)}(${correct ? '正解' : '不正解'})</p>
     <button class="primary" id="next">${last ? '結果を見る' : '次の問題へ'}</button>`;

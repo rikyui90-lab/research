@@ -265,10 +265,10 @@ test('MODES と MODE_LABELS が揃っている', () => {
   assert.equal(L.OUTLOOK_LABELS.either, '上下どちらにも抜けうる');
 });
 
-test('CANDLE_PATTERNS: 30個で、ローソク足の値が矛盾していない', () => {
-  assert.equal(L.CANDLE_PATTERNS.length, 30);
-  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 30);
-  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 30);
+test('CANDLE_PATTERNS: 50個(既存30+追加20)で、ローソク足の値が矛盾していない', () => {
+  assert.equal(L.CANDLE_PATTERNS.length, 50);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 50);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 50);
   for (const c of L.CANDLE_PATTERNS) {
     assert.ok(c.candles.length >= 1 && c.candles.length <= 5, c.id);
     for (const k of c.candles) {
@@ -867,8 +867,8 @@ test('紛らわしいローソク足の組は、同じ問題の選択肢に同�
   const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
   const candleIds = new Set(L.CANDLE_PATTERNS.map((c) => c.id));
   const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => candleIds.has(a) && candleIds.has(b));
-  // ローソク足どうしの紛らわしい組の数(窓を含む足の6組を足して 27 + 6 = 33)。数が変わったら、意図した変更か確かめること
-  assert.equal(pairs.length, 33);
+  // ローソク足どうしの紛らわしい組の数(v5 までの 33 組に、ローソク足20種類の追加で 61 組を足して 94)。数が変わったら、意図した変更か確かめること
+  assert.equal(pairs.length, 94);
   for (let seed = 1; seed <= 40; seed++) {
     for (const [a, b] of pairs) {
       for (const [x, y] of [[a, b], [b, a]]) {
@@ -987,13 +987,18 @@ const LEVEL_TABLE = {
   },
   candles: {
     easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top',
-      'lower-shadow-bullish', 'upper-shadow-bearish'],
+      'lower-shadow-bullish', 'upper-shadow-bearish',
+      'bullish-marubozu'],
     normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji',
-      'gap-up', 'gap-down'],
+      'gap-up', 'gap-down',
+      'bearish-marubozu'],
     hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover',
-      'bullish-harami-cross', 'bearish-harami-cross'],
-    expert: ['rising-three-methods', 'falling-three-methods'],
-    master: ['abandoned-baby-bottom', 'abandoned-baby-top'],
+      'bullish-harami-cross', 'bearish-harami-cross',
+      'four-price-doji', 'bullish-opening-marubozu'],
+    expert: ['rising-three-methods', 'falling-three-methods',
+      'bearish-opening-marubozu', 'three-gaps-up', 'three-gaps-down', 'upward-gap-side-by-side-white', 'downward-gap-side-by-side-black', 'thrusting-line', 'irikubi-line', 'yukichigai-line'],
+    master: ['abandoned-baby-bottom', 'abandoned-baby-top',
+      'bullish-deai-line', 'bearish-deai-line', 'bullish-tasuki-line', 'bearish-tasuki-line', 'upward-gap-star', 'downward-gap-star', 'three-soldiers-stalled', 'three-soldiers-deliberation'],
   },
   terms: {
     easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa',
@@ -1196,7 +1201,8 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
   const expected = {
     // チャートの形は、どの難易度も10種類(v6 で 30 → 50 種類にした)
     pattern: { easy: 10, normal: 10, hard: 10, expert: 10, master: 10 },
-    candle: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
+    // ローソク足も、どの難易度も10種類(v6 で 30 → 50 種類にした)
+    candle: { easy: 10, normal: 10, hard: 10, expert: 10, master: 10 },
     // 用語は、v4 までの40問(11/11/10/4/4)に追加の80問(各16)を足した数。内容を足したらここも直す
     term: { easy: 27, normal: 27, hard: 26, expert: 20, master: 20 },
   };
@@ -1207,8 +1213,8 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
       if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
     }
   }
-  // all モード: 用語 + ローソク足 + チャートの形状10(内容に依存する数)。expert / master は 20+2+10 = 32
-  const allExpected = { easy: 46, normal: 46, hard: 44, expert: 32, master: 32 };
+  // all モード: 用語 + ローソク足10 + チャートの形状10(内容に依存する数)。expert / master は 20+10+10 = 40
+  const allExpected = { easy: 47, normal: 47, hard: 46, expert: 40, master: 40 };
   for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.buildPool('all', L.createRng(1), level).length, allExpected[level], `all/${level}`);
 });
 
@@ -1239,9 +1245,10 @@ test('各難易度に、新しく追加した問題がちょうど8問ある(用
   }
 });
 
-test('roundSize: all は、どの難易度でも10(expert/master の候補は 20+2+10=32 問)。チャートの形状も、どの難易度でも10。どの組み合わせも1〜10', () => {
+test('roundSize: all は、どの難易度でも10(expert/master の候補は 20+10+10=40 問)。チャートの形状も、どの難易度でも10。どの組み合わせも1〜10', () => {
   for (const level of ['easy', 'normal', 'hard', 'expert', 'master']) assert.equal(L.roundSize('all', level), 10, `all/${level}`);
   for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.roundSize('pattern', level), 10, `pattern/${level}`);
+  for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.roundSize('candle', level), 10, `candle/${level}`);
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
@@ -1645,9 +1652,9 @@ const countChars = (s) => [...s].length;
 const countSentences = (s) => (s.match(/。/g) || []).length;
 const FORBIDDEN_WORDS = ['必ず', '絶対', '買うべき', '売るべき'];
 
-test('detail の網羅: 形状50・ローソク足30・用語120の全200項目に、空でない detail がある', () => {
+test('detail の網羅: 形状50・ローソク足50・用語120の全220項目に、空でない detail がある', () => {
   assert.equal(L.PATTERNS.length, 50);
-  assert.equal(L.CANDLE_PATTERNS.length, 30);
+  assert.equal(L.CANDLE_PATTERNS.length, 50);
   assert.equal(L.TERMS.length, 120);
   for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS]) {
     assert.equal(typeof x.detail, 'string', x.id);
@@ -1655,7 +1662,7 @@ test('detail の網羅: 形状50・ローソク足30・用語120の全200項目�
   }
 });
 
-test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の最初の40)だけを持ち、追加の80問と追加の形状20種類は入っていない', () => {
+test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の最初の40)だけを持ち、追加の80問・追加の形状20種類・追加のローソク足20種類は入っていない', () => {
   const D = L.DETAIL_BY_ID;
   assert.deepEqual(Object.keys(D).sort(), ['candles', 'patterns', 'terms']);
   assert.deepEqual(Object.keys(D.patterns).sort(), L.PATTERNS.slice(0, 30).map((x) => x.id).sort());
@@ -1663,7 +1670,11 @@ test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の�
     assert.ok(!(id in D.patterns), `${id} は DETAIL_BY_ID に入れない(自分の detail を持つ)`);
     assert.equal(typeof L.findPattern(id).detail, 'string', id);
   }
-  assert.deepEqual(Object.keys(D.candles).sort(), L.CANDLE_PATTERNS.map((x) => x.id).sort());
+  assert.deepEqual(Object.keys(D.candles).sort(), L.CANDLE_PATTERNS.slice(0, 30).map((x) => x.id).sort());
+  for (const id of Object.keys(NEW_CANDLE20)) {
+    assert.ok(!(id in D.candles), `${id} は DETAIL_BY_ID に入れない(自分の detail を持つ)`);
+    assert.equal(typeof L.CANDLE_PATTERNS.find((x) => x.id === id).detail, 'string', id);
+  }
   const oldTermIds = L.TERMS.slice(0, 40).map((x) => x.id);
   assert.deepEqual(Object.keys(D.terms).sort(), oldTermIds.slice().sort());
   assert.equal(Object.keys(D.patterns).length + Object.keys(D.candles).length + Object.keys(D.terms).length, 100);
@@ -1675,14 +1686,14 @@ test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の�
     assert.ok(t && typeof t.detail === 'string' && t.detail.length > 0, `${id} は自分の detail を持つ`);
   }
   // 表の文が、そのまま各項目に付いている
-  for (const [group, items] of [['patterns', L.PATTERNS.slice(0, 30)], ['candles', L.CANDLE_PATTERNS], ['terms', L.TERMS.slice(0, 40)]]) {
+  for (const [group, items] of [['patterns', L.PATTERNS.slice(0, 30)], ['candles', L.CANDLE_PATTERNS.slice(0, 30)], ['terms', L.TERMS.slice(0, 40)]]) {
     for (const x of items) assert.equal(x.detail, D[group][x.id], x.id);
   }
 });
 
-test('detail の質: 120〜250字・2〜4文・「。」で終わり、200個すべて違う文', () => {
+test('detail の質: 120〜250字・2〜4文・「。」で終わり、220個すべて違う文', () => {
   const all = [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS];
-  assert.equal(all.length, 200);
+  assert.equal(all.length, 220);
   for (const x of all) {
     const n = countChars(x.detail);
     assert.ok(n >= 120 && n <= 250, `${x.id}: ${n}字`);
@@ -1690,7 +1701,7 @@ test('detail の質: 120〜250字・2〜4文・「。」で終わり、200個す
     assert.ok(s >= 2 && s <= 4, `${x.id}: ${s}文`);
     assert.ok(x.detail.endsWith('。'), x.id);
   }
-  assert.equal(new Set(all.map((x) => x.detail)).size, 200);
+  assert.equal(new Set(all.map((x) => x.detail)).size, 220);
 });
 
 test('detail の質: explanation と同じ・explanation を含む detail はなく、断定や助言の言葉を使わない', () => {
@@ -2383,4 +2394,326 @@ test('新規チャート20種類: explanation は「よ。」で終わり、deta
     assert.ok(p.detail.endsWith('。'), id);
     assert.ok(!p.detail.includes('正解') && !p.detail.includes('この問題'), id);
   }
+});
+
+// ---- v6: ローソク足20種類の追加(30 → 50 種類。各難易度10種類) ----
+// id -> [名前, 難易度](表の順。CANDLE_PATTERNS の末尾にこの順で並ぶ)
+const NEW_CANDLE20 = {
+  'bullish-marubozu': ['陽の丸坊主', 'easy'],
+  'bearish-marubozu': ['陰の丸坊主', 'normal'],
+  'four-price-doji': ['四値同時線', 'hard'],
+  'bullish-opening-marubozu': ['陽の寄り付き坊主', 'hard'],
+  'bearish-opening-marubozu': ['陰の寄り付き坊主', 'expert'],
+  'three-gaps-up': ['三空踏み上げ', 'expert'],
+  'three-gaps-down': ['三空叩き込み', 'expert'],
+  'upward-gap-side-by-side-white': ['上放れ並び赤', 'expert'],
+  'downward-gap-side-by-side-black': ['下放れ並び黒', 'expert'],
+  'thrusting-line': ['差し込み線', 'expert'],
+  'irikubi-line': ['入り首線', 'expert'],
+  'yukichigai-line': ['行き違い線', 'expert'],
+  'bullish-deai-line': ['陽の出合い線', 'master'],
+  'bearish-deai-line': ['陰の出合い線', 'master'],
+  'bullish-tasuki-line': ['陽のたすき線', 'master'],
+  'bearish-tasuki-line': ['陰のたすき線', 'master'],
+  'upward-gap-star': ['上放れの星', 'master'],
+  'downward-gap-star': ['下放れの星', 'master'],
+  'three-soldiers-stalled': ['赤三兵先詰まり', 'master'],
+  'three-soldiers-deliberation': ['赤三兵思案星', 'master'],
+};
+// 各足の「紛らわしい組」(topics の confusable_with に、見た目が近い組を足したもの)。両方向で isConfusable になる
+const NEW_CANDLE20_CONFUSABLE = {
+  'bullish-marubozu': ['big-bullish', 'bearish-marubozu', 'bullish-opening-marubozu'],
+  'bearish-marubozu': ['big-bearish', 'bullish-marubozu', 'bearish-opening-marubozu'],
+  'four-price-doji': ['doji', 'dragonfly-doji', 'gravestone-doji'],
+  'bullish-opening-marubozu': ['shooting-star', 'upper-shadow-bearish', 'bullish-marubozu', 'big-bullish', 'bearish-opening-marubozu'],
+  'bearish-opening-marubozu': ['hammer', 'lower-shadow-bullish', 'bearish-marubozu', 'big-bearish'],
+  'three-gaps-up': ['gap-up', 'three-white-soldiers', 'three-gaps-down', 'upward-gap-side-by-side-white'],
+  'three-gaps-down': ['gap-down', 'three-black-crows', 'downward-gap-side-by-side-black'],
+  'upward-gap-side-by-side-white': ['gap-up', 'three-white-soldiers', 'downward-gap-side-by-side-black', 'upward-gap-star', 'three-soldiers-deliberation'],
+  'downward-gap-side-by-side-black': ['gap-down', 'three-black-crows', 'downward-gap-star'],
+  'thrusting-line': ['piercing-line', 'bullish-engulfing', 'irikubi-line'],
+  'irikubi-line': ['piercing-line', 'bearish-harami', 'bullish-deai-line'],
+  'yukichigai-line': ['bullish-deai-line', 'bullish-engulfing', 'gap-up', 'bearish-deai-line'],
+  'bullish-deai-line': ['thrusting-line', 'piercing-line', 'bearish-deai-line'],
+  'bearish-deai-line': ['dark-cloud-cover', 'bearish-engulfing'],
+  'bullish-tasuki-line': ['bullish-engulfing', 'piercing-line', 'bearish-tasuki-line'],
+  'bearish-tasuki-line': ['bearish-engulfing', 'dark-cloud-cover'],
+  'upward-gap-star': ['evening-star', 'gap-up', 'spinning-top', 'three-soldiers-deliberation'],
+  'downward-gap-star': ['morning-star', 'gap-down', 'spinning-top'],
+  'three-soldiers-stalled': ['three-white-soldiers', 'three-soldiers-deliberation'],
+  'three-soldiers-deliberation': ['three-white-soldiers', 'gap-up'],
+};
+
+test('新規ローソク足20種類: 50個になり、末尾に表の順で並び、名前と id が重複しない', () => {
+  assert.equal(L.CANDLE_PATTERNS.length, 50);
+  assert.deepEqual(L.CANDLE_PATTERNS.slice(30).map((c) => c.id), Object.keys(NEW_CANDLE20));
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.id)).size, 50);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.name)).size, 50);
+  for (const [id, [name, level]] of Object.entries(NEW_CANDLE20)) {
+    const item = L.CANDLE_PATTERNS.find((c) => c.id === id);
+    assert.equal(item.name, name, id);
+    assert.equal(item.difficulty, level, id);
+    assert.deepEqual(Object.keys(item).sort(), ['candles', 'detail', 'difficulty', 'explanation', 'id', 'name'], id);
+    assert.ok(item.candles.length >= 1 && item.candles.length <= 5, id);
+    for (const k of item.candles) {
+      assert.ok(k.h >= Math.max(k.o, k.c) && k.l <= Math.min(k.o, k.c), `${id}: 値が矛盾`);
+      for (const v of [k.o, k.h, k.l, k.c]) assert.ok(v >= 0 && v <= 100, `${id}: 0〜100 の外`);
+    }
+  }
+});
+
+test('新規ローソク足20種類: 難易度の表に入り、各難易度ちょうど10種類(足の追加は +1/+1/+2/+8/+8)', () => {
+  const added = { easy: 1, normal: 1, hard: 2, expert: 8, master: 8 };
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.equal(L.DIFFICULTY_BY_ID.candles[level].length, 10, level);
+    const mine = Object.entries(NEW_CANDLE20).filter(([, v]) => v[1] === level).map(([id]) => id);
+    assert.equal(mine.length, added[level], level);
+    for (const id of mine) assert.ok(L.DIFFICULTY_BY_ID.candles[level].includes(id), `${level}/${id}`);
+    assert.equal(L.CANDLE_PATTERNS.filter((c) => c.difficulty === level).length, 10, level);
+  }
+});
+
+test('新規ローソク足20種類: 紛らわしい組が両方向で isConfusable で、選択肢に同時に出ない(シード1〜40)', () => {
+  const idSet = new Set(L.CANDLE_PATTERNS.map((c) => c.id));
+  const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
+  for (const [id, others] of Object.entries(NEW_CANDLE20_CONFUSABLE)) {
+    assert.ok(others.length >= 2, id);
+    for (const other of others) {
+      assert.ok(idSet.has(other), `${id}/${other}: 知らない id`);
+      assert.equal(L.isConfusable(id, other), true, `${id}/${other}`);
+      assert.equal(L.isConfusable(other, id), true, `${other}/${id}`);
+      for (let seed = 1; seed <= 40; seed++) {
+        for (const [x, y] of [[id, other], [other, id]]) {
+          const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
+          assert.ok(!q.choices.includes(nameOf(y)), `${x} vs ${y} seed=${seed}`);
+          assert.equal(L.validateQuestion(q), null, `${x} seed=${seed}`);
+        }
+      }
+    }
+  }
+});
+
+test('新規ローソク足20種類: 問題は validateQuestion を通り、explanation は「よ。」で終わり、detail を自分で持つ', () => {
+  for (const [id, [, level]] of Object.entries(NEW_CANDLE20)) {
+    const item = L.CANDLE_PATTERNS.find((c) => c.id === id);
+    assert.ok(item.explanation.endsWith('よ。'), id);
+    assert.ok(item.detail.endsWith('よ。'), id);
+    assert.ok(!(id in L.DETAIL_BY_ID.candles), `${id} は DETAIL_BY_ID に入れない`);
+    for (let seed = 1; seed <= 10; seed++) {
+      const q = L.makeCandleQuestion(item, L.createRng(seed));
+      assert.equal(L.validateQuestion(q), null, id);
+      assert.equal(q.difficulty, level, id);
+      assert.equal(q.detail, item.detail, id);
+      assert.equal(q.explanation, item.explanation, id);
+      assert.deepEqual(q.candles, item.candles, id);
+    }
+  }
+});
+
+test('新規ローソク足20種類: ローソク足のラウンドは、どの難易度も10問で、その難易度の10種類がちょうど1回ずつ出る', () => {
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.equal(L.roundSize('candle', level), 10, level);
+    assert.equal(L.buildPool('candle', L.createRng(1), level).length, 10, level);
+    for (let seed = 1; seed <= 30; seed++) {
+      const deck = L.buildDeck('candle', seed, level);
+      assert.equal(deck.length, 10, `${level} seed=${seed}`);
+      assert.deepEqual(deck.map((q) => q.id.replace('candle:', '')).sort(), L.DIFFICULTY_BY_ID.candles[level].slice().sort(), `${level} seed=${seed}`);
+      for (const q of deck) {
+        assert.equal(L.validateQuestion(q), null, q.id);
+        assert.equal(q.difficulty, level, q.id);
+      }
+    }
+  }
+});
+
+// 定義の確認用の道具: 陽線・陰線、上ヒゲ・下ヒゲ、実体の中心
+const isBull = (k) => k.c > k.o;
+const isBear = (k) => k.c < k.o;
+const upperOf = (k) => k.h - Math.max(k.o, k.c);
+const lowerOf = (k) => Math.min(k.o, k.c) - k.l;
+const midOf = (k) => (k.o + k.c) / 2;
+const GAP = 8; // 窓や食い込みは、画面で見える 8 以上の差をつける
+
+test('陽の丸坊主 / 陰の丸坊主: 上下にヒゲがなく、実体が長い(大陽線・大陰線には小さなヒゲがある)', () => {
+  const [a] = candleOf('bullish-marubozu');
+  assert.ok(a.o === a.l && a.c === a.h && bodyOf(a) >= 30);
+  const [b] = candleOf('bearish-marubozu');
+  assert.ok(b.o === b.h && b.c === b.l && bodyOf(b) >= 30);
+  for (const id of ['big-bullish', 'big-bearish']) {
+    const [k] = candleOf(id);
+    assert.ok(upperOf(k) > 0 && lowerOf(k) > 0, `${id} にはヒゲがある`);
+  }
+  assert.equal(candleOf('bullish-marubozu').length, 1);
+  assert.equal(candleOf('bearish-marubozu').length, 1);
+});
+
+test('四値同時線: 始値=高値=安値=終値の1本(実体もヒゲもない)', () => {
+  const ks = candleOf('four-price-doji');
+  assert.equal(ks.length, 1);
+  const [k] = ks;
+  assert.ok(k.o === k.h && k.h === k.l && k.l === k.c);
+});
+
+test('陽の寄り付き坊主: 始値=安値(下ヒゲなし)、上ヒゲが見えて、実体のほうが長い陽線', () => {
+  const [k] = candleOf('bullish-opening-marubozu');
+  assert.ok(isBull(k) && k.o === k.l);
+  assert.ok(upperOf(k) >= GAP && k.c < k.h, '上ヒゲが見える');
+  assert.ok(bodyOf(k) >= upperOf(k) * 1.5 && bodyOf(k) >= 20, '実体のほうが長い');
+});
+
+test('陰の寄り付き坊主: 始値=高値(上ヒゲなし)、下ヒゲが見えて、実体のほうが長い陰線', () => {
+  const [k] = candleOf('bearish-opening-marubozu');
+  assert.ok(isBear(k) && k.o === k.h);
+  assert.ok(lowerOf(k) >= GAP && k.c > k.l, '下ヒゲが見える');
+  assert.ok(bodyOf(k) >= lowerOf(k) * 1.5 && bodyOf(k) >= 20, '実体のほうが長い');
+});
+
+test('三空踏み上げ: 4本の陽線で、各足の安値が前の足の高値より 8 以上高い窓が3回続く', () => {
+  const ks = candleOf('three-gaps-up');
+  assert.equal(ks.length, 4);
+  for (const k of ks) assert.ok(isBull(k));
+  for (let i = 1; i < 4; i++) assert.ok(ks[i].l >= ks[i - 1].h + GAP, `${i} 本目の窓`);
+});
+
+test('三空叩き込み: 4本の陰線で、各足の高値が前の足の安値より 8 以上低い窓が3回続く', () => {
+  const ks = candleOf('three-gaps-down');
+  assert.equal(ks.length, 4);
+  for (const k of ks) assert.ok(isBear(k));
+  for (let i = 1; i < 4; i++) assert.ok(ks[i].h <= ks[i - 1].l - GAP, `${i} 本目の窓`);
+});
+
+test('上放れ並び赤: 陽線のあと上に窓を空けて、始値と実体がほぼ同じ高さの陽線が2本並ぶ(切り上がらない)', () => {
+  const [a, b, c] = candleOf('upward-gap-side-by-side-white');
+  assert.equal(candleOf('upward-gap-side-by-side-white').length, 3);
+  assert.ok(isBull(a) && isBull(b) && isBull(c));
+  assert.ok(b.l >= a.h + GAP && c.l > a.h, '1本目との間に窓');
+  assert.ok(Math.abs(b.o - c.o) <= 3 && Math.abs(b.c - c.c) <= 3, '2本の始値・終値がほぼ同じ');
+  assert.ok(c.o >= b.o - 3 && c.o <= b.c, '3本目の始値は2本目の実体の中');
+});
+
+test('下放れ並び黒: 陰線のあと下に窓を空けて、始値と実体がほぼ同じ高さの陰線が2本並ぶ(切り下がらない)', () => {
+  const [a, b, c] = candleOf('downward-gap-side-by-side-black');
+  assert.equal(candleOf('downward-gap-side-by-side-black').length, 3);
+  assert.ok(isBear(a) && isBear(b) && isBear(c));
+  assert.ok(b.h <= a.l - GAP && c.h < a.l, '1本目との間に窓');
+  assert.ok(Math.abs(b.o - c.o) <= 3 && Math.abs(b.c - c.c) <= 3, '2本の始値・終値がほぼ同じ');
+  assert.ok(c.o <= b.o + 3 && c.o >= b.c, '3本目の始値は2本目の実体の中');
+});
+
+test('差し込み線: 大陰線のあと、前日の終値より安く始まる陽線が、前日の実体の中心より下で終わる', () => {
+  const [a, b] = candleOf('thrusting-line');
+  assert.equal(candleOf('thrusting-line').length, 2);
+  assert.ok(isBear(a) && bodyOf(a) >= 30);
+  assert.ok(isBull(b) && b.o <= a.c - GAP, '前日の終値より安く始まる');
+  assert.ok(b.c >= a.c + GAP, '前日の終値よりはっきり上');
+  assert.ok(b.c <= midOf(a) - 6, '実体の中心に届かない');
+});
+
+test('入り首線: 大陰線のあと、前日の終値より安く始まる陽線が、前日の安値をわずかに上回って終わる(差し込み線より戻りが小さい)', () => {
+  const [a, b] = candleOf('irikubi-line');
+  const [, t] = candleOf('thrusting-line');
+  assert.equal(candleOf('irikubi-line').length, 2);
+  assert.ok(isBear(a) && bodyOf(a) >= 30);
+  assert.ok(isBull(b) && b.o <= a.c - GAP, '前日の終値より安く始まる');
+  assert.ok(b.c > a.c && b.c > a.l && b.c - a.l <= 8, '前日の安値をわずかに上回る');
+  assert.ok(b.c <= t.c - 5, '差し込み線の終値より低い');
+});
+
+test('行き違い線: 逆色の2本で、始値がほぼ同じ・実体の長さがほぼ同じ・終値は大きく離れる', () => {
+  const [a, b] = candleOf('yukichigai-line');
+  assert.equal(candleOf('yukichigai-line').length, 2);
+  assert.ok(isBear(a) && isBull(b));
+  assert.ok(Math.abs(a.o - b.o) <= 2, '始値がそろう');
+  assert.ok(Math.abs(bodyOf(a) - bodyOf(b)) <= 3, '実体の長さがほぼ同じ');
+  assert.ok(Math.abs(a.c - b.c) >= 20, '終値は離れる(出合い線との違い)');
+});
+
+test('陽の出合い線: 陰線のあと前日の終値より安く始まる陽線が、前日の終値ちょうどに戻り、実体の長さがほぼ同じ', () => {
+  const [a, b] = candleOf('bullish-deai-line');
+  assert.equal(candleOf('bullish-deai-line').length, 2);
+  assert.ok(isBear(a) && isBull(b));
+  assert.ok(b.o <= a.c - GAP, '前日の終値より安く始まる');
+  assert.ok(Math.abs(b.c - a.c) <= 1, '終値がそろう');
+  assert.ok(Math.abs(bodyOf(a) - bodyOf(b)) <= 4, '実体の長さがほぼ同じ');
+  assert.ok(Math.abs(a.o - b.o) >= 20, '始値は離れる(行き違い線との違い)');
+});
+
+test('陰の出合い線: 陽線のあと前日の終値より高く始まる陰線が、前日の終値ちょうどに戻り、実体の長さがほぼ同じ', () => {
+  const [a, b] = candleOf('bearish-deai-line');
+  assert.equal(candleOf('bearish-deai-line').length, 2);
+  assert.ok(isBull(a) && isBear(b));
+  assert.ok(b.o >= a.c + GAP, '前日の終値より高く始まる');
+  assert.ok(Math.abs(b.c - a.c) <= 1, '終値がそろう');
+  assert.ok(Math.abs(bodyOf(a) - bodyOf(b)) <= 4, '実体の長さがほぼ同じ');
+  assert.ok(Math.abs(a.o - b.o) >= 20, '始値は離れる(行き違い線との違い)');
+});
+
+test('陽のたすき線: 陰線の実体の上寄りで始まる陽線が、前日の高値を 8 以上超えて終わる(前日の終値より安くは始まらない)', () => {
+  const [a, b] = candleOf('bullish-tasuki-line');
+  assert.equal(candleOf('bullish-tasuki-line').length, 2);
+  assert.ok(isBear(a) && isBull(b));
+  assert.ok(b.o >= midOf(a) && b.o <= a.o - GAP, '前日の実体の上寄り');
+  assert.ok(b.o >= a.c + GAP, '前日の終値より安く始まらない');
+  assert.ok(b.c >= a.h + GAP, '前日の高値を超える');
+});
+
+test('陰のたすき線: 陽線の実体の下寄りで始まる陰線が、前日の安値を 8 以上割って終わる(前日の終値より高くは始まらない)', () => {
+  const [a, b] = candleOf('bearish-tasuki-line');
+  assert.equal(candleOf('bearish-tasuki-line').length, 2);
+  assert.ok(isBull(a) && isBear(b));
+  assert.ok(b.o <= midOf(a) && b.o >= a.o + GAP, '前日の実体の下寄り');
+  assert.ok(b.o <= a.c - GAP, '前日の終値より高く始まらない');
+  assert.ok(b.c <= a.l - GAP, '前日の安値を割る');
+});
+
+test('上放れの星: 陽線のあと窓を空けて、上下にヒゲのある小さな実体(コマ)が出る', () => {
+  const [a, b] = candleOf('upward-gap-star');
+  assert.equal(candleOf('upward-gap-star').length, 2);
+  assert.ok(isBull(a) && bodyOf(a) >= 15);
+  assert.ok(b.l >= a.h + GAP, '窓');
+  assert.ok(bodyOf(b) > 0 && bodyOf(b) <= 6 && bodyOf(b) * 3 <= bodyOf(a), '小さな実体');
+  assert.ok(upperOf(b) >= 4 && lowerOf(b) >= 2, '上下にヒゲ');
+});
+
+test('下放れの星: 陰線のあと窓を空けて、上下にヒゲのある小さな実体(コマ)が出る', () => {
+  const [a, b] = candleOf('downward-gap-star');
+  assert.equal(candleOf('downward-gap-star').length, 2);
+  assert.ok(isBear(a) && bodyOf(a) >= 15);
+  assert.ok(b.h <= a.l - GAP, '窓');
+  assert.ok(bodyOf(b) > 0 && bodyOf(b) <= 6 && bodyOf(b) * 3 <= bodyOf(a), '小さな実体');
+  assert.ok(upperOf(b) >= 2 && lowerOf(b) >= 4, '上下にヒゲ');
+});
+
+test('赤三兵先詰まり: 切り上がる陽線3本で、3本目に実体より長い上ヒゲがある(赤三兵の3本目にはほぼない)', () => {
+  const ks = candleOf('three-soldiers-stalled');
+  assert.equal(ks.length, 3);
+  for (const k of ks) assert.ok(isBull(k));
+  for (let i = 1; i < 3; i++) {
+    assert.ok(ks[i].o >= ks[i - 1].o && ks[i].o <= ks[i - 1].c, `${i + 1} 本目は前の実体の中で始まる`);
+    assert.ok(ks[i].c >= ks[i - 1].c + GAP, `${i + 1} 本目は終値を切り上げる`);
+  }
+  assert.ok(upperOf(ks[2]) >= 12 && upperOf(ks[2]) > bodyOf(ks[2]), '3本目の長い上ヒゲ');
+  const w = candleOf('three-white-soldiers');
+  assert.ok(upperOf(w[2]) < 4);
+});
+
+test('赤三兵思案星: 陽線2本のあと、3本目が窓を空けて小さな実体で終わる(上ヒゲが目印ではない)', () => {
+  const ks = candleOf('three-soldiers-deliberation');
+  assert.equal(ks.length, 3);
+  assert.ok(isBull(ks[0]) && isBull(ks[1]));
+  assert.ok(ks[1].o >= ks[0].o && ks[1].o <= ks[0].c && ks[1].c >= ks[0].c + GAP, '2本目は切り上がる');
+  assert.ok(ks[2].l >= ks[1].h + GAP, '3本目は窓を空ける');
+  assert.ok(bodyOf(ks[2]) > 0 && bodyOf(ks[2]) <= 6 && bodyOf(ks[2]) * 2 <= bodyOf(ks[1]), '小さな実体');
+  assert.ok(upperOf(ks[2]) >= 4 && lowerOf(ks[2]) >= 2, '上下にヒゲ');
+});
+
+test('見分けが必要な新規ローソク足は、絵が重ならない(同じ値の足がない)', () => {
+  const sig = (c) => JSON.stringify(c.candles);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map(sig)).size, 50);
+});
+
+test('新規ローソク足20種類: DETAIL_BY_ID は既存の30個だけで、新規20個は自分の detail を持ち、全50個で detail が重ならない', () => {
+  assert.deepEqual(Object.keys(L.DETAIL_BY_ID.candles).sort(), L.CANDLE_PATTERNS.slice(0, 30).map((c) => c.id).sort());
+  assert.equal(Object.keys(L.DETAIL_BY_ID.candles).length, 30);
+  assert.equal(new Set(L.CANDLE_PATTERNS.map((c) => c.detail)).size, 50);
 });

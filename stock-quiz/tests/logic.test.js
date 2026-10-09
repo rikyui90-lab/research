@@ -8,6 +8,53 @@ test('index.html のデータとロジックを読み込める', () => {
 
 const L = loadLogic();
 
+// v6 で追加したチャートの形20種類: id -> [名前, outlook, 難易度](表の順。PATTERNS の末尾にこの順で並ぶ)
+const NEW_CHART20 = {
+  'box-breakout-up': ['ボックス上抜け(上放れ)', 'up', 'easy'],
+  'box-breakout-down': ['ボックス下抜け(下放れ)', 'down', 'normal'],
+  'n-wave-up': ['N字上昇(上昇N波動)', 'up', 'hard'],
+  'broadening-top': ['拡大三角形(ブロードニングトップ)', 'down', 'hard'],
+  'n-wave-down': ['N字下降(逆N波動)', 'down', 'expert'],
+  'false-breakout-up': ['上抜けダマシ(フォールスブレイクアウト・上)', 'down', 'expert'],
+  'false-breakout-down': ['下抜けダマシ(フォールスブレイクアウト・下)', 'up', 'expert'],
+  'triangle-breakout-up': ['三角保ち合い上放れ', 'up', 'expert'],
+  'triangle-breakout-down': ['三角保ち合い下放れ', 'down', 'expert'],
+  'return-move-up': ['リターンムーブ(上抜け後の押し戻し)', 'up', 'expert'],
+  'return-move-down': ['リターンムーブ(下抜け後の戻り)', 'down', 'expert'],
+  'elliott-impulse-up': ['エリオット波動 上昇5波(推進波)', 'down', 'master'],
+  'elliott-impulse-down': ['エリオット波動 下降5波(推進波)', 'up', 'master'],
+  'elliott-cycle-up': ['エリオット波動 上昇5波+調整3波(1サイクル)', 'up', 'master'],
+  'elliott-cycle-down': ['エリオット波動 下降5波+戻り3波(1サイクル)', 'down', 'master'],
+  'falling-wedge-breakout-up': ['下降ウェッジ上抜け(上放れ)', 'up', 'expert'],
+  'rising-wedge-breakout-down': ['上昇ウェッジ下抜け(下放れ)', 'down', 'master'],
+  'ascending-channel-breakdown': ['上昇チャネル下抜け', 'down', 'master'],
+  'descending-channel-breakout-up': ['下降チャネル上抜け', 'up', 'master'],
+  'selling-climax': ['セリングクライマックス(急落の最終局面)', 'up', 'master'],
+};
+// 各形の「紛らわしい組」(topics の confusable_with)。両方向で isConfusable になる
+const NEW_CHART20_CONFUSABLE = {
+  'box-breakout-up': ['box-range', 'ascending-triangle', 'box-breakout-down'],
+  'box-breakout-down': ['box-range', 'descending-triangle', 'box-breakout-up'],
+  'n-wave-up': ['ascending-channel', 'bull-flag', 'bullish-perfect-order', 'n-wave-down'],
+  'broadening-top': ['symmetrical-triangle', 'diamond-top', 'head-shoulders', 'falling-wedge'],
+  'n-wave-down': ['descending-channel', 'bear-flag', 'bearish-perfect-order', 'n-wave-up'],
+  'false-breakout-up': ['box-breakout-up', 'box-breakout-down', 'double-top', 'false-breakout-down'],
+  'false-breakout-down': ['box-breakout-up', 'box-breakout-down', 'double-bottom', 'false-breakout-up'],
+  'triangle-breakout-up': ['symmetrical-triangle', 'ascending-triangle', 'pennant', 'triangle-breakout-down'],
+  'triangle-breakout-down': ['symmetrical-triangle', 'descending-triangle', 'bear-pennant', 'triangle-breakout-up'],
+  'return-move-up': ['n-wave-up', 'false-breakout-up', 'box-breakout-up', 'return-move-down'],
+  'return-move-down': ['n-wave-down', 'false-breakout-down', 'box-breakout-down', 'return-move-up'],
+  'elliott-impulse-up': ['bullish-perfect-order', 'ascending-channel', 'elliott-cycle-up', 'elliott-impulse-down'],
+  'elliott-impulse-down': ['bearish-perfect-order', 'descending-channel', 'elliott-cycle-down', 'elliott-impulse-up'],
+  'elliott-cycle-up': ['elliott-impulse-up', 'double-top', 'head-shoulders', 'elliott-cycle-down'],
+  'elliott-cycle-down': ['elliott-impulse-down', 'double-bottom', 'inverse-head-shoulders', 'elliott-cycle-up'],
+  'falling-wedge-breakout-up': ['falling-wedge', 'bull-flag', 'triangle-breakout-up', 'rising-wedge-breakout-down'],
+  'rising-wedge-breakout-down': ['rising-wedge', 'bear-flag', 'triangle-breakout-down', 'falling-wedge-breakout-up'],
+  'ascending-channel-breakdown': ['ascending-channel', 'double-top', 'rising-wedge-breakout-down', 'descending-channel-breakout-up'],
+  'descending-channel-breakout-up': ['descending-channel', 'double-bottom', 'falling-wedge-breakout-up', 'ascending-channel-breakdown'],
+  'selling-climax': ['v-bottom', 'falling-wedge', 'saucer-bottom', 'elliott-impulse-down'],
+};
+
 test('createRng: 同じシードなら同じ列になる', () => {
   const a = L.createRng(42);
   const b = L.createRng(42);
@@ -55,10 +102,10 @@ test('normalizeRange: 値が1つでも min < max になる', () => {
   assert.ok(r.min < r.max);
 });
 
-test('PATTERNS: 30個あり、id と name が重複せず、定義が正しい', () => {
-  assert.equal(L.PATTERNS.length, 30);
-  assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 30);
-  assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 30);
+test('PATTERNS: 50個あり、id と name が重複せず、定義が正しい', () => {
+  assert.equal(L.PATTERNS.length, 50);
+  assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 50);
+  assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 50);
   for (const p of L.PATTERNS) {
     assert.ok(['up', 'down', 'flat', 'either'].includes(p.outlook), p.id);
     assert.equal(p.outlookQuiz, undefined, p.id);
@@ -435,7 +482,7 @@ test("buildDeck('all'): チャートの形状・ローソク足・用語が、�
   assert.ok(types.has('pattern') && types.has('candle') && types.has('term'));
 });
 
-test("buildPool('all'): 各パターンが形状の問題を1問ずつ出し(全30問)、同じ形が重ならない", () => {
+test("buildPool('all'): 各パターンが形状の問題を1問ずつ出し(全50問)、同じ形が重ならない", () => {
   const pool = L.buildPool('all', L.createRng(5));
   const ids = pool.filter((q) => q.type === 'pattern').map((q) => q.id);
   assert.equal(ids.length, L.PATTERNS.length);
@@ -599,8 +646,8 @@ test('続きの値動きも滑らか: 隣り合う点の差が大きくない', 
   }
 });
 
-test('PATTERNS: 30個で、追加した9個が揃っている', () => {
-  assert.equal(L.PATTERNS.length, 30);
+test('PATTERNS: 50個で、追加した9個が揃っている', () => {
+  assert.equal(L.PATTERNS.length, 50);
   for (const id of ['triple-top', 'triple-bottom', 'ascending-triangle', 'descending-triangle',
     'bear-flag', 'bear-pennant', 'cup-with-handle', 'saucer-bottom', 'box-range']) {
     assert.ok(L.findPattern(id), id);
@@ -928,13 +975,15 @@ const NEW80 = {
 const LEVEL_TABLE = {
   patterns: {
     easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range',
-      'ascending-channel', 'descending-channel'],
+      'ascending-channel', 'descending-channel', 'box-breakout-up'],
     normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge',
-      'v-bottom', 'v-top'],
+      'v-bottom', 'v-top', 'box-breakout-down'],
     hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom',
-      'bullish-perfect-order', 'bearish-perfect-order'],
-    expert: ['rounding-top', 'inverted-cup-with-handle'],
-    master: ['diamond-top', 'diamond-bottom'],
+      'bullish-perfect-order', 'bearish-perfect-order', 'n-wave-up', 'broadening-top'],
+    expert: ['rounding-top', 'inverted-cup-with-handle', 'n-wave-down', 'false-breakout-up', 'false-breakout-down',
+      'triangle-breakout-up', 'triangle-breakout-down', 'return-move-up', 'return-move-down', 'falling-wedge-breakout-up'],
+    master: ['diamond-top', 'diamond-bottom', 'elliott-impulse-up', 'elliott-impulse-down', 'elliott-cycle-up', 'elliott-cycle-down',
+      'rising-wedge-breakout-down', 'ascending-channel-breakdown', 'descending-channel-breakout-up', 'selling-climax'],
   },
   candles: {
     easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top',
@@ -1145,7 +1194,8 @@ test('問題オブジェクトに難易度が入り、validateQuestion が見る
 
 test('モード×難易度の問題数: どの組み合わせも1問以上で、表の数と合う', () => {
   const expected = {
-    pattern: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
+    // チャートの形は、どの難易度も10種類(v6 で 30 → 50 種類にした)
+    pattern: { easy: 10, normal: 10, hard: 10, expert: 10, master: 10 },
     candle: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
     // 用語は、v4 までの40問(11/11/10/4/4)に追加の80問(各16)を足した数。内容を足したらここも直す
     term: { easy: 27, normal: 27, hard: 26, expert: 20, master: 20 },
@@ -1157,8 +1207,9 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
       if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
     }
   }
-  // all モード: expert / master は 用語20 + ローソク足2 + チャートの形状2 = 24(内容に依存する数)
-  for (const level of ['expert', 'master']) assert.equal(L.buildPool('all', L.createRng(1), level).length, 24, `all/${level}`);
+  // all モード: 用語 + ローソク足 + チャートの形状10(内容に依存する数)。expert / master は 20+2+10 = 32
+  const allExpected = { easy: 46, normal: 46, hard: 44, expert: 32, master: 32 };
+  for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.buildPool('all', L.createRng(1), level).length, allExpected[level], `all/${level}`);
 });
 
 const NEW_IDS = {
@@ -1188,8 +1239,9 @@ test('各難易度に、新しく追加した問題がちょうど8問ある(用
   }
 });
 
-test('roundSize: all は、どの難易度でも10(expert/master の候補は 20+2+2=24 問)。どの組み合わせも1〜10', () => {
+test('roundSize: all は、どの難易度でも10(expert/master の候補は 20+2+10=32 問)。チャートの形状も、どの難易度でも10。どの組み合わせも1〜10', () => {
   for (const level of ['easy', 'normal', 'hard', 'expert', 'master']) assert.equal(L.roundSize('all', level), 10, `all/${level}`);
+  for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.roundSize('pattern', level), 10, `pattern/${level}`);
   for (const mode of L.MODES) {
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
@@ -1593,8 +1645,8 @@ const countChars = (s) => [...s].length;
 const countSentences = (s) => (s.match(/。/g) || []).length;
 const FORBIDDEN_WORDS = ['必ず', '絶対', '買うべき', '売るべき'];
 
-test('detail の網羅: 形状30・ローソク足30・用語120の全180項目に、空でない detail がある', () => {
-  assert.equal(L.PATTERNS.length, 30);
+test('detail の網羅: 形状50・ローソク足30・用語120の全200項目に、空でない detail がある', () => {
+  assert.equal(L.PATTERNS.length, 50);
   assert.equal(L.CANDLE_PATTERNS.length, 30);
   assert.equal(L.TERMS.length, 120);
   for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS]) {
@@ -1603,10 +1655,14 @@ test('detail の網羅: 形状30・ローソク足30・用語120の全180項目�
   }
 });
 
-test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の最初の40)だけを持ち、追加の80問は入っていない', () => {
+test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の最初の40)だけを持ち、追加の80問と追加の形状20種類は入っていない', () => {
   const D = L.DETAIL_BY_ID;
   assert.deepEqual(Object.keys(D).sort(), ['candles', 'patterns', 'terms']);
-  assert.deepEqual(Object.keys(D.patterns).sort(), L.PATTERNS.map((x) => x.id).sort());
+  assert.deepEqual(Object.keys(D.patterns).sort(), L.PATTERNS.slice(0, 30).map((x) => x.id).sort());
+  for (const id of Object.keys(NEW_CHART20)) {
+    assert.ok(!(id in D.patterns), `${id} は DETAIL_BY_ID に入れない(自分の detail を持つ)`);
+    assert.equal(typeof L.findPattern(id).detail, 'string', id);
+  }
   assert.deepEqual(Object.keys(D.candles).sort(), L.CANDLE_PATTERNS.map((x) => x.id).sort());
   const oldTermIds = L.TERMS.slice(0, 40).map((x) => x.id);
   assert.deepEqual(Object.keys(D.terms).sort(), oldTermIds.slice().sort());
@@ -1619,14 +1675,14 @@ test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の�
     assert.ok(t && typeof t.detail === 'string' && t.detail.length > 0, `${id} は自分の detail を持つ`);
   }
   // 表の文が、そのまま各項目に付いている
-  for (const [group, items] of [['patterns', L.PATTERNS], ['candles', L.CANDLE_PATTERNS], ['terms', L.TERMS.slice(0, 40)]]) {
+  for (const [group, items] of [['patterns', L.PATTERNS.slice(0, 30)], ['candles', L.CANDLE_PATTERNS], ['terms', L.TERMS.slice(0, 40)]]) {
     for (const x of items) assert.equal(x.detail, D[group][x.id], x.id);
   }
 });
 
-test('detail の質: 120〜250字・2〜4文・「。」で終わり、180個すべて違う文', () => {
+test('detail の質: 120〜250字・2〜4文・「。」で終わり、200個すべて違う文', () => {
   const all = [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS];
-  assert.equal(all.length, 180);
+  assert.equal(all.length, 200);
   for (const x of all) {
     const n = countChars(x.detail);
     assert.ok(n >= 120 && n <= 250, `${x.id}: ${n}字`);
@@ -1634,7 +1690,7 @@ test('detail の質: 120〜250字・2〜4文・「。」で終わり、180個す
     assert.ok(s >= 2 && s <= 4, `${x.id}: ${s}文`);
     assert.ok(x.detail.endsWith('。'), x.id);
   }
-  assert.equal(new Set(all.map((x) => x.detail)).size, 180);
+  assert.equal(new Set(all.map((x) => x.detail)).size, 200);
 });
 
 test('detail の質: explanation と同じ・explanation を含む detail はなく、断定や助言の言葉を使わない', () => {
@@ -1839,5 +1895,492 @@ test('形状の問題の実際の範囲: 目盛りは3〜6本で、範囲内に�
       const ticks = L.niceTicks(L.toPrice(min, chart.priceScale), L.toPrice(max, chart.priceScale));
       assert.ok(ticks.length >= 3 && ticks.length <= 6, `${p.id} seed=${seed} ${ticks.length}個`);
     }
+  }
+});
+
+// ---- 新規チャート20種類(v6: 30 → 50 種類。各難易度10種類) ----
+// 形の判定は、どれも「定義から決めたしきい値」で見る。MARGINS=1 で実行すると、各しきい値の最悪の余裕(単位: チャートの値)を表示する
+const MARGINS = {};
+if (process.env.MARGINS) {
+  process.on('exit', () => {
+    for (const k of Object.keys(MARGINS).sort()) console.log(`margin ${k} = ${MARGINS[k].toFixed(2)}`);
+  });
+}
+function atLeast(label, value, threshold, ctx = '') {
+  MARGINS[label] = Math.min(MARGINS[label] ?? Infinity, value - threshold);
+  assert.ok(value >= threshold, `${label} ${ctx}: ${value} < ${threshold}`);
+}
+function atMost(label, value, threshold, ctx = '') {
+  MARGINS[label] = Math.min(MARGINS[label] ?? Infinity, threshold - value);
+  assert.ok(value <= threshold, `${label} ${ctx}: ${value} > ${threshold}`);
+}
+// シード 1〜300(SEEDS=3000 のように環境変数で増やして、しきい値の余裕を調べられる)
+const SEEDS300 = Array.from({ length: Number(process.env.SEEDS) || 300 }, (_, i) => i + 1);
+// 上昇の向きにそろえた系列(sign=-1 なら上下を反転する)
+const seriesOf = (id, seed, sign = 1) => L.generateSeries(L.findPattern(id), seed).map((x) => x * sign);
+const at = (v, t) => v[Math.round(t * (v.length - 1))];
+const winMax = (v, a, b) => Math.max(...sliceAt(v, [a, b]));
+const winMin = (v, a, b) => Math.min(...sliceAt(v, [a, b]));
+const winMean = (v, a, b) => { const w = sliceAt(v, [a, b]); return w.reduce((x, y) => x + y, 0) / w.length; };
+const idxOfMax = (v, a, b) => { const lo = Math.floor(v.length * a); return lo + sliceAt(v, [a, b]).reduce((m, x, i, arr) => (x > arr[m] ? i : m), 0); };
+const idxOfMin = (v, a, b) => { const lo = Math.floor(v.length * a); return lo + sliceAt(v, [a, b]).reduce((m, x, i, arr) => (x < arr[m] ? i : m), 0); };
+// 最小二乗の直線(傾きは時刻 0〜1 あたり)。idxs は点の番号、n は系列の長さ
+function lineFit(idxs, values, n) {
+  const xs = idxs.map((i) => i / (n - 1));
+  const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const my = values.reduce((a, b) => a + b, 0) / values.length;
+  let num = 0;
+  let den = 0;
+  xs.forEach((x, i) => { num += (x - mx) * (values[i] - my); den += (x - mx) ** 2; });
+  const slope = num / den;
+  return { slope, at: (t) => my + slope * (t - mx) };
+}
+// 中心線 mid の上下 h より外へ出た「往復」の列。各要素は { type: 'hi'|'lo', ext: その往復での最大(最小), start, end }
+function excursions(v, mid, h) {
+  const out = [];
+  let cur = null;
+  v.forEach((x, i) => {
+    const type = x > mid + h ? 'hi' : x < mid - h ? 'lo' : null;
+    if (!type) { if (cur) cur.end = i; return; }
+    if (cur && cur.type === type) { cur.ext = type === 'hi' ? Math.max(cur.ext, x) : Math.min(cur.ext, x); cur.end = i; } else { cur = { type, ext: x, start: i, end: i }; out.push(cur); }
+  });
+  return out;
+}
+// ボックスの上限・下限に2回以上ずつ触れ(往復)、触れた高さがそろっていることを確かめる。box は上限と下限をふくむ系列の部分
+function checkBox(box, label, ctx, tol = 8) {
+  const mid = (Math.max(...box) + Math.min(...box)) / 2;
+  const ex = excursions(box, mid, 4);
+  const his = ex.filter((e) => e.type === 'hi');
+  const los = ex.filter((e) => e.type === 'lo');
+  atLeast(label + ' 上限に触れる回数', his.length, 2, ctx);
+  atLeast(label + ' 下限に触れる回数', los.length, 2, ctx);
+  // 途中の往復(両端で切れたものをのぞく)の高さがそろう
+  const inner = ex.slice(1, -1);
+  const hiExt = inner.filter((e) => e.type === 'hi').map((e) => e.ext);
+  const loExt = inner.filter((e) => e.type === 'lo').map((e) => e.ext);
+  if (hiExt.length > 1) atMost(label + ' 上限のそろい', rangeOf2(hiExt), tol, ctx);
+  if (loExt.length > 1) atMost(label + ' 下限のそろい', rangeOf2(loExt), tol, ctx);
+  return ex;
+}
+const strictlyMonotone = (arr, dir, minStep) => arr.every((x, k) => k === 0 || (x - arr[k - 1]) * dir >= minStep);
+
+test('新規チャート20種類: id・名前・outlook・難易度・位置が表どおり(各難易度10種類)', () => {
+  const ids = Object.keys(NEW_CHART20);
+  assert.equal(ids.length, 20);
+  assert.deepEqual(L.PATTERNS.slice(30).map((p) => p.id), ids, '末尾に表の順で並ぶ');
+  for (const [id, [name, outlook, level]] of Object.entries(NEW_CHART20)) {
+    const p = L.findPattern(id);
+    assert.equal(p.name, name, id);
+    assert.equal(p.outlook, outlook, id);
+    assert.equal(p.difficulty, level, id);
+    assert.equal(p.title, undefined, id);
+    assert.equal(p.level, undefined, id);
+    assert.equal(p.sources, undefined, id);
+    assert.equal(p.note, undefined, id);
+    assert.equal(p.ma, undefined, id);
+  }
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.equal(L.PATTERNS.filter((p) => p.difficulty === level).length, 10, `形は${level}で10種類`);
+    assert.equal(L.DIFFICULTY_BY_ID.patterns[level].length, 10, `表も${level}で10`);
+  }
+  assert.equal(L.PATTERNS.filter((p) => !p.difficulty).length, 0);
+  for (const id of ids) {
+    for (const level of L.DIFFICULTY_LEVELS) {
+      const inTable = L.DIFFICULTY_BY_ID.patterns[level].includes(id);
+      assert.equal(inTable, NEW_CHART20[id][2] === level, `${id}/${level}`);
+    }
+  }
+});
+
+test('新規チャート20種類: 骨格が正しく、問題が有効で、続きの点線は outlook の方向に伸びる', () => {
+  for (const id of Object.keys(NEW_CHART20)) {
+    const p = L.findPattern(id);
+    assert.ok(p.points.length >= 4, id);
+    for (const [t, v] of p.points) assert.ok(t >= 0 && t <= 1 && v >= 0 && v <= 100, `${id} ${t},${v}`);
+    for (let seed = 1; seed <= 20; seed++) {
+      const q = L.makePatternQuestion(p, seed);
+      assert.equal(L.validateQuestion(q), null, id);
+      assert.ok(q.detail && q.explanation, id);
+      assert.equal(q.difficulty, NEW_CHART20[id][2], id);
+      const c = L.chartForQuestion(q);
+      assert.equal(c.values.length, 120, id);
+      assert.equal(c.continuation.length, 30, id);
+      assert.equal(c.ma, undefined, id);
+      const last = c.values[119];
+      const end = c.continuation[29];
+      if (p.outlook === 'up') assert.ok(end > last + 5, `${id} 続きは上`);
+      if (p.outlook === 'down') assert.ok(end < last - 5, `${id} 続きは下`);
+    }
+  }
+});
+
+test('ボックス上抜け / ボックス下抜け: 水平なボックスを往復して(上下2回以上ずつ触れる)、最後に大きく抜ける(300シード)', () => {
+  for (const [id, sign] of [['box-breakout-up', 1], ['box-breakout-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const box = sliceAt(v, [0, 0.66]);
+      atMost(`${id} ボックスの幅`, rangeOf2(box), 29, ctx);
+      atLeast(`${id} ボックスの幅(狭すぎない)`, rangeOf2(box), 14, ctx);
+      checkBox(box, id, ctx); // 上限・下限に2回以上ずつ触れ、触れた高さがそろう(ほぼ水平)
+      const top = Math.max(...box);
+      atLeast(`${id} 最後の抜けの大きさ`, v[n - 1] - top, 12, ctx);
+      atLeast(`${id} 最後が高値`, v[n - 1], Math.max(...v) - 4, ctx);
+    }
+  }
+});
+
+test('N字上昇 / N字下降: 上昇→押し(出発点より上)→前の高値を更新する3つの波(300シード)', () => {
+  for (const [id, sign] of [['n-wave-up', 1], ['n-wave-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const start = v[0];
+      const high = winMax(v, 0.2, 0.5);
+      const dip = winMin(v, 0.45, 0.75);
+      atLeast(`${id} 第1波の上げ`, high - start, 35, ctx);
+      atLeast(`${id} 押しの深さ`, high - dip, 15, ctx);
+      atLeast(`${id} 押しは出発点より上`, dip - start, 10, ctx);
+      atLeast(`${id} 最後に前の高値を更新`, v[n - 1] - high, 12, ctx);
+      atLeast(`${id} 最後が高値`, v[n - 1], Math.max(...v) - 4, ctx);
+      const highAt = idxOfMax(v, 0.2, 0.5);
+      const dipAt = idxOfMin(v, 0.45, 0.75);
+      assert.ok(highAt > n * 0.27 && highAt < n * 0.43, `${ctx} 前の高値の位置 ${highAt}`);
+      assert.ok(dipAt > n * 0.5 && dipAt < n * 0.68, `${ctx} 押しの位置 ${dipAt}`);
+    }
+  }
+});
+
+test('拡大三角形: 高値は切り上がり安値は切り下がって値幅が広がり、最後に安値を割る(300シード)', () => {
+  for (const seed of SEEDS300) {
+    const v = seriesOf('broadening-top', seed);
+    const n = v.length;
+    const ctx = `seed=${seed}`;
+    // 山 P1〜P3 と谷 T1〜T3(最後の谷 T3 は平らになりやすいので、時間の窓の最小値でとる)
+    const p = [winMax(v, 0.03, 0.17), winMax(v, 0.28, 0.44), winMax(v, 0.55, 0.72)];
+    const t = [winMin(v, 0.15, 0.3), winMin(v, 0.42, 0.58), winMin(v, 0.72, 0.95)];
+    const order = [idxOfMax(v, 0.03, 0.17), idxOfMin(v, 0.15, 0.3), idxOfMax(v, 0.28, 0.44), idxOfMin(v, 0.42, 0.58),
+      idxOfMax(v, 0.55, 0.72), idxOfMin(v, 0.72, 0.95)];
+    assert.ok(strictlyMonotone(order, 1, 4), `${ctx} 山谷の順 ${order}`);
+    for (let k = 1; k < 3; k++) {
+      atLeast('拡大三角形 高値の切り上がり', p[k] - p[k - 1], 8, ctx);
+      atLeast('拡大三角形 安値の切り下がり', t[k - 1] - t[k], 8, ctx);
+    }
+    // 山から谷への振れ幅が、どんどん広がる
+    atLeast('拡大三角形 振れ幅の拡大(2回目/1回目)', p[1] - t[1], (p[0] - t[0]) * 1.4, ctx);
+    atLeast('拡大三角形 振れ幅の拡大(3回目/2回目)', p[2] - t[2], (p[1] - t[1]) * 1.3, ctx);
+    atLeast('拡大三角形 最後の山の高さ', p[2], v[0] + 40, ctx);
+    // 最後は直前までの安値を割ったところで終わる
+    atMost('拡大三角形 最後は直前の安値より下', v[n - 1], t[1], ctx);
+  }
+});
+
+test('上抜けダマシ / 下抜けダマシ: ボックスを一時的に抜けるが戻り、逆側に抜けて終わる(300シード)', () => {
+  for (const [id, sign] of [['false-breakout-up', 1], ['false-breakout-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const box = sliceAt(v, [0, 0.52]);
+      const top = Math.max(...box);
+      const bottom = Math.min(...box);
+      atMost(`${id} ボックスの幅`, top - bottom, 28, ctx);
+      checkBox(box, id, ctx);
+      const spike = winMax(v, 0.56, 0.76);
+      atLeast(`${id} 一時的な抜け`, spike - top, 8, ctx);
+      const spikeAt = idxOfMax(v, 0.56, 0.76);
+      assert.ok(spikeAt > n * 0.58 && spikeAt < n * 0.72, `${ctx} 抜けの位置 ${spikeAt}`);
+      // 抜けは長く続かない: 上限より高い点が少ない
+      atMost(`${id} 抜けた点の数`, v.filter((x, i) => i > n * 0.5 && x > top + 2).length, 24, ctx);
+      // ボックスの中へ戻り、さらに下限を割って終わる
+      atMost(`${id} 戻り`, at(v, 0.8), top - 8, ctx);
+      atMost(`${id} 最後は下限の下`, v[n - 1], bottom - 10, ctx);
+      atMost(`${id} 最後が安値`, v[n - 1], Math.min(...v) + 4, ctx);
+    }
+  }
+});
+
+test('三角保ち合い上放れ / 下放れ: 高値が切り下がり安値が切り上がって収束し、最後に抜ける(300シード)', () => {
+  for (const [id, sign] of [['triangle-breakout-up', 1], ['triangle-breakout-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const r1 = rangeOf2(sliceAt(v, [0.04, 0.3]));
+      const r2 = rangeOf2(sliceAt(v, [0.3, 0.52]));
+      const r3 = rangeOf2(sliceAt(v, [0.52, 0.72]));
+      atLeast(`${id} 値幅が狭まる(前半/中盤)`, r1 - r2 * 1.15, 0, ctx);
+      atLeast(`${id} 値幅が狭まる(中盤/後半)`, r2 - r3 * 1.15, 0, ctx);
+      const tri = sliceAt(v, [0, 0.76]);
+      const ps = onePeak(tri, 6, 8);
+      const ts = oneTrough(tri, 6, 8);
+      atLeast(`${id} 山の数`, ps.length, 3, ctx);
+      atLeast(`${id} 谷の数`, ts.length, 3, ctx);
+      const ph = ps.map((i) => tri[i]);
+      const th = ts.map((i) => tri[i]);
+      assert.ok(strictlyMonotone(ph, -1, 2), `${ctx} 高値の切り下がり ${ph}`);
+      assert.ok(strictlyMonotone(th, 1, 2), `${ctx} 安値の切り上がり ${th}`);
+      atLeast(`${id} 最後の抜け(最後の高値より上)`, v[n - 1] - ph[ph.length - 1], 15, ctx);
+      atLeast(`${id} 最後が高値`, v[n - 1], Math.max(...v) - 4, ctx);
+    }
+  }
+});
+
+test('リターンムーブ(上・下): ボックスを抜け、抜けた線まで押し戻されてから、再び抜けた方向へ進む(300シード)', () => {
+  for (const [id, sign] of [['return-move-up', 1], ['return-move-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const box = sliceAt(v, [0, 0.46]);
+      const top = Math.max(...box);
+      atMost(`${id} ボックスの幅`, top - Math.min(...box), 28, ctx);
+      checkBox(box, id, ctx);
+      const peak = winMax(v, 0.55, 0.72);
+      atLeast(`${id} 上抜けの大きさ`, peak - top, 12, ctx);
+      const pull = winMin(v, 0.7, 0.82);
+      atMost(`${id} 押し戻しは抜けた線の近く(上側)`, pull - top, 9, ctx);
+      atLeast(`${id} 押し戻しは抜けた線の近く(下側)`, pull - top, -9, ctx);
+      atLeast(`${id} 押し戻しの深さ`, peak - pull, 12, ctx);
+      atLeast(`${id} 再上昇`, v[n - 1] - peak, 6, ctx);
+      atLeast(`${id} 最後が高値`, v[n - 1], Math.max(...v) - 4, ctx);
+    }
+  }
+});
+
+test('下降ウェッジ上抜け / 上昇ウェッジ下抜け: 高値と安値が同じ向きに傾いて収束し、最後に反対側へ抜ける(300シード)', () => {
+  for (const [id, sign] of [['falling-wedge-breakout-up', 1], ['rising-wedge-breakout-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign); // 以後は「下降ウェッジを上に抜ける」向き
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      // 高値(Pa,Pb,Pc)と安値(Ta,Tb,Tc)を時間の窓でとる
+      const pa = winMax(v, 0.15, 0.3);
+      const pb = winMax(v, 0.4, 0.52);
+      const pc = winMax(v, 0.6, 0.7);
+      const ta = winMin(v, 0.28, 0.42);
+      const tb = winMin(v, 0.52, 0.64);
+      const tc = winMin(v, 0.68, 0.8);
+      atLeast(`${id} 高値の切り下がり(1→2)`, pa - pb, 8, ctx);
+      atLeast(`${id} 高値の切り下がり(2→3)`, pb - pc, 6, ctx);
+      atLeast(`${id} 安値の切り下がり(1→2)`, ta - tb, 3, ctx);
+      atLeast(`${id} 安値の切り下がり(2→3)`, tb - tc, 3, ctx);
+      // 上の線のほうが急に下がって、2本の線が近づく(収束)。下げ幅・戻り幅がだんだん小さくなる
+      atLeast(`${id} 上の線のほうが急`, (pa - pc) - (ta - tc), 6, ctx);
+      atLeast(`${id} 下げ幅が縮む(1→2)`, (pa - ta) - (pb - tb), 4, ctx);
+      atLeast(`${id} 下げ幅が縮む(2→3)`, (pb - tb) - (pc - tc), 2, ctx);
+      atLeast(`${id} 戻り幅が縮む`, (pb - ta) - (pc - tb), 0, ctx);
+      // 最後は、ウェッジの最後の高値より上へ抜けて終わる
+      atLeast(`${id} 最後の抜け`, v[n - 1] - pc, 15, ctx);
+      const lowAt = idxOfMin(v, 0.5, 0.86);
+      assert.ok(lowAt > n * 0.66 && lowAt < n * 0.82, `${ctx} ウェッジの安値の位置 ${lowAt}`);
+      atLeast(`${id} 最後は安値から大きく戻す`, v[n - 1] - v[lowAt], 30, ctx);
+    }
+  }
+});
+
+test('エリオット波動 上昇5波 / 下降5波: 5つの波で、第3波が最大・第4波は第1波に重ならず・第2波は出発点を割らない(300シード)', () => {
+  for (const [id, sign] of [['elliott-impulse-up', 1], ['elliott-impulse-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const start = v[0];
+      const p1 = winMax(v, 0.08, 0.2);
+      const t2 = winMin(v, 0.17, 0.3);
+      const p3 = winMax(v, 0.44, 0.58);
+      const t4 = winMin(v, 0.56, 0.7);
+      const p5 = winMax(v, 0.8, 0.94);
+      atLeast(`${id} 第1波の上げ`, p1 - start, 15, ctx);
+      atLeast(`${id} 第2波は出発点を割らない`, t2 - start, 6, ctx);
+      atLeast(`${id} 第2波の押し`, p1 - t2, 6, ctx);
+      atLeast(`${id} 第3波は第1波の高値を超える`, p3 - p1, 25, ctx);
+      atLeast(`${id} 第4波は第1波の高値に重ならない`, t4 - p1, 6, ctx);
+      atLeast(`${id} 第4波の押し`, p3 - t4, 15, ctx);
+      atLeast(`${id} 第5波は第3波の高値を超える`, p5 - p3, 6, ctx);
+      const w1 = p1 - start;
+      const w3 = p3 - t2;
+      const w5 = p5 - t4;
+      atLeast(`${id} 第3波は第1波の1.5倍以上`, w3 / w1, 1.5, ctx);
+      atLeast(`${id} 第3波は第5波より大きい`, w3 / w5, 1.15, ctx);
+      atLeast(`${id} 最後は5波目の高値圏`, v[n - 1], p5 - 12, ctx);
+      // 時間の並び
+      const order = [idxOfMax(v, 0.08, 0.2), idxOfMin(v, 0.17, 0.3), idxOfMax(v, 0.44, 0.58), idxOfMin(v, 0.56, 0.7), idxOfMax(v, 0.8, 0.94)];
+      assert.ok(strictlyMonotone(order, 1, 3), `${ctx} 波の順 ${order}`);
+    }
+  }
+});
+
+test('エリオット波動 5波+調整3波(上・下): 5波のあとに下・上・下(上・下・上)の3波が続き、1サイクルをなす(300シード)', () => {
+  for (const [id, sign] of [['elliott-cycle-up', 1], ['elliott-cycle-down', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign);
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const start = v[0];
+      const p1 = winMax(v, 0.03, 0.14);
+      const t2 = winMin(v, 0.12, 0.22);
+      const p3 = winMax(v, 0.25, 0.37);
+      const t4 = winMin(v, 0.34, 0.46);
+      const p5 = winMax(v, 0.48, 0.62);
+      const a = winMin(v, 0.6, 0.72);
+      const b = winMax(v, 0.72, 0.84);
+      const c = winMin(v, 0.84, 0.96);
+      atLeast(`${id} 第1波の上げ`, p1 - start, 15, ctx);
+      atLeast(`${id} 第2波は出発点を割らない`, t2 - start, 5, ctx);
+      atLeast(`${id} 第2波の押し`, p1 - t2, 6, ctx);
+      atLeast(`${id} 第3波は第1波の高値を超える`, p3 - p1, 25, ctx);
+      atLeast(`${id} 第4波は第1波の高値に重ならない`, t4 - p1, 6, ctx);
+      atLeast(`${id} 第4波の押し`, p3 - t4, 10, ctx);
+      atLeast(`${id} 第5波は第3波の高値を超える`, p5 - p3, 8, ctx);
+      atLeast(`${id} 第3波は第1波の1.4倍以上`, (p3 - t2) / (p1 - start), 1.4, ctx);
+      atLeast(`${id} 第3波は第5波より大きい`, (p3 - t2) / (p5 - t4), 1.1, ctx);
+      // 調整: A は5波の天井からはっきり下げ、B で戻しても天井には届かず、C は A より低い
+      atLeast(`${id} A波の下げ`, p5 - a, 20, ctx);
+      atLeast(`${id} B波の戻し`, b - a, 8, ctx);
+      atLeast(`${id} B波は天井に届かない`, p5 - b, 6, ctx);
+      atLeast(`${id} C波はA波より低い`, a - c, 8, ctx);
+      atLeast(`${id} C波はB波からの下げ`, b - c, 20, ctx);
+      atMost(`${id} 最後は天井より下`, v[n - 1], p5 - 25, ctx);
+      const order = [idxOfMax(v, 0.03, 0.14), idxOfMin(v, 0.12, 0.22), idxOfMax(v, 0.25, 0.37), idxOfMin(v, 0.34, 0.46),
+        idxOfMax(v, 0.48, 0.62), idxOfMin(v, 0.6, 0.72), idxOfMax(v, 0.72, 0.84), idxOfMin(v, 0.84, 0.96)];
+      assert.ok(strictlyMonotone(order, 1, 3), `${ctx} 波の順 ${order}`);
+    }
+  }
+});
+
+test('上昇チャネル下抜け / 下降チャネル上抜け: 平行なチャネルのあと、最後に反対側へ抜ける(300シード)', () => {
+  for (const [id, sign] of [['ascending-channel-breakdown', 1], ['descending-channel-breakout-up', -1]]) {
+    for (const seed of SEEDS300) {
+      const v = seriesOf(id, seed, sign); // 以後は「上昇チャネルを下に抜ける」向き
+      const n = v.length;
+      const ctx = `${id} seed=${seed}`;
+      const body = sliceAt(v, [0, 0.72]);
+      const ps = onePeak(body, 6, 5);
+      const ts = oneTrough(body, 6, 5);
+      atLeast(`${id} 山の数`, ps.length, 4, ctx);
+      atLeast(`${id} 谷の数`, ts.length, 3, ctx);
+      const sp = slopeOf(ps, ps.map((i) => body[i]));
+      const st = slopeOf(ts, ts.map((i) => body[i]));
+      atLeast(`${id} 高値の傾き`, sp, 0.25, ctx);
+      atLeast(`${id} 安値の傾き`, st, 0.25, ctx);
+      atMost(`${id} 平行(傾きの差の割合)`, Math.abs(sp - st) / Math.max(sp, st), 0.3, ctx);
+      assert.ok(strictlyMonotone(ps.map((i) => body[i]), 1, 3), `${ctx} 高値の切り上げ`);
+      assert.ok(strictlyMonotone(ts.map((i) => body[i]), 1, 3), `${ctx} 安値の切り上げ`);
+      // 最後は、チャネルの下の線を大きく割る
+      const lower = lineFit(ts, ts.map((i) => body[i]), n);
+      atMost(`${id} 下の線の割り込み(終点)`, v[n - 1], lower.at(1) - 25, ctx);
+      atMost(`${id} 下の線の割り込み(途中)`, at(v, 0.86), lower.at(0.86) - 10, ctx);
+      atMost(`${id} 最後が安値`, v[n - 1], Math.min(...v) + 4, ctx);
+      atLeast(`${id} 最後の山から大きく下げる`, body[ps[ps.length - 1]] - v[n - 1], 40, ctx);
+    }
+  }
+});
+
+test('セリングクライマックス: 下落が次第に加速し、最後に急落して底をつけ、少し戻して終わる(300シード)', () => {
+  for (const seed of SEEDS300) {
+    const v = seriesOf('selling-climax', seed);
+    const n = v.length;
+    const ctx = `seed=${seed}`;
+    const low = Math.min(...v);
+    const lowAt = v.indexOf(low);
+    assert.ok(lowAt > n * 0.84 && lowAt < n * 0.96, `${ctx} 底の位置 ${lowAt}`);
+    atLeast('セリングクライマックス 全体の下げ', v[0] - low, 60, ctx);
+    // 区間ごとの下落の速さ(1点あたり)が、前半 < 中盤 < 終盤と上がる
+    const rate = (a, b) => (at(v, a) - at(v, b)) / ((b - a) * (n - 1));
+    const r1 = rate(0, 0.3);
+    const r2 = rate(0.3, 0.68);
+    const r3 = rate(0.68, 0.86);
+    atMost('セリングクライマックス 前半はゆるやか', r1, 0.4, ctx);
+    atLeast('セリングクライマックス 終盤の加速(中盤の2.2倍)', r3 / r2, 2.2, ctx);
+    atLeast('セリングクライマックス 中盤の加速(前半の1.5倍)', r2 / Math.max(r1, 0.05), 1.5, ctx);
+    atLeast('セリングクライマックス 最後の急落の大きさ', at(v, 0.68) - low, 30, ctx);
+    // 底のあと、少し戻して終わる(戻りすぎない)
+    atLeast('セリングクライマックス 底からの戻り', v[n - 1] - low, 6, ctx);
+    atMost('セリングクライマックス 戻りすぎない', v[n - 1] - low, 30, ctx);
+  }
+});
+
+test('新規チャート20種類は、ほかのどの形ともはっきり違う骨格を持つ(見分けがつく)', () => {
+  // 全50種類の骨格をならした形(ノイズなし・縦を0〜100にそろえる)を比べて、近すぎる組がないことを見る
+  const sampled = (p) => {
+    const f = L.makeSpline(p.points);
+    return Array.from({ length: 60 }, (_, i) => f(i / 59));
+  };
+  const dist = (a, b) => Math.sqrt(a.reduce((s, x, i) => s + (x - b[i]) ** 2, 0) / a.length);
+  const norm = (a) => { const mn = Math.min(...a); const mx = Math.max(...a); return a.map((x) => ((x - mn) / (mx - mn)) * 100); };
+  const shapes = L.PATTERNS.map((p) => ({ id: p.id, y: norm(sampled(p)) }));
+  let nearest = Infinity;
+  for (const s of shapes) {
+    if (!NEW_CHART20[s.id]) continue;
+    for (const o of shapes) {
+      if (o.id === s.id) continue;
+      const d = dist(s.y, o.y);
+      nearest = Math.min(nearest, d);
+      assert.ok(d > 7, `${s.id} と ${o.id} の骨格が近すぎる: ${d.toFixed(1)}`);
+    }
+  }
+  MARGINS['骨格の近さ(最小距離-7)'] = nearest - 7;
+});
+
+test('新規チャート20種類: 滑らかさ(2階差)は既存のしきい値(2.65)のまま、シード1〜300でも超えない', () => {
+  let worst = 0;
+  for (const id of Object.keys(NEW_CHART20)) {
+    for (const seed of SEEDS300) {
+      const v = L.generateSeries(L.findPattern(id), seed);
+      for (let i = 1; i < v.length - 1; i++) worst = Math.max(worst, Math.abs(v[i + 1] - 2 * v[i] + v[i - 1]));
+    }
+  }
+  MARGINS['滑らかさ(2.65-最大の2階差)'] = 2.65 - worst;
+  assert.ok(worst < 2.65, `worst=${worst}`);
+});
+
+test('新規チャート20種類の紛らわしい組が両方向で isConfusable で、形状の選択肢に同時に出ない', () => {
+  const entries = Object.entries(NEW_CHART20_CONFUSABLE);
+  assert.equal(entries.length, 20);
+  for (const [id, others] of entries) {
+    for (const other of others) {
+      assert.ok(L.PATTERNS.some((p) => p.id === other), `${id} の相手 ${other} が存在する`);
+      assert.equal(L.isConfusable(id, other), true, `${id}/${other}`);
+      assert.equal(L.isConfusable(other, id), true, `${other}/${id}`);
+      for (let seed = 1; seed <= 60; seed++) {
+        for (const [x, y] of [[id, other], [other, id]]) {
+          const q = L.makePatternQuestion(L.findPattern(x), seed);
+          assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
+        }
+      }
+    }
+  }
+  // 実装で足した組
+  for (const [a, b] of [['ascending-channel-breakdown', 'rising-wedge'], ['descending-channel-breakout-up', 'falling-wedge'],
+    ['elliott-impulse-up', 'n-wave-up'], ['elliott-impulse-down', 'n-wave-down']]) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+  }
+});
+
+test('新規チャート20種類: 各難易度の形状のラウンドは10問で、その難易度の10種類がちょうど1回ずつ出る', () => {
+  for (const level of L.DIFFICULTY_LEVELS) {
+    assert.equal(L.roundSize('pattern', level), 10, level);
+    for (let seed = 1; seed <= 30; seed++) {
+      const deck = L.buildDeck('pattern', seed, level);
+      assert.equal(deck.length, 10, `${level} seed=${seed}`);
+      assert.deepEqual(deck.map((q) => q.patternId).sort(), L.DIFFICULTY_BY_ID.patterns[level].slice().sort(), `${level} seed=${seed}`);
+      for (const q of deck) {
+        assert.equal(L.validateQuestion(q), null, q.id);
+        assert.equal(q.difficulty, level, q.id);
+      }
+    }
+  }
+});
+
+test('新規チャート20種類: explanation は「よ。」で終わり、detail は特定の問題を指さない', () => {
+  for (const id of Object.keys(NEW_CHART20)) {
+    const p = L.findPattern(id);
+    assert.ok(p.explanation.endsWith('よ。'), id);
+    assert.ok(p.detail.endsWith('。'), id);
+    assert.ok(!p.detail.includes('正解') && !p.detail.includes('この問題'), id);
   }
 });

@@ -1,9 +1,9 @@
 # 株クイズ 内容の出典URL
 
-- 目的: 株クイズに追加した用語クイズ80問と、全180問の「くわしく」の内容について、読んだ解説ページの URL を記録する。
+- 目的: 株クイズに追加した用語クイズ80問と、全180問の「くわしく」の内容について、読んだ解説ページの URL を記録する。あわせて、2026-10-09 に追加したチャートの形20種類(節4)とローソク足20種類(節5)の URL も記録する。
 - 記録日: 2026-10-09
 - 作り方: 証券会社・取引所などの解説ページを読み、自分の言葉で書いた。文章は写していない。調査と文章づくりは Claude のエージェントが行い、別のエージェントが事実確認した。
-- URL の確認: 次の3件の babypips の URL は、スクリプトからのアクセスでは 403 が返る(事実確認の担当者は、ブラウザのツールで読んだ)。ほかに挙げた URL は、2026-10-09 に HTTP 200 が返ることを確認した。
+- URL の確認(節1〜3): 次の3件の babypips の URL は、スクリプトからのアクセスでは 403 が返る(事実確認の担当者は、ブラウザのツールで読んだ)。ほかに挙げた URL は、2026-10-09 に HTTP 200 が返ることを確認した。
   - https://www.babypips.com/ja/learn/forex/wedges
   - https://www.babypips.com/ja/learn/forex/trend-channels
   - https://www.babypips.com/ja/forexpedia/hammer
@@ -205,3 +205,61 @@
 | falling-three-methods | 下げ三法 | ローソク足 | https://www.oanda.jp/lab-education/tradingviewstrategy/basic/tradingview_rising_three_methods; https://www.daiwa.jp/seminar/technical/01/ |  |
 | abandoned-baby-bottom | 捨て子線(底) | ローソク足 | https://www.oanda.jp/lab-education/tradingviewstrategy/basic/candlestick_abandoned_baby |  |
 | abandoned-baby-top | 捨て子線(天井) | ローソク足 | https://www.oanda.jp/lab-education/tradingviewstrategy/basic/candlestick_abandoned_baby |  |
+
+## 4. チャートの形(2026-10-09 追加分)20種類
+
+- チャートの形を30種類から50種類に増やしたときの、追加の20種類の出典である。調査と文章づくりは Claude のエージェントが行い、証券会社・取引所などの解説ページを読んで自分の言葉で書いた(出典の文は写していない)。
+- この表の URL は、文章を書いた担当者が読んだ URL で、新しい項目の節(節4・節5)の異なる URL 全16件は、2026-10-09 に curl で確認し、すべて HTTP 200 で応答した。
+- 備考が空の項目は、書き手が出典ページの内容と食い違う点を記録していない。
+
+| id | 名前 | 難易度 | 出典URL | 備考 |
+|----|------|--------|---------|------|
+| box-breakout-up | ボックス上抜け(上放れ) | ★ | https://www.gaitame.com/beginner/market/technical/pattern.html; https://www.daiwa.jp/seminar/technical/03/; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
+| box-breakout-down | ボックス下抜け(下放れ) | ★★ | https://www.gaitame.com/beginner/market/technical/pattern.html; https://www.daiwa.jp/seminar/technical/03/; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
+| n-wave-up | N字上昇(上昇N波動) | ★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/; https://media.monex.co.jp/articles/-/566 |  |
+| broadening-top | 拡大三角形(ブロードニングトップ) | ★★★ | https://financial-field.com/assets/entry-117766 | 出典(financial-field)は典型を上抜け・失敗を下抜けとし、方向が割れる。outlook は either(上下どちらにも抜けうる) |
+| n-wave-down | N字下降(逆N波動) | ★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/; https://media.monex.co.jp/articles/-/566 |  |
+| false-breakout-up | 上抜けダマシ(フォールスブレイクアウト・上) | ★★★★ | https://www.oanda.jp/lab-education/technical_analysis/price_action/false_breakout; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
+| false-breakout-down | 下抜けダマシ(フォールスブレイクアウト・下) | ★★★★ | https://www.oanda.jp/lab-education/technical_analysis/price_action/false_breakout; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
+| triangle-breakout-up | 三角保ち合い上放れ | ★★★★ | https://www.daiwa.jp/seminar/technical/03/; https://www.gaitame.com/beginner/market/technical/pattern.html |  |
+| triangle-breakout-down | 三角保ち合い下放れ | ★★★★ | https://www.daiwa.jp/seminar/technical/03/; https://www.gaitame.com/beginner/market/technical/pattern.html |  |
+| return-move-up | リターンムーブ(上抜け後の押し戻し) | ★★★★ | https://www.oanda.jp/lab-education/dictionary/breakout/; https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/ |  |
+| return-move-down | リターンムーブ(下抜け後の戻り) | ★★★★ | https://www.oanda.jp/lab-education/dictionary/breakout/; https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/ |  |
+| elliott-impulse-up | エリオット波動 上昇5波(推進波) | ★★★★★ | https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/; http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html | 5波後の調整は理論上の標準だが、完了時点を図から断定できない。outlook は either。第3波が最大か第5波が伸びるかは見解が割れる(松井証券は第3波、別解説は第5波) |
+| elliott-impulse-down | エリオット波動 下降5波(推進波) | ★★★★★ | https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/; http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html | 上昇側の鏡写し。outlook は either。第3波・第5波の見解は割れる |
+| elliott-cycle-up | エリオット波動 上昇5波+調整3波(1サイクル) | ★★★★★ | http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html; https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/ |  |
+| elliott-cycle-down | エリオット波動 下降5波+調整3波(1サイクル) | ★★★★★ | http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html; https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/ | 名前を「戻り3波」から「調整3波」に改めた(上昇側と語をそろえた。松井証券は「修正」) |
+| falling-wedge-breakout-up | 下降ウェッジ上抜け(上放れ) | ★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-wedge-trade-method/ |  |
+| rising-wedge-breakout-down | 上昇ウェッジ下抜け(下放れ) | ★★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-wedge-trade-method/ |  |
+| ascending-channel-breakdown | 上昇チャネル下抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 | 出典が薄い(フラッグ(チャネル)のブレイク解説のみ)。方向は解釈 |
+| descending-channel-breakout-up | 下降チャネル上抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 | 出典が薄い(フラッグ(チャネル)のブレイク解説のみ)。方向は解釈 |
+| selling-climax | セリングクライマックス(急落の最終局面) | ★★★★★ | https://www.oanda.jp/lab-education/dictionary/sellingclimax/ | 単一出典(OANDA)。「傾向」「必ずではない」と書かれているので、文章は「〜しやすいと言われる」にとどめた。価格だけでは出来高の急増を描けない |
+
+## 5. ローソク足(2026-10-09 追加分)20種類
+
+- ローソク足を30種類から50種類に増やしたときの、追加の20種類の出典である。調査と文章づくりは Claude のエージェントが行い、証券会社・取引所などの解説ページを読んで自分の言葉で書いた。文章は写していない。
+- この節の URL は、文章を書いた担当者が読んだ URL で、節4・節5の異なる URL 全16件は、2026-10-09 に curl で確認し、すべて HTTP 200 で応答した(節4の注記を参照)。
+- 備考が空の項目は、書き手が出典ページの内容と食い違う点を記録していない。
+
+| id | 名前 | 難易度 | 出典URL | 備考 |
+|----|------|--------|---------|------|
+| bullish-marubozu | 陽の丸坊主 | ★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
+| bearish-marubozu | 陰の丸坊主 | ★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
+| four-price-doji | 四値同時線 | ★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
+| bullish-opening-marubozu | 陽の寄り付き坊主 | ★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ | 詳しい文から、出典にない「翌日に高値を超えるか」の目安を削った |
+| bearish-opening-marubozu | 陰の寄り付き坊主 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ | 詳しい文から、出典にない「翌日に安値を割るか」の見方を削った |
+| three-gaps-up | 三空踏み上げ | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623 |  |
+| three-gaps-down | 三空叩き込み | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623 |  |
+| upward-gap-side-by-side-white | 上放れ並び赤 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
+| downward-gap-side-by-side-black | 下放れ並び黒 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
+| thrusting-line | 差し込み線 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
+| irikubi-line | 入り首線 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 出典間で整理が割れる(ZAI は差し込み線と並列に並べる)。差し込み線・陽の出合い線・毛抜き底と絵が近く、差し替えるなら坊主三羽が候補 |
+| yukichigai-line | 行き違い線 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | たすき線と定義・絵が近いため、陽のたすき線と紛らわしい組に入れた |
+| bullish-deai-line | 陽の出合い線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 「陽の/陰の」の呼び分けは、確認できた出典になし(出合い線の一般名)。2本目の色で呼び分けていると文章で断っている |
+| bearish-deai-line | 陰の出合い線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 「陽の/陰の」の呼び分けは、確認できた出典になし(出合い線の一般名)。2本目の色で呼び分けていると文章で断っている |
+| bullish-tasuki-line | 陽のたすき線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 出典の条件「前日と値幅がほぼ同じ」に合わせて数値を直した(値幅34と34)。「上寄り」は出典になく、「実体の中」に改めた |
+| bearish-tasuki-line | 陰のたすき線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 出典の条件「前日と値幅がほぼ同じ」に合わせて数値を直した(値幅34と34)。「下寄り」は出典になく、「実体の中」に改めた |
+| upward-gap-star | 上放れの星 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622; https://zai.diamond.jp/articles/-/304621 | 出典にない因果の説明(買い戻しが一巡した)を削り、形の描写と「勢いが一服した様子と見る人もいる」にとどめた |
+| downward-gap-star | 下放れの星 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622; https://zai.diamond.jp/articles/-/304621 | 出典にない因果の説明(投げ売りが一巡した)を削り、形の描写と「勢いが一服した様子と見る人もいる」にとどめた |
+| three-soldiers-stalled | 赤三兵先詰まり | ★★★★★ | https://zai.diamond.jp/articles/-/304623 |  |
+| three-soldiers-deliberation | 赤三兵思案星 | ★★★★★ | https://zai.diamond.jp/articles/-/304623 |  |

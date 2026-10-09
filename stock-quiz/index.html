@@ -23,6 +23,7 @@ body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.7;
 main { max-width: 560px; margin: 0 auto; padding: 16px; }
 h1 { font-size: 22px; font-weight: 500; margin: 8px 0 4px; }
 .lead, .note, .sub { color: var(--muted); font-size: 14px; margin: 4px 0 12px; }
+.tendency { font-size: 14px; margin: 4px 0 12px; }
 .q { font-size: 16px; font-weight: 500; margin: 12px 0 8px; }
 .stars { color: var(--accent); font-size: 13px; letter-spacing: 0.1em; white-space: nowrap; }
 .head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
@@ -92,7 +93,7 @@ const PATTERNS = [
     explanation: '3つの谷の真ん中が一番深い形。ネックラインを超えると上昇に転じやすいよ。',
   },
   {
-    id: 'symmetrical-triangle', name: '三角持ち合い', outlook: 'flat', outlookQuiz: false,
+    id: 'symmetrical-triangle', name: '三角持ち合い', outlook: 'either',
     points: [[0, 50], [0.12, 85], [0.28, 20], [0.44, 72], [0.58, 33], [0.72, 62], [0.84, 42], [0.94, 55], [1, 50]],
     explanation: '高値が切り下がり安値が切り上がって、値動きが狭まる形。上下どちらに抜けるかは抜けるまで分からないよ。抜けた方向に動きやすいとされるよ。',
   },
@@ -221,6 +222,126 @@ const PATTERNS = [
     points: [[0,56],[0.08,32],[0.16,42],[0.25,24],[0.35,48],[0.46,16],[0.56,52],[0.66,22],[0.75,42],[0.84,28],[0.9,37],[0.94,34],[1,50]],
     explanation: '安値圏で値幅が広がってから狭まり、ひし形を描く形だよ。ひし形の上の線を超えると、上昇に転じやすいとされるよ。',
   },
+  {
+    id: 'box-breakout-up', name: 'ボックス上抜け(上放れ)', outlook: 'up',
+    points: [[0, 50], [0.07, 60], [0.19, 41], [0.31, 60], [0.43, 40], [0.55, 60], [0.66, 41], [0.76, 62], [0.88, 78], [1, 88]],
+    explanation: '上下の線にはさまれた箱の中を往復したあと、上の線を抜けると、上昇が始まりやすいとされる形だよ。',
+    detail: '箱の中では売りと買いが釣り合い、出来高も細りやすいとされるよ。上の線を抜けると、そこで待っていた売りがこなされて勢いがつくことがあるよ。抜けた直後に箱へ戻るダマシもあるので、出来高が増えたかを一緒に見る人が多いよ。三角形と違って、上下の線がどちらも水平なのが見分けの目印だよ。',
+  },
+  {
+    id: 'box-breakout-down', name: 'ボックス下抜け(下放れ)', outlook: 'down',
+    points: [[0, 50], [0.07, 41], [0.19, 60], [0.31, 40], [0.43, 60], [0.55, 40], [0.66, 59], [0.76, 38], [0.88, 22], [1, 13]],
+    explanation: '箱の中を往復したあと、下の線を割り込むと、下落が始まりやすいとされる形だよ。',
+    detail: '下の線は「ここなら買いが入る」と意識されてきた水準なので、割れると買った人の損切りの売りが重なり、下げが速まることがあるよ。箱に入る前の流れが下向きなら、その続きになりやすいと見る人もいるよ。すぐ箱へ戻る動きもあるため、終値で確かめる人が多いよ。下降三角形は高値が切り下がるけれど、こちらは上の線も水平だよ。',
+  },
+  {
+    id: 'n-wave-up', name: 'N字上昇(上昇N波動)', outlook: 'up',
+    points: [[0, 18], [0.34, 68], [0.6, 40], [1, 94]],
+    explanation: '上昇のあと押して、前の高値を超えてさらに上がる、Nの字を描く形だよ。上昇が続きやすいとされるよ。',
+    detail: '押しの安値が出発点より高く、次の高値が前の高値を超えるので、高値と安値の切り上げが目に見える形だよ。押しの終わりを押し目と見る人がいて、最初の上げ幅と同じだけ次も伸びる、という目安(N計算値)を使う人もいるよ。2つ目の山が前の高値に届かず安値も割ると、流れが変わった可能性があるよ。上昇チャネルは平行な帯の中で続くけれど、こちらは1回の押しをはさむ3つの波が特徴だよ。',
+  },
+  {
+    id: 'broadening-top', name: '拡大三角形(ブロードニングトップ)', outlook: 'either',
+    points: [[0, 25], [0.1, 60], [0.22, 40], [0.36, 72], [0.5, 28], [0.64, 86], [0.84, 14], [1, 22]],
+    explanation: '高値は切り上がり安値は切り下がって値幅が広がる形で、天井圏に出ると下落につながりやすいとされるけれど、方向は分かれるよ。',
+    detail: '三角形とは逆に右へ向かって口が開く形で、買いと売りの迷いや荒い値動きを表すと読まれるよ。天井付近の上昇の終わりごろに出やすいとされるけれど、上の線を抜けて上昇につながる場合もあり、解説では方向が分かれるよ。値幅が狭まる対称三角形と違い、広がっていくのが見分けの目印だよ。形がはっきりするまで時間がかかる、という見方もあるよ。',
+  },
+  {
+    id: 'n-wave-down', name: 'N字下降(逆N波動)', outlook: 'down',
+    points: [[0, 82], [0.34, 32], [0.6, 60], [1, 6]],
+    explanation: '下落のあと戻して、前の安値を割ってさらに下がる、逆Nの字を描く形だよ。下落が続きやすいとされるよ。',
+    detail: '戻りの高値が出発点より低く、次の安値が前の安値を下回るので、高値と安値の切り下げがそろった形だよ。戻りが終わったところを戻り売りの場面と見る人がいるよ。2回目の下げが前の安値で止まり、戻りの高値を超えると、見方が崩れるよ。下降チャネルが平行な帯の中で下がるのに対し、こちらは戻りをはさむ3つの波に注目する形だよ。',
+  },
+  {
+    id: 'false-breakout-up', name: '上抜けダマシ(フォールスブレイクアウト・上)', outlook: 'down',
+    points: [[0, 50], [0.07, 60], [0.18, 42], [0.3, 60], [0.42, 42], [0.52, 59], [0.6, 64], [0.66, 76], [0.73, 56], [0.8, 40], [0.9, 29], [1, 22]],
+    explanation: '箱の上限を一時的に抜けたのに定着できず、箱の中へ戻って、結局下がりやすいとされる形だよ。',
+    detail: '上限の少し上には、上昇を期待した買いと、売り方の損切りの注文が集まりやすいとされるよ。それが一巡しても勢いが続かないと、利益確定の売りが重なって逆方向へ動くことがあるよ。戻っただけで終わる場合もあるので、下の線を割るかまで見る人が多いよ。上抜けが定着して上がる形と違い、押し戻される点が見分けの目印だよ。',
+  },
+  {
+    id: 'false-breakout-down', name: '下抜けダマシ(フォールスブレイクアウト・下)', outlook: 'up',
+    points: [[0, 50], [0.07, 40], [0.18, 58], [0.3, 40], [0.42, 58], [0.52, 41], [0.6, 36], [0.66, 24], [0.73, 44], [0.8, 60], [0.9, 71], [1, 78]],
+    explanation: '箱の下限を一時的に割ったのに定着できず、箱の中へ戻って、結局上がりやすいとされる形だよ。',
+    detail: '下限の下には損切りの売りが集まりやすく、それが出尽くすと、売り方の買い戻しも加わって切り返すことがあるとされるよ。ヒゲだけ下に出て箱へ戻る動きが目印だよ。安値を2回つけるダブルボトムと似ているけれど、こちらは水平な下限を一瞬だけ割る点が違うよ。戻り切れずに下げが続く場合もあるよ。',
+  },
+  {
+    id: 'triangle-breakout-up', name: '三角保ち合い上放れ', outlook: 'up',
+    points: [[0, 50], [0.1, 78], [0.23, 22], [0.35, 68], [0.47, 32], [0.58, 60], [0.68, 39], [0.77, 58], [0.88, 74], [1, 90]],
+    explanation: '値幅が狭まる三角保ち合いを上に抜けると、上昇しやすいとされる形だよ。',
+    detail: '値動きが細くなる間は売り買いが拮抗していて、上の線を抜けた時に一気に動くことがあるとされるよ。抜けるときに出来高が増えると信頼されやすい、という見方があるよ。抜けた直後に三角形の中へ戻るダマシもあるよ。上の線が水平な上昇三角形と違い、高値と安値がどちらも斜めに収束する形から抜ける点が違うよ。',
+  },
+  {
+    id: 'triangle-breakout-down', name: '三角保ち合い下放れ', outlook: 'down',
+    points: [[0, 50], [0.1, 22], [0.23, 78], [0.35, 32], [0.47, 68], [0.58, 40], [0.68, 61], [0.77, 42], [0.88, 26], [1, 10]],
+    explanation: '値幅が狭まる三角保ち合いを下に抜けると、下落しやすいとされる形だよ。',
+    detail: '下の線は買いが支えていた水準なので、割れると損切りの売りが出て、下げが速まることがあるよ。先に大きな下落があった場合は、その続きになりやすいという見方もあるよ。抜ける方向は抜けてみるまで分からず、上に抜ける展開もある、という見方もあるよ。下の線だけが水平な下降三角形と違い、両方の線が斜めに寄っていくのが特徴だよ。',
+  },
+  {
+    id: 'return-move-up', name: 'リターンムーブ(上抜け後の押し戻し)', outlook: 'up',
+    points: [[0, 50], [0.08, 60], [0.2, 40], [0.32, 60], [0.44, 41], [0.54, 62], [0.64, 80], [0.76, 61], [0.88, 82], [1, 93]],
+    explanation: '上の線を抜けたあと、抜けた線付近まで押し戻されてから、再び上昇しやすいとされる形だよ。',
+    detail: '一度抜けた線が今度は下値の支えになるかを確かめる動きで、抜けが本物かどうかの目安と見る人がいるよ。戻ってきたところから再び上がれば、押し目の場面とされるよ。線を割り込んだまま戻らないなら、上抜けのダマシだった可能性があるよ。N字上昇と似ているけれど、こちらは水平の線を抜けたあと、その線まで戻る点が特徴だよ。',
+  },
+  {
+    id: 'return-move-down', name: 'リターンムーブ(下抜け後の戻り)', outlook: 'down',
+    points: [[0, 50], [0.08, 40], [0.2, 60], [0.32, 40], [0.44, 59], [0.54, 38], [0.64, 20], [0.76, 39], [0.88, 18], [1, 7]],
+    explanation: '下の線を割ったあと、割った線付近まで戻されてから、再び下落しやすいとされる形だよ。',
+    detail: '支えだった線が、割れたあとは上値の抑えに変わるかを確かめる動きと見られるよ。戻りが抑えられて下げ直せば、戻り売りの場面とされるよ。戻りが線を大きく超えると、下抜けがダマシだった可能性が出てくるよ。下抜けダマシは箱の中へ戻って上に動くけれど、こちらは線の近くで止まって再び下を向く点が違うよ。',
+  },
+  {
+    id: 'elliott-impulse-up', name: 'エリオット波動 上昇5波(推進波)', outlook: 'either',
+    points: [[0, 10], [0.14, 36], [0.23, 22], [0.52, 78], [0.62, 54], [0.88, 94], [1, 89]],
+    explanation: '上・下・上・下・上の5つの波でできる上昇の形で、5波まで進むと調整が入りやすいとも、上昇の途中の1波にすぎないとも見られるよ。',
+    detail: '第2波が出発点を割らない、第4波が第1波の高値に重ならない、第3波が最も短くはならない、という決まりを確かめながら波を数えるよ。第3波が最も大きくなりやすいという見方が多いけれど、第5波が伸びる場合もあるよ。ただし数え方は人によって分かれ、あとから数え直すこともあるよ。移動平均線の並びで見るパーフェクトオーダーと違い、波の数と決まりで判断する点が特徴だよ。',
+  },
+  {
+    id: 'elliott-impulse-down', name: 'エリオット波動 下降5波(推進波)', outlook: 'either',
+    points: [[0, 90], [0.14, 64], [0.23, 78], [0.52, 22], [0.62, 46], [0.88, 6], [1, 11]],
+    explanation: '下・上・下・上・下の5つの波でできる下降の形で、5波まで進むと戻りが入りやすいとも、下落の途中の1波にすぎないとも見られるよ。',
+    detail: '上昇の5波を上下逆にした数え方で、第3波が最も大きくなりやすいという見方が多いけれど、第5波が伸びる場合もあるよ。第2波の戻りが出発点を超えない、第4波の戻りが第1波の安値に食い込まない、といった決まりを確かめて数えるよ。5波目のころは下げ疲れで反発が出やすいという見方があるけれど、下げが続く場合もあるよ。平行な帯の形で見る下降チャネルと違い、波の数と決まりで見るのが特徴だよ。',
+  },
+  {
+    id: 'elliott-cycle-up', name: 'エリオット波動 上昇5波+調整3波(1サイクル)', outlook: 'up',
+    points: [[0, 10], [0.09, 36], [0.16, 22], [0.31, 72], [0.4, 54], [0.55, 90], [0.67, 60], [0.78, 76], [0.9, 42], [1, 48]],
+    explanation: '上昇の5つの波のあとに、下・上・下の3つの調整の波が続く形で、調整が終わると再び上昇に向かうとされるよ。',
+    detail: '推進の5波と調整の3波を合わせた8つの波で一周期と数え、調整が終われば次の推進波につながるという考え方だよ。大きな波の中に小さな5波と3波が何層にも重なって含まれるとされ、日足にも月足にも当てはめられるよ。実際には調整のあとも下げが続くことがあり、数え方も人によって違うよ。ダブルトップに似た頂点をつくるけれど、こちらは頂点までに5つの上昇の波を含む点が違うよ。',
+  },
+  {
+    id: 'elliott-cycle-down', name: 'エリオット波動 下降5波+調整3波(1サイクル)', outlook: 'down',
+    points: [[0, 90], [0.09, 64], [0.16, 78], [0.31, 28], [0.4, 46], [0.55, 10], [0.67, 40], [0.78, 24], [0.9, 58], [1, 52]],
+    explanation: '下降の5つの波のあとに、上・下・上の3つの戻りの波が続く形で、戻りが終わると再び下落に向かうとされるよ。',
+    detail: '下降の5波のあとの上・下・上の3波は、下げすぎの修正として戻る動きと見られるよ。この3波が終われば元の下げ方向に戻るのが基本の考え方だけれど、戻りが大きくなって底打ちになる場合もあり、見方は分かれるよ。A波・B波・C波と名前をつけて追うため、途中で数え間違えることも多いよ。ダブルボトムと違い、直前に5つの下降の波があるのが目印だよ。',
+  },
+  {
+    id: 'falling-wedge-breakout-up', name: '下降ウェッジ上抜け(上放れ)', outlook: 'up',
+    points: [[0, 88], [0.12, 60], [0.22, 78], [0.36, 44], [0.46, 56], [0.58, 35], [0.66, 42], [0.74, 28], [0.82, 44], [0.9, 60], [1, 76]],
+    explanation: '高値も安値も切り下がりながら狭まるウェッジの上側の線を抜けると、上昇に転じやすいとされる形だよ。',
+    detail: '下げるたびに下落幅が縮み、売りの力が衰えてきたと読まれ、上の線を抜けた時が転換の目印とされるよ。下げ相場の終わりごろは転換型、上げ相場の押し目では継続型として出ることがあるよ。上の線を抜けたようでも終値が内側へ戻るなら、ダマシの兆候と見られるよ。ブル旗は急騰のあとの短い帯で、こちらは2本の線が下向きに寄っていく点が違うよ。',
+  },
+  {
+    id: 'rising-wedge-breakout-down', name: '上昇ウェッジ下抜け(下放れ)', outlook: 'down',
+    points: [[0, 12], [0.12, 40], [0.22, 22], [0.36, 56], [0.46, 44], [0.58, 65], [0.66, 58], [0.74, 72], [0.82, 56], [0.9, 40], [1, 24]],
+    explanation: '高値も安値も切り上がりながら狭まるウェッジの下側の線を割ると、下落に転じやすいとされる形だよ。',
+    detail: '上がり幅がだんだん小さくなり、上げる力が衰えてきたと読まれるよ。下の線を割った時に下げが速まることがあるとされるよ。上昇の終盤では転換型、下降中の戻りでは継続型として出ることがあり、割れた線が今度は戻りを抑える線に変わることもあるよ。ベア旗は急落のあとの短い右上がりの帯で、こちらは上昇の途中で狭まりながら傾く点が違うよ。',
+  },
+  {
+    id: 'ascending-channel-breakdown', name: '上昇チャネル下抜け', outlook: 'down',
+    points: [[0, 15], [0.095, 40], [0.19, 25], [0.285, 50], [0.38, 35], [0.475, 60], [0.56, 45], [0.66, 70], [0.76, 54], [0.86, 34], [1, 14]],
+    explanation: '右上がりの平行な2本線の帯を、下の線を割って抜けると、上昇の勢いが弱まって下落に転じやすいとされる形だよ。',
+    detail: '帯の下の線は押し目で買いが入りやすい水準として使われるので、割れると上昇の流れが崩れたと見る人がいるよ。割った線が今度は戻りの壁になることもあるとされるよ。ただ線の引き方は人によって違い、すぐ帯に戻るダマシもあるため、終値で確かめる人が多いよ。帯の中で上がり続ける上昇チャネルと違い、帯を割る場面そのものを指す形だよ。',
+  },
+  {
+    id: 'descending-channel-breakout-up', name: '下降チャネル上抜け', outlook: 'up',
+    points: [[0, 85], [0.095, 60], [0.19, 75], [0.285, 50], [0.38, 65], [0.475, 40], [0.56, 55], [0.66, 30], [0.76, 46], [0.86, 66], [1, 86]],
+    explanation: '右下がりの平行な2本線の帯を、上の線を抜けると、下落の勢いが弱まって上昇に転じやすいとされる形だよ。',
+    detail: '上の線は戻り売りが出やすい水準なので、そこを超えると下落の流れが変わったと見られるよ。抜けた線が今度は下値の支えに変わる、という見方もあるよ。線の引き方には幅があり、抜けたあと帯の中へ戻るダマシもあるよ。底を2つつくるダブルボトムと違い、下げながら平行に動く帯を上に抜けるのが特徴だよ。',
+  },
+  {
+    id: 'selling-climax', name: 'セリングクライマックス(急落の最終局面)', outlook: 'up',
+    points: [[0, 82], [0.3, 76], [0.52, 66], [0.68, 52], [0.78, 36], [0.86, 16], [0.915, 6], [1, 22]],
+    explanation: '下落が加速して急落し、売りが出尽くしたところで底をつけて、反発しやすいとされる形だよ。',
+    detail: 'ゆるやかな下げが続いたあと、損切りの売りが重なって一気に下げが加速する、下落の最終局面とされるよ。売りが一巡した反動で、反転上昇につながりやすいと言われるよ。ただそのまま上がるとは限らず、横ばいや下げの継続になる場合もあり、底の位置や時期は事前に見極めにくいよ。V字底との違いは、底の手前で下げが加速する点だよ。',
+  },
 ];
 const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'], ['doji', 'shooting-star'],
   ['symmetrical-triangle', 'bear-pennant'], ['saucer-bottom', 'cup-with-handle'],
@@ -244,18 +365,90 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['golden-cross', 'bullish-perfect-order'], ['dead-cross', 'bearish-perfect-order'],
   ['diamond-top', 'symmetrical-triangle'], ['diamond-bottom', 'symmetrical-triangle'],
   ['gap-down', 'morning-star'], ['gap-up', 'evening-star'], ['gap-up', 'abandoned-baby-bottom'],
-  ['gap-down', 'abandoned-baby-bottom'], ['gap-up', 'abandoned-baby-top'], ['gap-down', 'abandoned-baby-top']];
-const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
+  ['gap-down', 'abandoned-baby-bottom'], ['gap-up', 'abandoned-baby-top'], ['gap-down', 'abandoned-baby-top'],
+  ['box-breakout-up', 'box-range'], ['box-breakout-up', 'ascending-triangle'], ['box-breakout-up', 'box-breakout-down'],
+  ['box-breakout-down', 'box-range'], ['box-breakout-down', 'descending-triangle'], ['n-wave-up', 'ascending-channel'],
+  ['n-wave-up', 'bull-flag'], ['n-wave-up', 'bullish-perfect-order'], ['n-wave-up', 'n-wave-down'],
+  ['broadening-top', 'symmetrical-triangle'], ['broadening-top', 'diamond-top'], ['broadening-top', 'head-shoulders'],
+  ['broadening-top', 'falling-wedge'], ['n-wave-down', 'descending-channel'], ['n-wave-down', 'bear-flag'],
+  ['n-wave-down', 'bearish-perfect-order'], ['false-breakout-up', 'box-breakout-up'], ['false-breakout-up', 'box-breakout-down'],
+  ['false-breakout-up', 'double-top'], ['false-breakout-up', 'false-breakout-down'], ['false-breakout-down', 'box-breakout-up'],
+  ['false-breakout-down', 'box-breakout-down'], ['false-breakout-down', 'double-bottom'],
+  ['triangle-breakout-up', 'symmetrical-triangle'], ['triangle-breakout-up', 'ascending-triangle'],
+  ['triangle-breakout-up', 'pennant'], ['triangle-breakout-up', 'triangle-breakout-down'],
+  ['triangle-breakout-down', 'symmetrical-triangle'], ['triangle-breakout-down', 'descending-triangle'],
+  ['triangle-breakout-down', 'bear-pennant'], ['return-move-up', 'n-wave-up'], ['return-move-up', 'false-breakout-up'],
+  ['return-move-up', 'box-breakout-up'], ['return-move-up', 'return-move-down'], ['return-move-down', 'n-wave-down'],
+  ['return-move-down', 'false-breakout-down'], ['return-move-down', 'box-breakout-down'],
+  ['elliott-impulse-up', 'bullish-perfect-order'], ['elliott-impulse-up', 'ascending-channel'],
+  ['elliott-impulse-up', 'elliott-cycle-up'], ['elliott-impulse-up', 'elliott-impulse-down'],
+  ['elliott-impulse-down', 'bearish-perfect-order'], ['elliott-impulse-down', 'descending-channel'],
+  ['elliott-impulse-down', 'elliott-cycle-down'], ['elliott-cycle-up', 'double-top'], ['elliott-cycle-up', 'head-shoulders'],
+  ['elliott-cycle-up', 'elliott-cycle-down'], ['elliott-cycle-down', 'double-bottom'],
+  ['elliott-cycle-down', 'inverse-head-shoulders'], ['falling-wedge-breakout-up', 'falling-wedge'],
+  ['falling-wedge-breakout-up', 'bull-flag'], ['falling-wedge-breakout-up', 'triangle-breakout-up'],
+  ['falling-wedge-breakout-up', 'rising-wedge-breakout-down'], ['rising-wedge-breakout-down', 'rising-wedge'],
+  ['rising-wedge-breakout-down', 'bear-flag'], ['rising-wedge-breakout-down', 'triangle-breakout-down'],
+  ['ascending-channel-breakdown', 'ascending-channel'], ['ascending-channel-breakdown', 'double-top'],
+  ['ascending-channel-breakdown', 'rising-wedge-breakout-down'],
+  ['ascending-channel-breakdown', 'descending-channel-breakout-up'], ['descending-channel-breakout-up', 'descending-channel'],
+  ['descending-channel-breakout-up', 'double-bottom'], ['descending-channel-breakout-up', 'falling-wedge-breakout-up'],
+  ['selling-climax', 'v-bottom'], ['selling-climax', 'falling-wedge'], ['selling-climax', 'saucer-bottom'],
+  ['selling-climax', 'elliott-impulse-down'], ['ascending-channel-breakdown', 'rising-wedge'],
+  ['descending-channel-breakout-up', 'falling-wedge'], ['elliott-impulse-up', 'n-wave-up'],
+  ['elliott-impulse-down', 'n-wave-down'],
+  // 最終確認で足した、エリオット推進波とウェッジ
+  ['elliott-impulse-up', 'rising-wedge'], ['elliott-impulse-down', 'falling-wedge'],
+  // チャートの形20種類の確認(v6)で足した、見た目が近い組
+  ['box-breakout-down', 'triple-top'], ['box-breakout-up', 'triple-bottom'],
+  ['false-breakout-up', 'triple-top'], ['false-breakout-down', 'triple-bottom'],
+  ['false-breakout-up', 'return-move-down'], ['false-breakout-down', 'return-move-up'],
+  ['elliott-cycle-up', 'ascending-channel-breakdown'], ['elliott-cycle-down', 'descending-channel-breakout-up'],
+  ['elliott-cycle-up', 'rising-wedge-breakout-down'], ['elliott-cycle-down', 'falling-wedge-breakout-up'],
+  ['selling-climax', 'rounding-top'], ['selling-climax', 'bearish-perfect-order'],
+  ['triangle-breakout-up', 'box-breakout-up'], ['triangle-breakout-down', 'box-breakout-down'],
+  // ローソク足20種類の追加(v6)で足した、見た目が近い組
+  ['bullish-marubozu', 'big-bullish'], ['bullish-marubozu', 'bearish-marubozu'],
+  ['bullish-marubozu', 'bullish-opening-marubozu'], ['bearish-marubozu', 'big-bearish'],
+  ['bearish-marubozu', 'bearish-opening-marubozu'], ['four-price-doji', 'doji'], ['four-price-doji', 'dragonfly-doji'],
+  ['four-price-doji', 'gravestone-doji'], ['bullish-opening-marubozu', 'shooting-star'],
+  ['bullish-opening-marubozu', 'upper-shadow-bearish'], ['bullish-opening-marubozu', 'big-bullish'],
+  ['bullish-opening-marubozu', 'bearish-opening-marubozu'], ['bearish-opening-marubozu', 'hammer'],
+  ['bearish-opening-marubozu', 'lower-shadow-bullish'], ['bearish-opening-marubozu', 'big-bearish'],
+  ['three-gaps-up', 'gap-up'], ['three-gaps-up', 'three-white-soldiers'], ['three-gaps-up', 'three-gaps-down'],
+  ['three-gaps-up', 'upward-gap-side-by-side-white'], ['three-gaps-down', 'gap-down'],
+  ['three-gaps-down', 'three-black-crows'], ['three-gaps-down', 'downward-gap-side-by-side-black'],
+  ['upward-gap-side-by-side-white', 'gap-up'], ['upward-gap-side-by-side-white', 'three-white-soldiers'],
+  ['upward-gap-side-by-side-white', 'downward-gap-side-by-side-black'],
+  ['upward-gap-side-by-side-white', 'upward-gap-star'], ['upward-gap-side-by-side-white', 'three-soldiers-deliberation'],
+  ['downward-gap-side-by-side-black', 'gap-down'], ['downward-gap-side-by-side-black', 'three-black-crows'],
+  ['downward-gap-side-by-side-black', 'downward-gap-star'], ['thrusting-line', 'piercing-line'],
+  ['thrusting-line', 'bullish-engulfing'], ['thrusting-line', 'irikubi-line'], ['irikubi-line', 'piercing-line'],
+  ['irikubi-line', 'bearish-harami'], ['irikubi-line', 'bullish-deai-line'], ['yukichigai-line', 'bullish-deai-line'],
+  ['yukichigai-line', 'bullish-engulfing'], ['yukichigai-line', 'gap-up'], ['yukichigai-line', 'bearish-deai-line'],
+  ['bullish-deai-line', 'thrusting-line'], ['bullish-deai-line', 'piercing-line'],
+  ['bullish-deai-line', 'bearish-deai-line'], ['bearish-deai-line', 'dark-cloud-cover'],
+  ['bearish-deai-line', 'bearish-engulfing'], ['bullish-tasuki-line', 'bullish-engulfing'],
+  ['bullish-tasuki-line', 'piercing-line'], ['bullish-tasuki-line', 'bearish-tasuki-line'],
+  ['bearish-tasuki-line', 'bearish-engulfing'], ['bearish-tasuki-line', 'dark-cloud-cover'],
+  ['upward-gap-star', 'evening-star'], ['upward-gap-star', 'gap-up'], ['upward-gap-star', 'spinning-top'],
+  ['upward-gap-star', 'three-soldiers-deliberation'], ['downward-gap-star', 'morning-star'],
+  ['downward-gap-star', 'gap-down'], ['downward-gap-star', 'spinning-top'],
+  ['three-soldiers-stalled', 'three-white-soldiers'], ['three-soldiers-stalled', 'three-soldiers-deliberation'],
+  ['three-soldiers-deliberation', 'three-white-soldiers'], ['three-soldiers-deliberation', 'gap-up'],
+  // ローソク足20種類の確認(v6)で足した組
+  ['yukichigai-line', 'bullish-tasuki-line'], ['thrusting-line', 'tweezer-bottom'], ['irikubi-line', 'tweezer-bottom'],
+];
+const MODES = ['all', 'pattern', 'candle', 'term'];
 const MODE_LABELS = {
   all: '全部まぜ',
   pattern: 'チャートの形状',
-  outlook: '値動き予想',
   candle: 'ローソク足',
   term: '用語',
 };
 
-const OUTLOOK_LABELS = { up: '上がりやすい', down: '下がりやすい', flat: '横ばい' };
-const OUTLOOK_CHOICES = ['上がりやすい', '下がりやすい', '横ばい'];
+// 答え合わせで見せる、この後の値動き(教科書的な傾向)
+const OUTLOOK_LABELS = { up: '上がりやすい', down: '下がりやすい', flat: '横ばい', either: '上下どちらに動くかは、この形だけでは決められないよ' };
 
 // ローソク足: o=始値 h=高値 l=安値 c=終値(0〜100 の相対値)
 const CANDLE_PATTERNS = [
@@ -341,6 +534,86 @@ const CANDLE_PATTERNS = [
   { id: 'abandoned-baby-top', name: '捨て子線(天井)',
     candles: [{ o: 20, h: 44, l: 18, c: 42 }, { o: 56, h: 60, l: 52, c: 56 }, { o: 42, h: 44, l: 16, c: 18 }],
     explanation: '大きな陽線のあと、窓を空けて上に十字線が出て、さらに窓を空けて大きな陰線が出る形。十字線が前後から離れて取り残される。上昇の天井で出ると、下落のサインとされるよ。' },
+  { id: 'bullish-marubozu', name: '陽の丸坊主',
+    candles: [{ o: 30, h: 70, l: 30, c: 70 }],
+    explanation: 'ヒゲがまったくなく、始値が安値、終値が高値になった1本の陽線だよ。寄り付きから引けまで買い一色で、上昇の勢いが強いとされるよ。',
+    detail: '1日のあいだ一度も始値を割らず、最後は高値で引けたので、売りがほとんど出なかったことになるよ。大陽線と似ているけれど、上下のヒゲがほとんどない点が違うよ。実際の市場でぴったりヒゲなしになることは少なく、長く上げたあとの高値圏では勢いの行き過ぎも意識したいよ。' },
+  { id: 'bearish-marubozu', name: '陰の丸坊主',
+    candles: [{ o: 70, h: 70, l: 30, c: 30 }],
+    explanation: 'ヒゲがなく、始値が高値、終値が安値になった1本の陰線だよ。寄り付きから引けまで売りが続き、下落の勢いが強いとされるよ。',
+    detail: '取引時間中ずっと始値を超えられず、最安値で終わったので、買いがほとんど入らなかった1日を表すよ。大陰線との違いは、上下にヒゲがほとんどないことだよ。悪いニュースで売りが殺到した日に出やすいけれど、完全な形はまれで、続く足で下げ止まるかを確かめる人が多いよ。' },
+  { id: 'four-price-doji', name: '四値同時線',
+    candles: [{ o: 50, h: 50, l: 50, c: 50 }],
+    explanation: '始値・高値・安値・終値がすべて同じで、実体もヒゲもない1本の横線だよ。値動きがほとんどなかった状態で、転換のサインとされることがあるよ。',
+    detail: '1日の取引がほぼ同じ価格だけで成立したときに描かれるので、普通の十字線よりずっと動きが小さいよ。十字線には上下のヒゲがあるけれど、この足には線がまったくないよ。売買が極端に少ない銘柄などで見られ、出現はまれなうえ、サインとしての信頼度も高くはないよ。' },
+  { id: 'bullish-opening-marubozu', name: '陽の寄り付き坊主',
+    candles: [{ o: 34, h: 70, l: 34, c: 58 }],
+    explanation: '陽線で下ヒゲがなく、始値が安値に一致して、上ヒゲだけが付く1本だよ。寄り付きから買われたものの、高値からは少し押し戻された形で、上昇の可能性を示すとされるよ。',
+    detail: '始値から一度も下げずに上がった点は丸坊主と同じだけど、上ヒゲがあるぶん、高値では売りも出たことがわかるよ。流れ星と形が似て見えることがあっても、こちらは下ヒゲがなく、実体のほうが長いのが違いだよ。買い優勢でも上値は少し重いので、続く足の動きとあわせて見る人が多いよ。' },
+  { id: 'bearish-opening-marubozu', name: '陰の寄り付き坊主',
+    candles: [{ o: 66, h: 66, l: 30, c: 42 }],
+    explanation: '陰線で上ヒゲがなく、始値が高値に一致して、下ヒゲだけが付く1本だよ。寄り付きから売られたものの、安値からは少し買い戻された形で、下落の可能性を示すとされるよ。',
+    detail: '始値から一度も上がらずに下げ続けた点は陰の丸坊主と同じだけど、下ヒゲがあり、安値では買いも入ったことがわかるよ。ハンマーに似ていても、こちらは陰線で上ヒゲがなく、実体が長めな点が違うよ。売り優勢ながら下値の買いも見えるので、続く足の動きとあわせて見る人が多いよ。' },
+  { id: 'three-gaps-up', name: '三空踏み上げ',
+    candles: [{ o: 12, h: 26, l: 10, c: 24 }, { o: 36, h: 46, l: 34, c: 44 }, { o: 56, h: 66, l: 54, c: 64 }, { o: 76, h: 88, l: 74, c: 86 }],
+    explanation: '4本の足の間に、上向きの窓が3回続けて空く形だよ。急な上昇が続いたことを表し、上昇の終盤に出ると天井が近いとされるよ。',
+    detail: '空売りをしていた人が損を覚悟で買い戻す動きが連鎖し、窓を空けながら価格が跳ね上がった状態と説明されるよ。窓が1回だけの窓空けより、勢いが行き過ぎた印象が強いよ。手じまいの目安と見る人が多いけれど、上昇がさらに続く例もあり、まれな形として慎重に見たいよ。' },
+  { id: 'three-gaps-down', name: '三空叩き込み',
+    candles: [{ o: 88, h: 90, l: 74, c: 76 }, { o: 64, h: 66, l: 54, c: 56 }, { o: 44, h: 46, l: 34, c: 36 }, { o: 24, h: 26, l: 12, c: 14 }],
+    explanation: '4本の足の間に、下向きの窓が3回続けて空く形だよ。急な下落が続いたことを表し、下落の終盤に出ると底が近いとされるよ。',
+    detail: '買っていた人が損を覚悟で投げ売りする動きが連鎖し、窓を空けながら価格が崩れた状態と説明されるよ。窓が1つだけの下放れより、売りが出尽くしに近づいた印象を持つ人もいるよ。ただしさらに下がる例もあり、出現もまれなので、続く足の動きを確かめたいよ。' },
+  { id: 'upward-gap-side-by-side-white', name: '上放れ並び赤',
+    candles: [{ o: 30, h: 44, l: 28, c: 42 }, { o: 54, h: 66, l: 52, c: 64 }, { o: 55, h: 68, l: 53, c: 66 }],
+    explanation: '陽線のあと上に窓を空けて、ほぼ同じ高さの陽線が2本並ぶ形だよ。上昇の途中で出ると、上昇が続きやすいとされるよ。',
+    detail: '窓を空けた先で2本の始値と実体が似た高さにそろい、窓の下へ戻る売りが出なかった様子を表すよ。赤三兵のように切り上がるのではなく、2本が横に並ぶ点が違うよ。勢いが続く目印とされるけれど、行き過ぎた高値圏では反転することもあり、飛びつきには慎重な見方があるよ。' },
+  { id: 'downward-gap-side-by-side-black', name: '下放れ並び黒',
+    candles: [{ o: 70, h: 72, l: 56, c: 58 }, { o: 46, h: 48, l: 34, c: 36 }, { o: 45, h: 47, l: 32, c: 34 }],
+    explanation: '陰線のあと下に窓を空けて、ほぼ同じ高さの陰線が2本並ぶ形だよ。下落の途中で出ると、下落が続きやすいとされるよ。',
+    detail: '窓を空けて下がった先で2本の始値と実体が似た高さにそろい、戻りの買いが弱い様子を表すよ。黒三兵のように切り下がるのではなく、2本が横に並ぶ点が違うよ。下げの勢いが続く目印とされるけれど、行き過ぎた安値圏では反発することもあり、飛びつきの売りには慎重な見方があるよ。' },
+  { id: 'thrusting-line', name: '差し込み線',
+    candles: [{ o: 76, h: 78, l: 38, c: 40 }, { o: 30, h: 52, l: 28, c: 50 }],
+    explanation: '大陰線のあと、前日の終値より安く始まった陽線が、前日の実体の中心に届かないところで終わる2本の形だよ。反発の力が弱いとされるよ。',
+    detail: 'いったん買いが入って戻したものの、前の陰線の実体の半分にも届かないので、反発力は限られると読まれるよ。切り込み線と形が近いけれど、終値が実体の半分より下にとどまる点が違うよ。下落の途中では戻り売りの場面と見る人も多く、上昇への転換とは限らないよ。' },
+  { id: 'irikubi-line', name: '入り首線',
+    candles: [{ o: 70, h: 72, l: 36, c: 40 }, { o: 30, h: 46, l: 28, c: 43 }],
+    explanation: '大陰線のあと、前日の終値より安く始まった陽線が、前日の終値(実体の下端)をわずかに上回るだけで終わる2本の形だよ。戻りがとても弱く、下落が続きやすいとされるよ。',
+    detail: '陽線になっても戻した幅が小さく、前の陰線の実体に少し入ったところで頭を押さえられた状態だよ。差し込み線と比べても戻りが小さいのが特徴で、買いの力が乏しいと読まれるよ。下落途中の戻り売りの目安にされることがあるけれど、差し込み線との差は小さいので、線引きにこだわりすぎないほうがいいよ。' },
+  { id: 'yukichigai-line', name: '行き違い線',
+    candles: [{ o: 62, h: 64, l: 38, c: 40 }, { o: 62, h: 86, l: 60, c: 84 }],
+    explanation: '前日と逆の色で、ほぼ同じ始値から同じ長さの実体が出る2本の形だよ。前日の動きを打ち消して反対向きに動くため、流れの変わり目とされることがあるよ。',
+    detail: '2本の始値がそろい、実体の長さもほぼ同じなので、前日の値動きがそっくり打ち消された形になるよ。包み足は前日の実体より大きく包むけれど、こちらは同じ長さで始値がそろう点が違うよ。上昇途中の押しや下落途中の戻りで終わることもあり、めったに現れないので位置の確認が大切だよ。' },
+  { id: 'bullish-deai-line', name: '陽の出合い線',
+    candles: [{ o: 70, h: 72, l: 38, c: 40 }, { o: 12, h: 42, l: 10, c: 40 }],
+    explanation: '陰線のあと、前日の終値より安く始まり、陽線で前日の終値とほぼ同じ高さに引ける2本の形だよ。実体の長さはほぼ同じで、下落の勢いが弱まったサインとされ、2本目の色で陽の・陰のと呼び分けているよ。',
+    detail: '安く始まって売られかけたのに、買いが入って前日の終値の高さまで押し返した形だよ。行き違い線は始値がそろうけれど、こちらは終値がそろう点が違うよ。一時的な戻りで終わり、また下げる場合もあるから、翌日以降の動きを見たいよ。出現頻度も高くないよ。' },
+  { id: 'bearish-deai-line', name: '陰の出合い線',
+    candles: [{ o: 30, h: 62, l: 28, c: 60 }, { o: 88, h: 90, l: 58, c: 60 }],
+    explanation: '陽線のあと、前日の終値より高く始まり、陰線で前日の終値付近まで押し戻されて終わる2本の形だよ。実体の長さはほぼ同じで、上昇の勢いが弱まったサインとされ、2本目の色で陽の・陰のと呼び分けているよ。',
+    detail: '高く始まって買われかけたのに、売りが出て前日の終値の高さまで落ちた形だよ。始値がそろう行き違い線と違って終値がそろう点が見分けのポイントで、かぶせ線ほど深く押し込まないよ。ひと息入れただけで終わり、また上昇に戻ることもあり、翌日の確認が欠かせないよ。' },
+  { id: 'bullish-tasuki-line', name: '陽のたすき線',
+    candles: [{ o: 70, h: 72, l: 38, c: 40 }, { o: 58, h: 86, l: 52, c: 84 }],
+    explanation: '陰線のあと、前日の実体の中で始まった陽線が、前日の高値を超えて終わる2本の形だよ。安値圏で出ると上昇転換のサインとされるよ。',
+    detail: '寄り付きが前日の実体の内側で、そこから前日の高値まで超えるので、前日の下げをまるごと取り返す勢いがあるよ。陽の包み足と違い、前日の終値より安く始まらない点がちがうよ。下落の途中なら戻り売りの場面とする見方もあり、出た位置の確認が欠かせないよ。' },
+  { id: 'bearish-tasuki-line', name: '陰のたすき線',
+    candles: [{ o: 30, h: 62, l: 28, c: 60 }, { o: 42, h: 46, l: 12, c: 14 }],
+    explanation: '陽線のあと、前日の実体の中で始まった陰線が、前日の安値を割って終わる2本の形だよ。高値圏で出ると下落転換のサインとされるよ。',
+    detail: '寄り付きが前日の実体の内側で、そこから前日の安値を割るまで売られるので、前日の上げをすべて打ち消す動きだよ。陰の包み足と違い、前日の終値より高く始まらない点がちがうよ。上昇の途中なら押し目の場面とする見方もあり、高値圏かどうかが判断の分かれ目だよ。' },
+  { id: 'upward-gap-star', name: '上放れの星',
+    candles: [{ o: 30, h: 54, l: 28, c: 52 }, { o: 66, h: 76, l: 64, c: 70 }],
+    explanation: '陽線のあと、上に窓を空けて小さな実体で終わる2本の形だよ。買いの勢いが一服し、上昇の最終局面に出ると転換のサインとされるよ。',
+    detail: '窓を空けて始まったのに、ほとんど動かず小さな実体で終わった形だよ。勢いが一服した様子と見る人もいるよ。宵の明星は3本目の陰線で確かめるけれど、こちらは星の1本で終わる段階だよ。同じ方向にもう一度窓が空いて三空になる例もあり、翌日の確認が大切だよ。' },
+  { id: 'downward-gap-star', name: '下放れの星',
+    candles: [{ o: 70, h: 72, l: 46, c: 48 }, { o: 34, h: 38, l: 26, c: 30 }],
+    explanation: '陰線のあと、下に窓を空けて小さな実体で終わる2本の形だよ。売りの勢いが一服し、下落の最終局面に出ると転換のサインとされるよ。',
+    detail: '窓を空けて下に始まったのに、ほとんど動かず小さな実体で終わった形だよ。勢いが一服した様子と見る人もいるよ。明けの明星は次の陽線で確かめるけれど、こちらは星の1本で終わる段階だよ。さらに下へ窓が空いて三空になる例もあり、翌日以降の動きを見たいよ。' },
+  { id: 'three-soldiers-stalled', name: '赤三兵先詰まり',
+    candles: [{ o: 30, h: 46, l: 28, c: 44 }, { o: 40, h: 60, l: 38, c: 58 }, { o: 54, h: 80, l: 52, c: 66 }],
+    explanation: '陽線が3本続くけれど、3本目に長い上ヒゲが付く赤三兵の変形だよ。高値圏で出ると、上昇の勢いが弱まったサインとされるよ。',
+    detail: '3本目で高値まで買われたのに押し戻されたことが、長い上ヒゲに表れているよ。上昇が続いているようでも、上では売りが待ち構えている状態だよ。普通の赤三兵は強気に読まれるけれど、この形は名前のとおり先が詰まる意味で、上値の重さに注意する見方があるよ。' },
+  { id: 'three-soldiers-deliberation', name: '赤三兵思案星',
+    candles: [{ o: 30, h: 46, l: 28, c: 44 }, { o: 40, h: 60, l: 38, c: 58 }, { o: 70, h: 80, l: 68, c: 74 }],
+    explanation: '陽線が連続したあと、3本目が窓を空けて小さな実体で終わる赤三兵の変形だよ。高値圏で出ると、上昇が一服して反落しやすいとされるよ。',
+    detail: '3本目は上に窓を空けて始まったのに、ほとんど伸びずに小さく終わり、勢いに迷いが出た様子だよ。見た目は先詰まりと似ているけれど、こちらは上ヒゲではなく小さな実体が目印だよ。三兵の条件を満たさない変わり種なので、出た位置や前後の足とあわせて確かめたいよ。まれな形で、1本だけで決めつけないことが大切だよ。' },
 ];
 
 const TERMS = [
@@ -916,23 +1189,33 @@ const DIFFICULTY_LABELS = { all: 'すべて', easy: '★', normal: '★★', har
 const DIFFICULTY_BY_ID = {
   patterns: {
     easy: ['double-top', 'double-bottom', 'head-shoulders', 'inverse-head-shoulders', 'golden-cross', 'dead-cross', 'box-range',
-      'ascending-channel', 'descending-channel'],
+      'ascending-channel', 'descending-channel',
+      'box-breakout-up'],
     normal: ['triple-top', 'triple-bottom', 'symmetrical-triangle', 'ascending-triangle', 'descending-triangle', 'rising-wedge', 'falling-wedge',
-      'v-bottom', 'v-top'],
+      'v-bottom', 'v-top',
+      'box-breakout-down'],
     hard: ['bull-flag', 'bear-flag', 'pennant', 'bear-pennant', 'cup-with-handle', 'saucer-bottom',
-      'bullish-perfect-order', 'bearish-perfect-order'],
-    expert: ['rounding-top', 'inverted-cup-with-handle'],
-    master: ['diamond-top', 'diamond-bottom'],
+      'bullish-perfect-order', 'bearish-perfect-order',
+      'n-wave-up', 'broadening-top'],
+    expert: ['rounding-top', 'inverted-cup-with-handle',
+      'n-wave-down', 'false-breakout-up', 'false-breakout-down', 'triangle-breakout-up', 'triangle-breakout-down', 'return-move-up', 'return-move-down', 'falling-wedge-breakout-up'],
+    master: ['diamond-top', 'diamond-bottom',
+      'elliott-impulse-up', 'elliott-impulse-down', 'elliott-cycle-up', 'elliott-cycle-down', 'rising-wedge-breakout-down', 'ascending-channel-breakdown', 'descending-channel-breakout-up', 'selling-climax'],
   },
   candles: {
     easy: ['big-bullish', 'big-bearish', 'doji', 'hammer', 'bullish-engulfing', 'bearish-engulfing', 'spinning-top',
-      'lower-shadow-bullish', 'upper-shadow-bearish'],
+      'lower-shadow-bullish', 'upper-shadow-bearish',
+      'bullish-marubozu'],
     normal: ['shooting-star', 'three-white-soldiers', 'three-black-crows', 'morning-star', 'evening-star', 'dragonfly-doji', 'gravestone-doji',
-      'gap-up', 'gap-down'],
+      'gap-up', 'gap-down',
+      'bearish-marubozu'],
     hard: ['bullish-harami', 'bearish-harami', 'tweezer-top', 'tweezer-bottom', 'piercing-line', 'dark-cloud-cover',
-      'bullish-harami-cross', 'bearish-harami-cross'],
-    expert: ['rising-three-methods', 'falling-three-methods'],
-    master: ['abandoned-baby-bottom', 'abandoned-baby-top'],
+      'bullish-harami-cross', 'bearish-harami-cross',
+      'four-price-doji', 'bullish-opening-marubozu'],
+    expert: ['rising-three-methods', 'falling-three-methods',
+      'bearish-opening-marubozu', 'three-gaps-up', 'three-gaps-down', 'upward-gap-side-by-side-white', 'downward-gap-side-by-side-black', 'thrusting-line', 'irikubi-line', 'yukichigai-line'],
+    master: ['abandoned-baby-bottom', 'abandoned-baby-top',
+      'bullish-deai-line', 'bearish-deai-line', 'bullish-tasuki-line', 'bearish-tasuki-line', 'upward-gap-star', 'downward-gap-star', 'three-soldiers-stalled', 'three-soldiers-deliberation'],
   },
   terms: {
     easy: ['market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa',
@@ -965,7 +1248,7 @@ assignDifficulty(TERMS, DIFFICULTY_BY_ID.terms);
 
 // 「くわしく」(解説の下に出す、120〜250字・2〜4文の補足)。既存の100項目はこの表から付ける。
 // 追加の用語80問は、TERMS の各項目に detail を直接書く(この表には入れない)。
-// チャートの形の detail は、形状の問題と値動きの問題の両方で使う。
+// チャートの形の detail は、チャートの形状の問題で使う。
 const DETAIL_BY_ID = {
   patterns: {
     'double-top': '上昇の途中で高値を一度つけて少し下げ、再び同じあたりまで戻ったのに超えられずに落ちてできる形だよ。2つの山の間の安値を結んだ線(ネックライン)を割り込んで初めて完成と見る人が多いよ。割る前に「二番天井かも」と決めつけると、そのまま上抜けることもあるから注意だよ。',
@@ -1120,6 +1403,52 @@ function normalizeRange(values) {
   return { min: min - pad, max: max + pad };
 }
 
+// ---- 価格の目盛り(チャートの形状の縦軸) ----
+// チャートの値(相対値 0〜100)を、架空の株価(円)に読み替える。形を読みやすくするための目安で、実在の価格ではない。
+// 問題の系列の乱数とは別の乱数(seed + 104729)で決めるので、チャートの形は変わらない
+function priceScaleFor(seed) {
+  const rng = createRng(seed + 104729);
+  const base = Math.round((300 + rng() * 3700) / 10) * 10;
+  const span = Math.round(base * (0.15 + rng() * 0.25));
+  return { base, span };
+}
+
+// 相対値 v を価格に直す(v が 0〜100 のとき base〜base+span)
+function toPrice(v, scale) {
+  return scale.base + (v * scale.span) / 100;
+}
+
+function fromPrice(price, scale) {
+  return ((price - scale.base) * 100) / scale.span;
+}
+
+// min〜max の中に、1・2・5 × 10^k の刻みの目盛りを3〜6本(target に近い数)選んで昇順で返す。幅が0なら [min]
+function niceTicks(min, max, target = 4) {
+  if (!(max > min)) return [min];
+  const e = Math.floor(Math.log10((max - min) / target));
+  let best = null;
+  for (let k = e - 1; k <= e + 1; k++) {
+    for (const m of [1, 2, 5]) {
+      const step = m * Math.pow(10, k);
+      const first = Math.ceil(min / step - 1e-9);
+      const last = Math.floor(max / step + 1e-9);
+      const count = last - first + 1;
+      const score = (count >= 3 && count <= 7 ? 0 : 100) + Math.abs(count - target);
+      if (!best || score < best.score) best = { score, step, first, last };
+    }
+  }
+  if (best.last - best.first + 1 > 6) best.last -= 1; // 7本になったときは、いちばん上を1本減らす
+  const decimals = Math.max(0, -Math.floor(Math.log10(best.step)));
+  const ticks = [];
+  for (let i = best.first; i <= best.last; i++) ticks.push(Number((i * best.step).toFixed(decimals)));
+  return ticks;
+}
+
+// 価格の表示用: 整数に丸めて3桁ごとにカンマを入れる(円記号なし)
+function formatPrice(price) {
+  return String(Math.round(price)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 const SERIES_LENGTH = 120;
 const CONTINUATION_LENGTH = 30;
 const SERIES_NOISE = 1.2;
@@ -1188,8 +1517,9 @@ function generateSeries(pattern, seed) {
   return values;
 }
 
-// 値動き予想の続き。方向は必ず outlook に一致させる
+// 答え合わせで点線で描く続き。方向は必ず outlook に一致させる('either' は方向が決まらないので描かない)
 function generateContinuation(lastValue, outlook, seed) {
+  if (outlook === 'either') return [];
   const rng = createRng(seed + 7919);
   const move = outlook === 'up' ? CONTINUATION_MOVE : outlook === 'down' ? -CONTINUATION_MOVE : 0;
   const values = [];
@@ -1202,6 +1532,17 @@ function generateContinuation(lastValue, outlook, seed) {
   return values;
 }
 
+// 続きが取りうる幅(上下とも)。方向への動き(CONTINUATION_MOVE)に、ノイズの最大の偏り(AR(1) の上限)を足す
+const CONTINUATION_BAND = CONTINUATION_MOVE + (SERIES_NOISE / 2) / (1 - NOISE_PERSISTENCE);
+
+// 折れ線の縦軸の範囲。続きの方向(outlook)でも、続きを見せるかどうかでも変わらないよう、
+// 値・実際の続きとその反転・最後の値の上下 CONTINUATION_BAND の幅をすべて含める(問題の画面で答えが分からないようにする)
+function chartRange(values, continuation) {
+  const cont = continuation || [];
+  const last = values[values.length - 1];
+  return normalizeRange(values.concat(cont, cont.map((v) => 2 * last - v), [last + CONTINUATION_BAND, last - CONTINUATION_BAND]));
+}
+
 function movingAverage(values, window) {
   return values.map((_, i) => {
     if (i < window - 1) return null;
@@ -1212,7 +1553,6 @@ function movingAverage(values, window) {
 }
 const QUESTION_TEXT = {
   pattern: 'このチャートの形の名前は?',
-  outlook: 'この後、株価はどう動きやすい?',
   candle: 'このローソク足の名前は?',
 };
 
@@ -1238,22 +1578,6 @@ function makePatternQuestion(pattern, seed) {
     question: QUESTION_TEXT.pattern,
     choices: shuffle([pattern.name, ...others], rng),
     answer: pattern.name,
-    explanation: pattern.explanation,
-    detail: pattern.detail,
-    difficulty: pattern.difficulty,
-  };
-}
-
-function makeOutlookQuestion(pattern, seed) {
-  return {
-    id: `outlook:${pattern.id}`,
-    type: 'outlook',
-    patternId: pattern.id,
-    patternName: pattern.name,
-    seed,
-    question: QUESTION_TEXT.outlook,
-    choices: OUTLOOK_CHOICES.slice(),
-    answer: OUTLOOK_LABELS[pattern.outlook],
     outlook: pattern.outlook,
     explanation: pattern.explanation,
     detail: pattern.detail,
@@ -1291,10 +1615,9 @@ function makeTermQuestion(term, rng) {
 
 // 問題に不備があればその説明を、なければ null を返す
 function validateQuestion(q) {
-  if (!['pattern', 'outlook', 'candle', 'term'].includes(q.type)) return `type が不正: ${q.type}`;
+  if (!['pattern', 'candle', 'term'].includes(q.type)) return `type が不正: ${q.type}`;
   if (!q.id || !q.question || !q.explanation || !q.detail) return `${q.id}: 必須項目がない`;
-  const expected = q.type === 'outlook' ? 3 : 4;
-  if (q.choices.length !== expected) return `${q.id}: 選択肢が${expected}個ではない`;
+  if (q.choices.length !== 4) return `${q.id}: 選択肢が4個ではない`;
   if (new Set(q.choices).size !== q.choices.length) return `${q.id}: 選択肢が重複している`;
   if (q.choices.filter((c) => c === q.answer).length !== 1) return `${q.id}: 正解がちょうど1つ含まれていない`;
   if (!DIFFICULTY_LEVELS.includes(q.difficulty)) return `${q.id}: difficulty が不正: ${q.difficulty}`;
@@ -1314,9 +1637,9 @@ function chartForQuestion(q) {
       long: movingAverage(values, MA_LONG),
     };
   }
-  if (q.type === 'outlook') {
-    chart.continuation = generateContinuation(values[values.length - 1], pattern.outlook, q.seed);
-  }
+  // 続きは答え合わせのときだけ描く(描画側の reveal)。'either' は空
+  chart.continuation = generateContinuation(values[values.length - 1], pattern.outlook, q.seed);
+  chart.priceScale = priceScaleFor(q.seed);
   return chart;
 }
 
@@ -1338,29 +1661,11 @@ function byDifficulty(items, difficulty) {
 function buildPool(mode, rng, difficulty = 'all') {
   const wants = (type) => mode === 'all' || mode === type;
   const pool = [];
-  // 乱数は、絞り込みに関係なくパターンごとに同じ回数だけ引く(同じシードなら同じ結果にするため)
-  if (mode === 'all') {
-    // 同じ形の「名前」と「値動き」を両方出すと、片方の解説がもう片方の答えになるので、どちらか一方だけにする
+  if (wants('pattern')) {
+    // 乱数は、絞り込みに関係なくパターンごとに同じ回数だけ引く(同じシードなら同じ結果にするため)
     for (const p of PATTERNS) {
       const seed = Math.floor(rng() * 1e9);
-      const asPattern = rng() < 0.5 || p.outlookQuiz === false;
-      if (difficulty !== 'all' && p.difficulty !== difficulty) continue;
-      pool.push(asPattern ? makePatternQuestion(p, seed) : makeOutlookQuestion(p, seed));
-    }
-  } else {
-    if (wants('pattern')) {
-      for (const p of PATTERNS) {
-        const seed = Math.floor(rng() * 1e9);
-        if (difficulty === 'all' || p.difficulty === difficulty) pool.push(makePatternQuestion(p, seed));
-      }
-    }
-    if (wants('outlook')) {
-      for (const p of PATTERNS) {
-        const seed = Math.floor(rng() * 1e9);
-        if (p.outlookQuiz !== false && (difficulty === 'all' || p.difficulty === difficulty)) {
-          pool.push(makeOutlookQuestion(p, seed));
-        }
-      }
+      if (difficulty === 'all' || p.difficulty === difficulty) pool.push(makePatternQuestion(p, seed));
     }
   }
   if (wants('candle')) {
@@ -1382,9 +1687,8 @@ function roundSize(mode, difficulty = 'all') {
   return Math.min(ROUND_SIZE, buildPool(mode, createRng(1), difficulty).length);
 }
 
-// 選択肢の並びだけを入れ替えた新しい問題を返す(元の問題は変えない)。outlook は固定順
+// 選択肢の並びだけを入れ替えた新しい問題を返す(元の問題は変えない)
 function reshuffleChoices(q, rng) {
-  if (q.type === 'outlook') return { ...q, choices: q.choices.slice() };
   return { ...q, choices: shuffle(q.choices, rng) };
 }
 
@@ -1542,16 +1846,39 @@ function header() {
 }
 
 // ---- チャートの描画 ----
+const AXIS_W = 44; // 価格の目盛り(右端の文字)の列の幅
 function drawLines(ctx, w, h, chart, reveal, colors) {
   const cont = chart.continuation || [];
-  const all = chart.values.concat(cont);
-  // 続きの方向を軸でほのめかさないよう、最後の値を中心に上下対称な範囲にする
-  const lastValue = chart.values[chart.values.length - 1];
-  const { min, max } = normalizeRange(all.concat(cont.map((v) => 2 * lastValue - v)));
-  const n = all.length;
-  const right = chart.ma ? 22 : 8; // 移動平均線の名前を右端に書くための余白
+  // 横幅も縦の範囲も、続きの有無・方向で変わらないようにする(問題の画面で 'either' の形が見分けられてしまうのを防ぐ)
+  const { min, max } = chartRange(chart.values, cont);
+  const n = chart.values.length + CONTINUATION_LENGTH;
+  // 右端の価格の目盛りの列(AXIS_W)の左に、折れ線を描く。移動平均線の名前は、折れ線の右端と目盛りの列のあいだに書く
+  const right = AXIS_W + (chart.ma ? 22 : 8);
   const x = (i) => 8 + (i / (n - 1)) * (w - 8 - right);
   const y = (v) => h - 12 - ((v - min) / (max - min)) * (h - 24);
+  // 横の点線と価格の目盛り(グリッドは折れ線より下に描く)
+  if (chart.priceScale) {
+    const ticks = niceTicks(toPrice(min, chart.priceScale), toPrice(max, chart.priceScale));
+    ctx.save();
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (const price of ticks) {
+      const ty = Math.round(y(fromPrice(price, chart.priceScale))) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(8, ty);
+      ctx.lineTo(w - AXIS_W + 4, ty);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = colors.muted;
+      ctx.fillText(formatPrice(price), w - 4, ty);
+      ctx.setLineDash([2, 3]);
+    }
+    ctx.restore();
+  }
   const stroke = (pts, color, width, dash) => {
     ctx.beginPath();
     // 点の中点を通る2次曲線でなめらかにつなぐ
@@ -1584,6 +1911,9 @@ function drawLines(ctx, w, h, chart, reveal, colors) {
     ctx.textBaseline = 'middle';
     for (const [label, series, color] of lines) {
       const last = series.length - 1;
+      // 点線が文字に重ならないよう、文字の背に地色の板を敷く
+      ctx.fillStyle = colors.card;
+      ctx.fillRect(x(last) + 2, y(series[last]) - 7, 14, 14);
       ctx.fillStyle = color;
       ctx.fillText(label, x(last) + 4, y(series[last]));
     }
@@ -1622,6 +1952,7 @@ function renderChart(canvas, chart, reveal) {
   const colors = {
     line: get('--line'), short: get('--ma-short'), mid: get('--ma-mid'), long: get('--ma-long'),
     up: get('--up'), down: get('--down'), cont: get('--cont'),
+    grid: get('--border'), muted: get('--muted'), card: get('--card'),
   };
   const w = canvas.parentElement.clientWidth - 16;
   const h = Math.round(w * 0.55);
@@ -1635,6 +1966,11 @@ function renderChart(canvas, chart, reveal) {
   ctx.clearRect(0, 0, w, h);
   if (chart.kind === 'candles') drawCandles(ctx, w, h, chart.candles, colors);
   else drawLines(ctx, w, h, chart, reveal, colors);
+}
+
+// チャートの形状の図は、価格が架空であることを添える
+function priceNote(q) {
+  return q.type === 'pattern' ? '<p class="note">価格は架空の例だよ(目盛りは形を読みやすくするための目安だよ)。</p>' : '';
 }
 
 // 移動平均線がある図には、色の説明を添える
@@ -1670,7 +2006,7 @@ function showStart() {
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
-    <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
+    <p class="lead">チャートの形、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <p class="sec">難易度</p>
     <div class="diffs">${diffs}</div>
     <div class="choices">${rows}</div>`;
@@ -1707,6 +2043,7 @@ function showQuestion() {
     <p class="q">${esc(q.question)}</p>
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
     ${q.type === 'candle' ? '<p class="note">赤が陽線(上昇)、青が陰線(下落)だよ。</p>' : ''}
+    ${priceNote(q)}
     ${maNote(q)}
     <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
   if (hasChart) drawQuestionChart(q, false);
@@ -1726,7 +2063,8 @@ function answer(q, picked) {
 function showExplain(q, picked, correct) {
   const hasChart = q.type !== 'term';
   const last = game.index === game.deck.length - 1;
-  const shape = q.type === 'outlook' ? `<p class="sub">チャートの形: ${esc(q.patternName)}</p>` : '';
+  const tendency = q.type === 'pattern'
+    ? `<p class="tendency">この後の値動き: ${esc(OUTLOOK_LABELS[q.outlook])}</p>` : '';
   app.innerHTML = `${header()}
     <div class="result ${correct ? 'good' : 'bad'}">
       <p class="label">${correct ? '正解!' : '不正解… 正しい答えは'}</p>
@@ -1737,8 +2075,9 @@ function showExplain(q, picked, correct) {
       <p class="detail-title">くわしく</p>
       <p class="detail-body">${esc(q.detail)}</p>
     </div>
-    ${shape}
+    ${tendency}
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
+    ${priceNote(q)}
     ${maNote(q)}
     <p class="sub">あなたの答え: ${esc(picked)}(${correct ? '正解' : '不正解'})</p>
     <button class="primary" id="next">${last ? '結果を見る' : '次の問題へ'}</button>`;

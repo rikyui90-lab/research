@@ -139,7 +139,7 @@
 | payout-ratio | 配当性向 | 既存の用語 | (一般知識。出典ページでは未確認) | 一般知識(出典ページでは未確認) |
 | buyback | 自社株買い | 既存の用語 | https://www.daiwa.jp/glossary/YST0690.html; https://www.tokaitokyo.co.jp/sp/kantan/term/detail_1984.html |  |
 | stock-split | 株式分割 | 既存の用語 | https://www.daiwa.jp/glossary/YST0297.html |  |
-| circuit-breaker | サーキットブレーカー | 既存の用語 | https://www.jpx.co.jp/derivatives/rules/price-range/ | JPXページは取得できず検索結果の要約で確認 |
+| circuit-breaker | サーキットブレーカー | 既存の用語 | https://www.jpx.co.jp/derivatives/rules/price-limit-cb/index.html | |
 
 ## 3. チャートの形30種類・ローソク足30種類の「くわしく」
 

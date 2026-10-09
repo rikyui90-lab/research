@@ -1694,14 +1694,15 @@ test('追加の用語80問: 選択肢は4つで重複せず、解説は1〜2文'
   }
 });
 
-test('追加の用語80問: 正解が選択肢の中で唯一いちばん長い問題は、全体で30問以内・各難易度で8問以内', () => {
+test('追加の用語80問: 正解が選択肢の中で唯一いちばん長い問題は、全体で24問以内・各難易度で7問以内', () => {
+  // 上限は内容に依存する数。現状は全体20問・各難易度の最大6問。問題を足す・直すときは実数を見て直す
   const isStrictlyLongest = (t) => countChars(t.answer) > Math.max(...t.wrongs.map(countChars));
   const added = L.TERMS.slice(40);
   const longest = added.filter(isStrictlyLongest);
-  assert.ok(longest.length <= 30, `全体 ${longest.length} 問: ${longest.map((t) => t.id).join(',')}`);
+  assert.ok(longest.length <= 24, `全体 ${longest.length} 問: ${longest.map((t) => t.id).join(',')}`);
   for (const level of L.DIFFICULTY_LEVELS) {
     const n = longest.filter((t) => t.difficulty === level).length;
-    assert.ok(n <= 8, `${level}: ${n} 問`);
+    assert.ok(n <= 7, `${level}: ${n} 問`);
   }
 });
 

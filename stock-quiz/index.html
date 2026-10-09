@@ -33,6 +33,12 @@ h1 { font-size: 22px; font-weight: 500; margin: 8px 0 4px; }
 canvas { display: block; }
 .choices { display: grid; gap: 8px; }
 .sec { font-size: 14px; font-weight: 500; margin: 12px 0 6px; }
+.levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 12px; }
+.levels button { text-align: center; padding: 10px 4px 8px; }
+.levels button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 9.5px 3.5px 7.5px; }
+.levels svg { display: block; width: 72px; height: 72px; margin: 0 auto 4px; }
+.levels b { display: block; font-size: 14px; font-weight: 600; }
+.levels small { text-align: center; }
 .diffs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .diffs button { text-align: center; padding: 8px 12px; min-width: 56px; }
 .diffs button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7.5px 11.5px; font-weight: 600; }
@@ -3467,6 +3473,33 @@ function drawExampleCharts(q) {
 
 window.addEventListener('resize', () => { if (redraw) redraw(); });
 
+// ---- スタート画面のイラスト(初心者・中堅者・上級者) ----
+const SKIN = '#f3cfa8';
+const LEVEL_GROUPS = [
+  { key: 'beginner', label: '初心者', stars: '★1〜★2', pick: 'easy', levels: ['easy', 'normal'],
+    art: `<circle cx="36" cy="30" r="14" fill="${SKIN}"/><path d="M22 28c0-12 8-16 14-16s14 4 14 16c-6-5-22-5-28 0z" fill="#6b4a2f"/>
+      <circle cx="31" cy="32" r="1.8" fill="#333"/><circle cx="41" cy="32" r="1.8" fill="#333"/><path d="M32 38q4 3 8 0" stroke="#333" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <path d="M18 70c0-14 8-20 18-20s18 6 18 20z" fill="#7fb77e"/>
+      <path d="M52 60V48" stroke="#4e8a3e" stroke-width="2.4" stroke-linecap="round"/><path d="M52 50c-8 0-9-7-9-7 8 0 9 7 9 7z" fill="#5fae4a"/><path d="M52 47c7 0 9-6 9-6-7 0-9 6-9 6z" fill="#4e8a3e"/>` },
+  { key: 'middle', label: '中堅者', stars: '★3', pick: 'hard', levels: ['hard'],
+    art: `<circle cx="36" cy="30" r="14" fill="${SKIN}"/><path d="M22 29c0-12 8-17 14-17s14 5 14 17c-4-6-24-6-28 0z" fill="#2f3a4a"/>
+      <circle cx="31" cy="32" r="4.6" fill="none" stroke="#333" stroke-width="1.6"/><circle cx="41" cy="32" r="4.6" fill="none" stroke="#333" stroke-width="1.6"/><path d="M35.6 32h.8" stroke="#333" stroke-width="1.6"/>
+      <path d="M33 40q3 2 6 0" stroke="#333" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <path d="M18 70c0-14 8-20 18-20s18 6 18 20z" fill="#5b8fd0"/>
+      <rect x="46" y="46" width="22" height="18" rx="2" fill="#fff" stroke="#888" stroke-width="1"/><path d="M49 60l5-6 4 3 6-8" stroke="#d03a3a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` },
+  { key: 'expert', label: '上級者', stars: '★4〜★5', pick: 'expert', levels: ['expert', 'master'],
+    art: `<circle cx="36" cy="30" r="14" fill="${SKIN}"/><path d="M22 28c0-12 8-16 14-16s14 4 14 16c-5-4-23-4-28 0z" fill="#aaa"/>
+      <path d="M26 31h8M38 31h8" stroke="#333" stroke-width="2" stroke-linecap="round"/><path d="M32 38q4 2.4 8 0" stroke="#333" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <path d="M18 70c0-14 8-20 18-20s18 6 18 20z" fill="#2f3a4a"/><path d="M36 50l-4 8 4 12 4-12z" fill="#fff"/><path d="M36 52l-2 5 2 2 2-2z" fill="#d03a3a"/>
+      <path d="M26 8l5 6 5-8 5 8 5-6-2 10H28z" fill="#e8b923" stroke="#b8860b" stroke-width="1"/>` },
+];
+
+function levelCards() {
+  return LEVEL_GROUPS.map((g) =>
+    `<button data-level="${g.pick}" aria-pressed="${g.levels.includes(difficulty)}" aria-label="${g.label}(難易度 ${g.stars})">
+      <svg viewBox="0 0 72 72" aria-hidden="true" focusable="false">${g.art}</svg><b>${g.label}</b><small>${g.stars}</small></button>`).join('');
+}
+
 // ---- 画面 ----
 function showStart() {
   redraw = null;
@@ -3485,15 +3518,20 @@ function showStart() {
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
     <p class="lead">チャートの形、ローソク足、用語、株価予想をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
+    <p class="sec">あなたのレベルは?</p>
+    <div class="levels">${levelCards()}</div>
     <p class="sec">難易度</p>
     <div class="diffs">${diffs}</div>
     <div class="choices">${rows}</div>`;
-  app.querySelectorAll('[data-diff]').forEach((b) => b.addEventListener('click', () => {
-    difficulty = b.dataset.diff;
+  const pickDifficulty = (attr) => (b) => b.addEventListener('click', () => {
+    difficulty = b.dataset[attr];
     showStart();
-    const again = app.querySelector(`[data-diff="${difficulty}"]`);
+    const again = app.querySelector(`[data-${attr}="${b.dataset[attr]}"]`);
     if (again) again.focus(); // 描き直したあとも、押したボタンにフォーカスを戻す
-  }));
+  });
+  app.querySelectorAll('[data-diff]').forEach(pickDifficulty('diff'));
+  // レベルの絵は、その段階の代表の難易度を選ぶ(細かい選び直しは下の難易度ボタン)
+  app.querySelectorAll('[data-level]').forEach(pickDifficulty('level'));
   // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
   app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => { if (b.getAttribute('aria-disabled') !== 'true') startGame(b.dataset.mode); })));
   shownAt = performance.now();

@@ -262,7 +262,8 @@ test('MODES と MODE_LABELS が揃っている', () => {
   assert.equal(L.MODE_LABELS.outlook, undefined);
   assert.throws(() => L.makeOutlookQuestion, ReferenceError);
   assert.throws(() => L.OUTLOOK_CHOICES, ReferenceError);
-  assert.equal(L.OUTLOOK_LABELS.either, '上下どちらにも抜けうる');
+  // 答え合わせ画面は「この後の値動き: 」にこの文言をそのままつなげて出す(either の特別扱いはしない)
+  assert.equal(L.OUTLOOK_LABELS.either, '上下どちらに抜けるかは、抜けるまで分からないよ');
 });
 
 test('CANDLE_PATTERNS: 50個(既存30+追加20)で、ローソク足の値が矛盾していない', () => {

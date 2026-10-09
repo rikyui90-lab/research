@@ -246,20 +246,20 @@
 | bullish-marubozu | 陽の丸坊主 | ★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
 | bearish-marubozu | 陰の丸坊主 | ★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
 | four-price-doji | 四値同時線 | ★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
-| bullish-opening-marubozu | 陽の寄り付き坊主 | ★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
-| bearish-opening-marubozu | 陰の寄り付き坊主 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
+| bullish-opening-marubozu | 陽の寄り付き坊主 | ★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ | 詳しい文から、出典にない「翌日に高値を超えるか」の目安を削った |
+| bearish-opening-marubozu | 陰の寄り付き坊主 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ | 詳しい文から、出典にない「翌日に安値を割るか」の見方を削った |
 | three-gaps-up | 三空踏み上げ | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623 |  |
 | three-gaps-down | 三空叩き込み | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623 |  |
 | upward-gap-side-by-side-white | 上放れ並び赤 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
 | downward-gap-side-by-side-black | 下放れ並び黒 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
 | thrusting-line | 差し込み線 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
-| irikubi-line | 入り首線 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
-| yukichigai-line | 行き違い線 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
-| bullish-deai-line | 陽の出合い線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
-| bearish-deai-line | 陰の出合い線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
-| bullish-tasuki-line | 陽のたすき線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
-| bearish-tasuki-line | 陰のたすき線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
-| upward-gap-star | 上放れの星 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622; https://zai.diamond.jp/articles/-/304621 |  |
-| downward-gap-star | 下放れの星 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622; https://zai.diamond.jp/articles/-/304621 |  |
+| irikubi-line | 入り首線 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 出典間で整理が割れる(ZAI は差し込み線と並列、HOX は差し込み線を入り首線の一種とする)。差し込み線・陽の出合い線・毛抜き底と絵が近く、差し替えるなら坊主三羽が候補 |
+| yukichigai-line | 行き違い線 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | たすき線と定義・絵が近いため、陽のたすき線と紛らわしい組に入れた |
+| bullish-deai-line | 陽の出合い線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 「陽の/陰の」の呼び分けは、確認できた出典になし(出合い線の一般名)。2本目の色で呼び分けていると文章で断っている |
+| bearish-deai-line | 陰の出合い線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 「陽の/陰の」の呼び分けは、確認できた出典になし(出合い線の一般名)。2本目の色で呼び分けていると文章で断っている |
+| bullish-tasuki-line | 陽のたすき線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 出典の条件「前日と値幅がほぼ同じ」に合わせて数値を直した(値幅34と34)。「上寄り」は出典になく、「実体の中」に改めた |
+| bearish-tasuki-line | 陰のたすき線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 出典の条件「前日と値幅がほぼ同じ」に合わせて数値を直した(値幅34と34)。「下寄り」は出典になく、「実体の中」に改めた |
+| upward-gap-star | 上放れの星 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622; https://zai.diamond.jp/articles/-/304621 | 出典にない因果の説明(買い戻しが一巡した)を削り、形の描写と「勢いが一服した様子と見る人もいる」にとどめた |
+| downward-gap-star | 下放れの星 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622; https://zai.diamond.jp/articles/-/304621 | 出典にない因果の説明(投げ売りが一巡した)を削り、形の描写と「勢いが一服した様子と見る人もいる」にとどめた |
 | three-soldiers-stalled | 赤三兵先詰まり | ★★★★★ | https://zai.diamond.jp/articles/-/304623 |  |
 | three-soldiers-deliberation | 赤三兵思案星 | ★★★★★ | https://zai.diamond.jp/articles/-/304623 |  |

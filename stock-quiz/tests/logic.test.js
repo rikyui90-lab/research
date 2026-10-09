@@ -879,10 +879,26 @@ test('紛らわしいローソク足の組は、同じ問題の選択肢に同�
   const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
   const candleIds = new Set(L.CANDLE_PATTERNS.map((c) => c.id));
   const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => candleIds.has(a) && candleIds.has(b));
-  // ローソク足どうしの紛らわしい組の数(v5 までの 33 組に、ローソク足20種類の追加で 61 組を足して 94)。数が変わったら、意図した変更か確かめること
-  assert.equal(pairs.length, 94);
+  // ローソク足どうしの紛らわしい組の数(v5 までの 33 組に、ローソク足20種類の追加で 61 組、その確認で 3 組を足して 97)。数が変わったら、意図した変更か確かめること
+  assert.equal(pairs.length, 97);
   for (let seed = 1; seed <= 40; seed++) {
     for (const [a, b] of pairs) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
+        assert.ok(!q.choices.includes(nameOf(y)), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null);
+      }
+    }
+  }
+});
+
+test('確認で足したローソク足3組(行き違い線/陽のたすき線、差し込み線・入り首線/毛抜き底): 両方向で isConfusable で、選択肢に同時に出ない', () => {
+  const nameOf = (id) => L.CANDLE_PATTERNS.find((c) => c.id === id).name;
+  const checkPairs = [['yukichigai-line', 'bullish-tasuki-line'], ['thrusting-line', 'tweezer-bottom'], ['irikubi-line', 'tweezer-bottom']];
+  for (const [a, b] of checkPairs) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+    for (let seed = 1; seed <= 60; seed++) {
       for (const [x, y] of [[a, b], [b, a]]) {
         const q = L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === x), L.createRng(seed));
         assert.ok(!q.choices.includes(nameOf(y)), `${x} vs ${y} seed=${seed}`);
@@ -2476,12 +2492,12 @@ const NEW_CANDLE20_CONFUSABLE = {
   'three-gaps-down': ['gap-down', 'three-black-crows', 'downward-gap-side-by-side-black'],
   'upward-gap-side-by-side-white': ['gap-up', 'three-white-soldiers', 'downward-gap-side-by-side-black', 'upward-gap-star', 'three-soldiers-deliberation'],
   'downward-gap-side-by-side-black': ['gap-down', 'three-black-crows', 'downward-gap-star'],
-  'thrusting-line': ['piercing-line', 'bullish-engulfing', 'irikubi-line'],
-  'irikubi-line': ['piercing-line', 'bearish-harami', 'bullish-deai-line'],
-  'yukichigai-line': ['bullish-deai-line', 'bullish-engulfing', 'gap-up', 'bearish-deai-line'],
+  'thrusting-line': ['piercing-line', 'bullish-engulfing', 'irikubi-line', 'tweezer-bottom'],
+  'irikubi-line': ['piercing-line', 'bearish-harami', 'bullish-deai-line', 'tweezer-bottom'],
+  'yukichigai-line': ['bullish-deai-line', 'bullish-engulfing', 'gap-up', 'bearish-deai-line', 'bullish-tasuki-line'],
   'bullish-deai-line': ['thrusting-line', 'piercing-line', 'bearish-deai-line'],
   'bearish-deai-line': ['dark-cloud-cover', 'bearish-engulfing'],
-  'bullish-tasuki-line': ['bullish-engulfing', 'piercing-line', 'bearish-tasuki-line'],
+  'bullish-tasuki-line': ['bullish-engulfing', 'piercing-line', 'bearish-tasuki-line', 'yukichigai-line'],
   'bearish-tasuki-line': ['bearish-engulfing', 'dark-cloud-cover'],
   'upward-gap-star': ['evening-star', 'gap-up', 'spinning-top', 'three-soldiers-deliberation'],
   'downward-gap-star': ['morning-star', 'gap-down', 'spinning-top'],
@@ -2693,22 +2709,22 @@ test('陰の出合い線: 陽線のあと前日の終値より高く始まる陰
   assert.ok(Math.abs(a.o - b.o) >= 20, '始値は離れる(行き違い線との違い)');
 });
 
-test('陽のたすき線: 陰線の実体の上寄りで始まる陽線が、前日の高値を 8 以上超えて終わる(前日の終値より安くは始まらない)', () => {
+test('陽のたすき線: 陰線の実体の中で始まる陽線が、前日の高値を 8 以上超えて終わり、値幅は前日とほぼ同じ(前日の終値より安くは始まらない)', () => {
   const [a, b] = candleOf('bullish-tasuki-line');
   assert.equal(candleOf('bullish-tasuki-line').length, 2);
   assert.ok(isBear(a) && isBull(b));
-  assert.ok(b.o >= midOf(a) && b.o <= a.o - GAP, '前日の実体の上寄り');
-  assert.ok(b.o >= a.c + GAP, '前日の終値より安く始まらない');
+  assert.ok(b.o <= a.o - GAP && b.o >= a.c + GAP, '前日の実体の中(両端から 8 以上内側)');
   assert.ok(b.c >= a.h + GAP, '前日の高値を超える');
+  assert.ok(Math.abs(rangeOf(b) - rangeOf(a)) <= 4, '値幅が前日とほぼ同じ');
 });
 
-test('陰のたすき線: 陽線の実体の下寄りで始まる陰線が、前日の安値を 8 以上割って終わる(前日の終値より高くは始まらない)', () => {
+test('陰のたすき線: 陽線の実体の中で始まる陰線が、前日の安値を 8 以上割って終わり、値幅は前日とほぼ同じ(前日の終値より高くは始まらない)', () => {
   const [a, b] = candleOf('bearish-tasuki-line');
   assert.equal(candleOf('bearish-tasuki-line').length, 2);
   assert.ok(isBull(a) && isBear(b));
-  assert.ok(b.o <= midOf(a) && b.o >= a.o + GAP, '前日の実体の下寄り');
-  assert.ok(b.o <= a.c - GAP, '前日の終値より高く始まらない');
+  assert.ok(b.o >= a.o + GAP && b.o <= a.c - GAP, '前日の実体の中(両端から 8 以上内側)');
   assert.ok(b.c <= a.l - GAP, '前日の安値を割る');
+  assert.ok(Math.abs(rangeOf(b) - rangeOf(a)) <= 4, '値幅が前日とほぼ同じ');
 });
 
 test('上放れの星: 陽線のあと窓を空けて、上下にヒゲのある小さな実体(コマ)が出る', () => {

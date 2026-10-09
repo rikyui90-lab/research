@@ -6,22 +6,13 @@
 <title>株クイズ</title>
 <style>
 :root {
-  --bg: #eef1f9; --bg2: #f8f4ff; --card: #ffffff; --text: #141a2e; --muted: #5a6280; --border: #dde2f1;
-  --accent: #4f46e5; --accent2: #7c3aed; --on-accent: #ffffff; --accent-soft: #eceafd; --star: #b86e00;
-  --good-bg: #e6f7ef; --good: #0b6b46; --good-edge: #1faa75; --bad-bg: #fdecee; --bad: #9b1c28; --bad-edge: #e5484d;
-  --shadow: 0 1px 2px rgba(20, 26, 46, .06), 0 6px 18px rgba(79, 70, 229, .08);
-  --shadow-hover: 0 2px 4px rgba(20, 26, 46, .08), 0 10px 26px rgba(79, 70, 229, .16);
-  --line: #4f46e5; --ma-short: #d85a30; --ma-mid: #0f6e56; --ma-long: #7f77dd; --up: #d03a3a; --down: #2a6fd6; --cont: #a32d2d;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0a0f20; --bg2: #151030; --card: #151c37; --text: #eaedf9; --muted: #9aa3c7; --border: #2a3358;
-    --accent: #8b93ff; --accent2: #b28bff; --on-accent: #0a0f20; --accent-soft: #232a55; --star: #ffcb47;
-    --good-bg: #0f2e24; --good: #9be8c6; --good-edge: #34c38f; --bad-bg: #3a1620; --bad: #ffc2c8; --bad-edge: #ff6b78;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .35);
-    --shadow-hover: 0 2px 4px rgba(0, 0, 0, .5), 0 10px 26px rgba(139, 147, 255, .22);
-    --line: #8b93ff; --ma-short: #f0997b; --ma-mid: #5dcaa5; --ma-long: #afa9ec; --up: #f09595; --down: #85b7eb; --cont: #f09595;
-  }
+  color-scheme: dark;
+  --bg: #060914; --bg2: #140e33; --card: #0f1630; --text: #eef0fb; --muted: #9ea7cc; --border: #232b50;
+  --accent: #8b93ff; --accent2: #b78cff; --on-accent: #070a18; --accent-soft: #1f2652; --star: #ffcb47;
+  --good-bg: #0c2a21; --good: #9be8c6; --good-edge: #34c38f; --bad-bg: #36121c; --bad: #ffc2c8; --bad-edge: #ff6b78;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 22px rgba(0, 0, 0, .45);
+  --shadow-hover: 0 2px 4px rgba(0, 0, 0, .6), 0 10px 28px rgba(139, 147, 255, .25);
+  --line: #8b93ff; --ma-short: #f0997b; --ma-mid: #5dcaa5; --ma-long: #afa9ec; --up: #f09595; --down: #85b7eb; --cont: #f09595;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }

@@ -60,7 +60,8 @@ test('PATTERNS: 30個あり、id と name が重複せず、定義が正しい',
   assert.equal(new Set(L.PATTERNS.map((p) => p.id)).size, 30);
   assert.equal(new Set(L.PATTERNS.map((p) => p.name)).size, 30);
   for (const p of L.PATTERNS) {
-    assert.ok(['up', 'down', 'flat'].includes(p.outlook), p.id);
+    assert.ok(['up', 'down', 'flat', 'either'].includes(p.outlook), p.id);
+    assert.equal(p.outlookQuiz, undefined, p.id);
     assert.ok(p.explanation.length > 0, p.id);
     assert.equal(p.points[0][0], 0, p.id);
     assert.equal(p.points[p.points.length - 1][0], 1, p.id);
@@ -93,6 +94,7 @@ test('generateContinuation: 30点で、方向が outlook と一致する', () =>
     const up = L.generateContinuation(50, 'up', seed);
     const down = L.generateContinuation(50, 'down', seed);
     const flat = L.generateContinuation(50, 'flat', seed);
+    assert.deepEqual(L.generateContinuation(50, 'either', seed), []);
     assert.equal(up.length, L.CONTINUATION_LENGTH);
     assert.ok(up[up.length - 1] > 50 + 5, `up seed=${seed}`);
     assert.ok(down[down.length - 1] < 50 - 5, `down seed=${seed}`);
@@ -208,8 +210,12 @@ test('findPattern: 存在しない id は例外', () => {
 });
 
 test('MODES と MODE_LABELS が揃っている', () => {
-  assert.deepEqual(L.MODES, ['all', 'pattern', 'outlook', 'candle', 'term']);
+  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term']);
   for (const m of L.MODES) assert.ok(L.MODE_LABELS[m], m);
+  assert.equal(L.MODE_LABELS.outlook, undefined);
+  assert.throws(() => L.makeOutlookQuestion, ReferenceError);
+  assert.throws(() => L.OUTLOOK_CHOICES, ReferenceError);
+  assert.equal(L.OUTLOOK_LABELS.either, '上下どちらにも抜けうる');
 });
 
 test('CANDLE_PATTERNS: 30個で、ローソク足の値が矛盾していない', () => {
@@ -251,20 +257,40 @@ test('makePatternQuestion: 同じシードなら同じ問題', () => {
   assert.deepEqual(L.makePatternQuestion(p, 3), L.makePatternQuestion(p, 3));
 });
 
-test('makeOutlookQuestion: 3択固定順で、正解が outlook に対応し、続きの方向が一致する', () => {
+test('形状の問題: outlook を持ち、チャートの続きの方向がそれと一致する(either は空)', () => {
   for (const p of L.PATTERNS) {
-    const q = L.makeOutlookQuestion(p, 21);
-    assert.equal(L.validateQuestion(q), null);
-    assert.deepEqual(q.choices, ['上がりやすい', '下がりやすい', '横ばい']);
-    assert.equal(q.answer, L.OUTLOOK_LABELS[p.outlook]);
-    assert.equal(q.patternName, p.name);
+    const q = L.makePatternQuestion(p, 21);
+    assert.equal(q.type, 'pattern');
+    assert.equal(q.outlook, p.outlook, p.id);
+    assert.ok(L.OUTLOOK_LABELS[q.outlook], p.id);
     const chart = L.chartForQuestion(q);
+    assert.ok(Array.isArray(chart.continuation), p.id);
     const last = chart.values[chart.values.length - 1];
     const end = chart.continuation[chart.continuation.length - 1];
     if (p.outlook === 'up') assert.ok(end > last + 5, p.id);
     if (p.outlook === 'down') assert.ok(end < last - 5, p.id);
     if (p.outlook === 'flat') assert.ok(Math.abs(end - last) < 6, p.id);
+    if (p.outlook === 'either') assert.deepEqual(chart.continuation, [], p.id);
+    else assert.equal(chart.continuation.length, L.CONTINUATION_LENGTH, p.id);
   }
+});
+
+test('三角持ち合いの outlook は either(方向は抜けるまで分からない)', () => {
+  assert.equal(L.findPattern('symmetrical-triangle').outlook, 'either');
+  assert.equal(L.PATTERNS.filter((p) => p.outlook === 'either').length, 1);
+});
+
+test('outlook の問題・モードはどこにもない', () => {
+  for (const mode of L.MODES) {
+    for (let seed = 1; seed <= 10; seed++) {
+      for (const q of L.buildDeck(mode, seed)) {
+        assert.notEqual(q.type, 'outlook');
+        assert.ok(!q.id.startsWith('outlook:'), q.id);
+      }
+    }
+  }
+  assert.ok(L.validateQuestion({ id: 'x', type: 'outlook', question: 'q', explanation: 'e', detail: 'd',
+    choices: ['a', 'b', 'c', 'd'], answer: 'a', difficulty: 'easy' }).includes('type'));
 });
 
 test('chartForQuestion: 移動平均線つきのパターンだけ ma を持つ', () => {
@@ -317,12 +343,12 @@ test('buildDeck: どのモードでも10問で、問題が重複せず、全部�
 });
 
 test('buildDeck: モードごとの問題の種類が合っている', () => {
-  for (const mode of ['pattern', 'outlook', 'candle', 'term']) {
+  for (const mode of ['pattern', 'candle', 'term']) {
     for (const q of L.buildDeck(mode, 3)) assert.equal(q.type, mode);
   }
   const types = new Set();
   for (let seed = 1; seed <= 10; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
-  assert.equal(types.size, 4);
+  assert.deepEqual([...types].sort(), ['candle', 'pattern', 'term']);
 });
 
 test('buildDeck: 同じシードなら同じ、違うシードなら違う順番', () => {
@@ -393,15 +419,6 @@ test('formatShareText: モード名と正解数が入る', () => {
   assert.ok(t.includes('チャートの形状') && t.includes('7') && t.includes('10'));
 });
 
-test("buildDeck('all'): 同じ形の「チャートの形状」と「値動き」が同じ回に出ない", () => {
-  for (let seed = 1; seed <= 40; seed++) {
-    const ids = L.buildDeck('all', seed).map((q) => q.id);
-    for (const id of ids.filter((i) => i.startsWith('pattern:'))) {
-      assert.ok(!ids.includes('outlook:' + id.slice('pattern:'.length)), `seed=${seed} ${id}`);
-    }
-  }
-});
-
 test("buildDeck('all'): 10問・重複なし・有効で、同じシードなら同じ", () => {
   for (let seed = 1; seed <= 40; seed++) {
     const deck = L.buildDeck('all', seed);
@@ -412,10 +429,17 @@ test("buildDeck('all'): 10問・重複なし・有効で、同じシードなら
   }
 });
 
-test("buildDeck('all'): チャートの形状も値動きも、たくさんの回のどこかには出る", () => {
+test("buildDeck('all'): チャートの形状・ローソク足・用語が、たくさんの回のどこかには出る", () => {
   const types = new Set();
   for (let seed = 1; seed <= 40; seed++) L.buildDeck('all', seed).forEach((q) => types.add(q.type));
-  assert.ok(types.has('pattern') && types.has('outlook'));
+  assert.ok(types.has('pattern') && types.has('candle') && types.has('term'));
+});
+
+test("buildPool('all'): 各パターンが形状の問題を1問ずつ出し(全30問)、同じ形が重ならない", () => {
+  const pool = L.buildPool('all', L.createRng(5));
+  const ids = pool.filter((q) => q.type === 'pattern').map((q) => q.id);
+  assert.equal(ids.length, L.PATTERNS.length);
+  assert.equal(new Set(ids).size, ids.length);
 });
 
 test('isConfusable: 順不同で、定義した組だけ true', () => {
@@ -444,13 +468,7 @@ test('紛らわしい組は、同じ問題の選択肢に同時に出ない', ()
   }
 });
 
-test('三角持ち合いは値動き予想に出ない(チャートの形状には出る)', () => {
-  for (let seed = 1; seed <= 60; seed++) {
-    const outlookDeck = L.buildDeck('outlook', seed);
-    assert.ok(!outlookDeck.some((q) => q.patternId === 'symmetrical-triangle'), `outlook seed=${seed}`);
-    const allDeck = L.buildDeck('all', seed);
-    assert.ok(!allDeck.some((q) => q.type === 'outlook' && q.patternId === 'symmetrical-triangle'), `all seed=${seed}`);
-  }
+test('三角持ち合いは、チャートの形状で出題される', () => {
   let seen = false;
   for (let seed = 1; seed <= 60 && !seen; seed++) {
     seen = L.buildDeck('pattern', seed).some((q) => q.patternId === 'symmetrical-triangle');
@@ -575,6 +593,7 @@ test('続きの値動きも滑らか: 隣り合う点の差が大きくない', 
   for (const outlook of ['up', 'down', 'flat']) {
     for (let seed = 1; seed <= 30; seed++) {
       const c = L.generateContinuation(50, outlook, seed);
+      assert.equal(c.length, L.CONTINUATION_LENGTH);
       for (let i = 1; i < c.length; i++) assert.ok(Math.abs(c[i] - c[i - 1]) < 3, `${outlook} seed=${seed}`);
     }
   }
@@ -710,7 +729,7 @@ test('ボックス圏: 上限と下限のあいだを往復する(幅が小さ�
   }
 });
 
-test('追加後の出題: どのモードも10問が成立し、値動き予想の続きが outlook と一致する', () => {
+test('追加後の出題: どのモードも10問が成立し、形状の問題の続きが outlook と一致する', () => {
   for (const mode of L.MODES) {
     for (let seed = 1; seed <= 20; seed++) {
       const deck = L.buildDeck(mode, seed);
@@ -718,8 +737,8 @@ test('追加後の出題: どのモードも10問が成立し、値動き予想�
       for (const q of deck) assert.equal(L.validateQuestion(q), null);
     }
   }
-  for (const p of L.PATTERNS.filter((x) => x.outlookQuiz !== false)) {
-    const q = L.makeOutlookQuestion(p, 33);
+  for (const p of L.PATTERNS.filter((x) => x.outlook !== 'either')) {
+    const q = L.makePatternQuestion(p, 33);
     const c = L.chartForQuestion(q);
     const last = c.values[c.values.length - 1];
     const end = c.continuation[c.continuation.length - 1];
@@ -855,12 +874,10 @@ test('追加した紛らわしい組は、同じ問題の選択肢に同時に�
   }
 });
 
-test('どのモードでも出題プールが ROUND_SIZE 以上で、値動き予想に三角持ち合いが入らない', () => {
+test('どのモードでも出題プールが ROUND_SIZE 以上', () => {
   for (const mode of L.MODES) {
     assert.ok(L.buildPool(mode, L.createRng(1)).length >= L.ROUND_SIZE, mode);
   }
-  const pool = L.buildPool('outlook', L.createRng(1));
-  assert.ok(!pool.some((q) => q.patternId === 'symmetrical-triangle'));
 });
 
 test('はらみ足の名前は「強気」「弱気」で、旧名は残っていない', () => {
@@ -1118,7 +1135,6 @@ test('難易度の割り当て: 決めた表どおりで、全項目に付いて
 test('問題オブジェクトに難易度が入り、validateQuestion が見る', () => {
   const p = L.findPattern('cup-with-handle');
   assert.equal(L.makePatternQuestion(p, 1).difficulty, 'hard');
-  assert.equal(L.makeOutlookQuestion(p, 1).difficulty, 'hard');
   assert.equal(L.makeCandleQuestion(L.CANDLE_PATTERNS.find((c) => c.id === 'doji'), L.createRng(1)).difficulty, 'easy');
   assert.equal(L.makeTermQuestion(L.TERMS.find((t) => t.id === 'per'), L.createRng(1)).difficulty, 'normal');
   const q = L.makeTermQuestion(L.TERMS[0], L.createRng(1));
@@ -1130,7 +1146,6 @@ test('問題オブジェクトに難易度が入り、validateQuestion が見る
 test('モード×難易度の問題数: どの組み合わせも1問以上で、表の数と合う', () => {
   const expected = {
     pattern: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
-    outlook: { easy: 9, normal: 8, hard: 8, expert: 2, master: 2 },
     candle: { easy: 9, normal: 9, hard: 8, expert: 2, master: 2 },
     // 用語は、v4 までの40問(11/11/10/4/4)に追加の80問(各16)を足した数。内容を足したらここも直す
     term: { easy: 27, normal: 27, hard: 26, expert: 20, master: 20 },
@@ -1142,7 +1157,7 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
       if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
     }
   }
-  // all モード: expert / master は 用語20 + ローソク足2 + チャート2(形状か値動きの一方)= 24(内容に依存する数)
+  // all モード: expert / master は 用語20 + ローソク足2 + チャートの形状2 = 24(内容に依存する数)
   for (const level of ['expert', 'master']) assert.equal(L.buildPool('all', L.createRng(1), level).length, 24, `all/${level}`);
 });
 
@@ -1154,7 +1169,7 @@ const NEW_IDS = {
   master: { term: ['payout-ratio', 'buyback', 'stock-split', 'circuit-breaker'], candle: ['abandoned-baby-bottom', 'abandoned-baby-top'], pattern: ['diamond-top', 'diamond-bottom'] },
 };
 
-test('各難易度に、新しく追加した問題がちょうど10問ある(用語4・ローソク足2・形状2・値動き2)', () => {
+test('各難易度に、新しく追加した問題がちょうど8問ある(用語4・ローソク足2・形状2)', () => {
   for (const level of L.DIFFICULTY_LEVELS) {
     const ids = NEW_IDS[level];
     let total = 0;
@@ -1169,8 +1184,7 @@ test('各難易度に、新しく追加した問題がちょうど10問ある(�
     assert.equal(count('term', ids.term), 4, `term ${level}`);
     assert.equal(count('candle', ids.candle), 2, `candle ${level}`);
     assert.equal(count('pattern', ids.pattern), 2, `pattern ${level}`);
-    assert.equal(count('outlook', ids.pattern), 2, `outlook ${level}`);
-    assert.equal(total, 10, `合計 ${level}`);
+    assert.equal(total, 8, `合計 ${level}`);
   }
 });
 
@@ -1204,17 +1218,17 @@ test('buildDeck: 難易度の絞り込みで、問題数・重複・難易度・
   }
 });
 
-test('全部まぜ+難易度: 同じ形の「名前」と「値動き」が両方出ない / 三角持ち合いは値動きに出ない', () => {
+test('全部まぜ+難易度: 同じ形の問題が重ならず、outlook の問題は出ない', () => {
   for (const level of L.DIFFICULTY_FILTERS) {
     for (let seed = 1; seed <= 60; seed++) {
       const deck = L.buildDeck('all', seed, level);
       const byPattern = {};
       for (const q of deck) {
-        if (q.type === 'pattern' || q.type === 'outlook') {
+        assert.notEqual(q.type, 'outlook');
+        if (q.type === 'pattern') {
           assert.ok(!byPattern[q.patternId], `${level} seed=${seed} ${q.patternId}`);
           byPattern[q.patternId] = q.type;
         }
-        assert.ok(!(q.type === 'outlook' && q.patternId === 'symmetrical-triangle'));
       }
     }
   }
@@ -1254,6 +1268,22 @@ test('保存データ: 難易度ごとのキーが使え、古い形(難易度�
   assert.equal(parsed.best['all:hard'], 0);
 });
 
+test('保存データ: 値動き予想(outlook)の古いキーが残っていても、無視して読める', () => {
+  const old = JSON.stringify({
+    best: { all: 7, outlook: 9, 'outlook:hard': 4, pattern: 5 },
+    played: { outlook: { correct: 9, total: 10 }, 'outlook:hard': { correct: 4, total: 8 }, pattern: { correct: 5, total: 10 } },
+  });
+  const parsed = L.parseStats(old);
+  assert.equal(parsed.best.all, 7);
+  assert.equal(parsed.best.pattern, 5);
+  assert.deepEqual(parsed.played.pattern, { correct: 5, total: 10 });
+  assert.equal(parsed.best.outlook, undefined);
+  assert.equal(parsed.played['outlook:hard'], undefined);
+  assert.equal(Object.keys(parsed.best).length, 24);
+  assert.equal(L.STATS_KEYS.length, 24);
+  assert.ok(L.STATS_KEYS.every((k) => !k.startsWith('outlook')));
+});
+
 test('formatShareText: 難易度つき', () => {
   assert.equal(L.formatShareText('pattern', 7, 10), '株クイズ(チャートの形状)で 10問中7問正解!');
   const t = L.formatShareText('pattern', 7, 10, 'normal');
@@ -1261,7 +1291,7 @@ test('formatShareText: 難易度つき', () => {
   assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
 });
 
-test('reshuffleChoices: 選択肢の集合と正解が変わらず、元の問題を変更しない。outlook は固定順', () => {
+test('reshuffleChoices: 選択肢の集合と正解が変わらず、元の問題を変更しない', () => {
   const deck = L.buildDeck('all', 4);
   for (const q of deck) {
     const before = JSON.stringify(q);
@@ -1271,7 +1301,6 @@ test('reshuffleChoices: 選択肢の集合と正解が変わらず、元の問�
     assert.equal(r.answer, q.answer);
     assert.equal(r.id, q.id);
     assert.equal(L.validateQuestion(r), null);
-    if (q.type === 'outlook') assert.deepEqual(r.choices, q.choices);
   }
 });
 
@@ -1337,7 +1366,7 @@ function slopeOf(idxs, values) {
   return num / den;
 }
 
-test('新規チャート10種類: id・outlook・難易度・outlookQuiz が表どおり', () => {
+test('新規チャート10種類: id・outlook・難易度が表どおり', () => {
   const want = {
     'ascending-channel': ['up', 'easy'], 'descending-channel': ['down', 'easy'],
     'v-bottom': ['up', 'normal'], 'v-top': ['down', 'normal'],
@@ -1350,10 +1379,8 @@ test('新規チャート10種類: id・outlook・難易度・outlookQuiz が表�
     const p = L.findPattern(id);
     assert.equal(p.outlook, outlook, id);
     assert.equal(p.difficulty, level, id);
-    assert.notEqual(p.outlookQuiz, false, id);
     assert.ok(p.explanation.endsWith('よ。'), id);
     assert.equal(L.validateQuestion(L.makePatternQuestion(p, 5)), null, id);
-    assert.equal(L.validateQuestion(L.makeOutlookQuestion(p, 5)), null, id);
   }
 });
 
@@ -1427,7 +1454,7 @@ test('パーフェクトオーダー: 最後の点で 短期>中期>長期(下�
 test('パーフェクトオーダーだけが chart.ma を3本返し、ほかの新規チャートは ma が undefined', () => {
   for (const id of NEW_CHART_IDS) {
     const p = L.findPattern(id);
-    for (const q of [L.makePatternQuestion(p, 4), L.makeOutlookQuestion(p, 4)]) {
+    for (const q of [L.makePatternQuestion(p, 4)]) {
       const c = L.chartForQuestion(q);
       if (id.endsWith('perfect-order')) {
         assert.equal(p.ma, true, id);
@@ -1517,8 +1544,8 @@ test('新規チャートの紛らわしい組が両方向で isConfusable で、
   }
 });
 
-test('新規チャート: どの難易度でも pattern / outlook / all の出題が有効', () => {
-  for (const mode of ['pattern', 'outlook', 'all']) {
+test('新規チャート: どの難易度でも pattern / all の出題が有効', () => {
+  for (const mode of ['pattern', 'all']) {
     for (const level of L.DIFFICULTY_FILTERS) {
       for (let seed = 1; seed <= 10; seed++) {
         for (const q of L.buildDeck(mode, seed, level)) assert.equal(L.validateQuestion(q), null, `${mode}/${level}`);
@@ -1633,7 +1660,6 @@ test('validateQuestion: detail が無い問題は不備として見つける', (
     L.makeTermQuestion(L.TERMS[0], L.createRng(1)),
     L.makeCandleQuestion(L.CANDLE_PATTERNS[0], L.createRng(1)),
     L.makePatternQuestion(L.PATTERNS[0], 1),
-    L.makeOutlookQuestion(L.PATTERNS[0], 1),
   ];
   for (const q of makers) {
     assert.equal(L.validateQuestion(q), null, q.id);
@@ -1644,10 +1670,9 @@ test('validateQuestion: detail が無い問題は不備として見つける', (
   }
 });
 
-test('形状の問題と値動きの問題は、同じ detail を使う', () => {
+test('形状の問題は、パターン定義の detail を使う', () => {
   for (const p of L.PATTERNS) {
     assert.equal(L.makePatternQuestion(p, 1).detail, p.detail, p.id);
-    assert.equal(L.makeOutlookQuestion(p, 1).detail, p.detail, p.id);
   }
 });
 

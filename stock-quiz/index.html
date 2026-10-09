@@ -23,6 +23,7 @@ body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.7;
 main { max-width: 560px; margin: 0 auto; padding: 16px; }
 h1 { font-size: 22px; font-weight: 500; margin: 8px 0 4px; }
 .lead, .note, .sub { color: var(--muted); font-size: 14px; margin: 4px 0 12px; }
+.tendency { font-size: 14px; margin: 4px 0 12px; }
 .q { font-size: 16px; font-weight: 500; margin: 12px 0 8px; }
 .stars { color: var(--accent); font-size: 13px; letter-spacing: 0.1em; white-space: nowrap; }
 .head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
@@ -92,7 +93,7 @@ const PATTERNS = [
     explanation: '3つの谷の真ん中が一番深い形。ネックラインを超えると上昇に転じやすいよ。',
   },
   {
-    id: 'symmetrical-triangle', name: '三角持ち合い', outlook: 'flat', outlookQuiz: false,
+    id: 'symmetrical-triangle', name: '三角持ち合い', outlook: 'either',
     points: [[0, 50], [0.12, 85], [0.28, 20], [0.44, 72], [0.58, 33], [0.72, 62], [0.84, 42], [0.94, 55], [1, 50]],
     explanation: '高値が切り下がり安値が切り上がって、値動きが狭まる形。上下どちらに抜けるかは抜けるまで分からないよ。抜けた方向に動きやすいとされるよ。',
   },
@@ -245,17 +246,16 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['diamond-top', 'symmetrical-triangle'], ['diamond-bottom', 'symmetrical-triangle'],
   ['gap-down', 'morning-star'], ['gap-up', 'evening-star'], ['gap-up', 'abandoned-baby-bottom'],
   ['gap-down', 'abandoned-baby-bottom'], ['gap-up', 'abandoned-baby-top'], ['gap-down', 'abandoned-baby-top']];
-const MODES = ['all', 'pattern', 'outlook', 'candle', 'term'];
+const MODES = ['all', 'pattern', 'candle', 'term'];
 const MODE_LABELS = {
   all: '全部まぜ',
   pattern: 'チャートの形状',
-  outlook: '値動き予想',
   candle: 'ローソク足',
   term: '用語',
 };
 
-const OUTLOOK_LABELS = { up: '上がりやすい', down: '下がりやすい', flat: '横ばい' };
-const OUTLOOK_CHOICES = ['上がりやすい', '下がりやすい', '横ばい'];
+// 答え合わせで見せる、この後の値動き(教科書的な傾向)
+const OUTLOOK_LABELS = { up: '上がりやすい', down: '下がりやすい', flat: '横ばい', either: '上下どちらにも抜けうる' };
 
 // ローソク足: o=始値 h=高値 l=安値 c=終値(0〜100 の相対値)
 const CANDLE_PATTERNS = [
@@ -965,7 +965,7 @@ assignDifficulty(TERMS, DIFFICULTY_BY_ID.terms);
 
 // 「くわしく」(解説の下に出す、120〜250字・2〜4文の補足)。既存の100項目はこの表から付ける。
 // 追加の用語80問は、TERMS の各項目に detail を直接書く(この表には入れない)。
-// チャートの形の detail は、形状の問題と値動きの問題の両方で使う。
+// チャートの形の detail は、チャートの形状の問題で使う。
 const DETAIL_BY_ID = {
   patterns: {
     'double-top': '上昇の途中で高値を一度つけて少し下げ、再び同じあたりまで戻ったのに超えられずに落ちてできる形だよ。2つの山の間の安値を結んだ線(ネックライン)を割り込んで初めて完成と見る人が多いよ。割る前に「二番天井かも」と決めつけると、そのまま上抜けることもあるから注意だよ。',
@@ -1188,8 +1188,9 @@ function generateSeries(pattern, seed) {
   return values;
 }
 
-// 値動き予想の続き。方向は必ず outlook に一致させる
+// 答え合わせで点線で描く続き。方向は必ず outlook に一致させる('either' は方向が決まらないので描かない)
 function generateContinuation(lastValue, outlook, seed) {
+  if (outlook === 'either') return [];
   const rng = createRng(seed + 7919);
   const move = outlook === 'up' ? CONTINUATION_MOVE : outlook === 'down' ? -CONTINUATION_MOVE : 0;
   const values = [];
@@ -1212,7 +1213,6 @@ function movingAverage(values, window) {
 }
 const QUESTION_TEXT = {
   pattern: 'このチャートの形の名前は?',
-  outlook: 'この後、株価はどう動きやすい?',
   candle: 'このローソク足の名前は?',
 };
 
@@ -1238,22 +1238,6 @@ function makePatternQuestion(pattern, seed) {
     question: QUESTION_TEXT.pattern,
     choices: shuffle([pattern.name, ...others], rng),
     answer: pattern.name,
-    explanation: pattern.explanation,
-    detail: pattern.detail,
-    difficulty: pattern.difficulty,
-  };
-}
-
-function makeOutlookQuestion(pattern, seed) {
-  return {
-    id: `outlook:${pattern.id}`,
-    type: 'outlook',
-    patternId: pattern.id,
-    patternName: pattern.name,
-    seed,
-    question: QUESTION_TEXT.outlook,
-    choices: OUTLOOK_CHOICES.slice(),
-    answer: OUTLOOK_LABELS[pattern.outlook],
     outlook: pattern.outlook,
     explanation: pattern.explanation,
     detail: pattern.detail,
@@ -1291,10 +1275,9 @@ function makeTermQuestion(term, rng) {
 
 // 問題に不備があればその説明を、なければ null を返す
 function validateQuestion(q) {
-  if (!['pattern', 'outlook', 'candle', 'term'].includes(q.type)) return `type が不正: ${q.type}`;
+  if (!['pattern', 'candle', 'term'].includes(q.type)) return `type が不正: ${q.type}`;
   if (!q.id || !q.question || !q.explanation || !q.detail) return `${q.id}: 必須項目がない`;
-  const expected = q.type === 'outlook' ? 3 : 4;
-  if (q.choices.length !== expected) return `${q.id}: 選択肢が${expected}個ではない`;
+  if (q.choices.length !== 4) return `${q.id}: 選択肢が4個ではない`;
   if (new Set(q.choices).size !== q.choices.length) return `${q.id}: 選択肢が重複している`;
   if (q.choices.filter((c) => c === q.answer).length !== 1) return `${q.id}: 正解がちょうど1つ含まれていない`;
   if (!DIFFICULTY_LEVELS.includes(q.difficulty)) return `${q.id}: difficulty が不正: ${q.difficulty}`;
@@ -1314,9 +1297,8 @@ function chartForQuestion(q) {
       long: movingAverage(values, MA_LONG),
     };
   }
-  if (q.type === 'outlook') {
-    chart.continuation = generateContinuation(values[values.length - 1], pattern.outlook, q.seed);
-  }
+  // 続きは答え合わせのときだけ描く(描画側の reveal)。'either' は空
+  chart.continuation = generateContinuation(values[values.length - 1], pattern.outlook, q.seed);
   return chart;
 }
 
@@ -1338,29 +1320,11 @@ function byDifficulty(items, difficulty) {
 function buildPool(mode, rng, difficulty = 'all') {
   const wants = (type) => mode === 'all' || mode === type;
   const pool = [];
-  // 乱数は、絞り込みに関係なくパターンごとに同じ回数だけ引く(同じシードなら同じ結果にするため)
-  if (mode === 'all') {
-    // 同じ形の「名前」と「値動き」を両方出すと、片方の解説がもう片方の答えになるので、どちらか一方だけにする
+  if (wants('pattern')) {
+    // 乱数は、絞り込みに関係なくパターンごとに同じ回数だけ引く(同じシードなら同じ結果にするため)
     for (const p of PATTERNS) {
       const seed = Math.floor(rng() * 1e9);
-      const asPattern = rng() < 0.5 || p.outlookQuiz === false;
-      if (difficulty !== 'all' && p.difficulty !== difficulty) continue;
-      pool.push(asPattern ? makePatternQuestion(p, seed) : makeOutlookQuestion(p, seed));
-    }
-  } else {
-    if (wants('pattern')) {
-      for (const p of PATTERNS) {
-        const seed = Math.floor(rng() * 1e9);
-        if (difficulty === 'all' || p.difficulty === difficulty) pool.push(makePatternQuestion(p, seed));
-      }
-    }
-    if (wants('outlook')) {
-      for (const p of PATTERNS) {
-        const seed = Math.floor(rng() * 1e9);
-        if (p.outlookQuiz !== false && (difficulty === 'all' || p.difficulty === difficulty)) {
-          pool.push(makeOutlookQuestion(p, seed));
-        }
-      }
+      if (difficulty === 'all' || p.difficulty === difficulty) pool.push(makePatternQuestion(p, seed));
     }
   }
   if (wants('candle')) {
@@ -1382,9 +1346,8 @@ function roundSize(mode, difficulty = 'all') {
   return Math.min(ROUND_SIZE, buildPool(mode, createRng(1), difficulty).length);
 }
 
-// 選択肢の並びだけを入れ替えた新しい問題を返す(元の問題は変えない)。outlook は固定順
+// 選択肢の並びだけを入れ替えた新しい問題を返す(元の問題は変えない)
 function reshuffleChoices(q, rng) {
-  if (q.type === 'outlook') return { ...q, choices: q.choices.slice() };
   return { ...q, choices: shuffle(q.choices, rng) };
 }
 
@@ -1670,7 +1633,7 @@ function showStart() {
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
   app.innerHTML = `<h1>株クイズ</h1>
-    <p class="lead">チャートの形、値動き、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
+    <p class="lead">チャートの形、ローソク足、用語をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <p class="sec">難易度</p>
     <div class="diffs">${diffs}</div>
     <div class="choices">${rows}</div>`;
@@ -1726,7 +1689,10 @@ function answer(q, picked) {
 function showExplain(q, picked, correct) {
   const hasChart = q.type !== 'term';
   const last = game.index === game.deck.length - 1;
-  const shape = q.type === 'outlook' ? `<p class="sub">チャートの形: ${esc(q.patternName)}</p>` : '';
+  const tendency = q.type === 'pattern'
+    ? `<p class="tendency">${q.outlook === 'either'
+      ? 'この後の値動き: 上下どちらに抜けるかは、抜けるまで分からないよ'
+      : `この後の値動き: ${esc(OUTLOOK_LABELS[q.outlook])}`}</p>` : '';
   app.innerHTML = `${header()}
     <div class="result ${correct ? 'good' : 'bad'}">
       <p class="label">${correct ? '正解!' : '不正解… 正しい答えは'}</p>
@@ -1737,7 +1703,7 @@ function showExplain(q, picked, correct) {
       <p class="detail-title">くわしく</p>
       <p class="detail-body">${esc(q.detail)}</p>
     </div>
-    ${shape}
+    ${tendency}
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
     ${maNote(q)}
     <p class="sub">あなたの答え: ${esc(picked)}(${correct ? '正解' : '不正解'})</p>

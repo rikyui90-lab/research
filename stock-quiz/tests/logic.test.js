@@ -3256,10 +3256,10 @@ test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、�
   for (const w of ['配当を含まない', 'あらかじめ決めた順', '九州・沖縄', '上場廃止', '上がりやすい時期に偏る', '「一概には言えない」が答えの問いが多いよ']) assert.ok(html.includes(w), w);
 });
 
-test('株価予想を隠している間(FORECAST_PUBLIC=false): 全部まぜに入らず、画面のモード一覧にも出さない', () => {
+test('株価予想の切り替え(FORECAST_PUBLIC): 公開中は true。false にすると、全部まぜに入らず、画面のモード一覧にも出ない', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  // 公開する前に、株価の取得元の利用条件を確認する。確認が済んだら true にして、このテストを直す
-  assert.match(html, /const FORECAST_PUBLIC = false;/);
+  // 公開中は true。隠すときは false にして、この行を直す
+  assert.match(html, /const FORECAST_PUBLIC = true;/);
   assert.ok(html.includes("MODES.filter((m) => m !== 'forecast' || FORECAST_PUBLIC)"));
   const H = loadLogic({ forecastPublic: false });
   for (let seed = 1; seed <= 30; seed++) {

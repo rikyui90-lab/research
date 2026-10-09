@@ -1,9 +1,9 @@
 # 株クイズ 内容の出典URL
 
-- 目的: 株クイズに追加した用語クイズ80問と、全180問の「くわしく」の内容について、読んだ解説ページの URL を記録する。
+- 目的: 株クイズに追加した用語クイズ80問と、全180問の「くわしく」の内容について、読んだ解説ページの URL を記録する。あわせて、2026-10-10 に追加したチャートの形20種類(節4)の URL も記録する。
 - 記録日: 2026-10-09
 - 作り方: 証券会社・取引所などの解説ページを読み、自分の言葉で書いた。文章は写していない。調査と文章づくりは Claude のエージェントが行い、別のエージェントが事実確認した。
-- URL の確認: 次の3件の babypips の URL は、スクリプトからのアクセスでは 403 が返る(事実確認の担当者は、ブラウザのツールで読んだ)。ほかに挙げた URL は、2026-10-09 に HTTP 200 が返ることを確認した。
+- URL の確認(節1〜3): 次の3件の babypips の URL は、スクリプトからのアクセスでは 403 が返る(事実確認の担当者は、ブラウザのツールで読んだ)。ほかに挙げた URL は、2026-10-09 に HTTP 200 が返ることを確認した。
   - https://www.babypips.com/ja/learn/forex/wedges
   - https://www.babypips.com/ja/learn/forex/trend-channels
   - https://www.babypips.com/ja/forexpedia/hammer
@@ -205,3 +205,32 @@
 | falling-three-methods | 下げ三法 | ローソク足 | https://www.oanda.jp/lab-education/tradingviewstrategy/basic/tradingview_rising_three_methods; https://www.daiwa.jp/seminar/technical/01/ |  |
 | abandoned-baby-bottom | 捨て子線(底) | ローソク足 | https://www.oanda.jp/lab-education/tradingviewstrategy/basic/candlestick_abandoned_baby |  |
 | abandoned-baby-top | 捨て子線(天井) | ローソク足 | https://www.oanda.jp/lab-education/tradingviewstrategy/basic/candlestick_abandoned_baby |  |
+
+## 4. チャートの形(2026-10-10 追加分)20種類
+
+- チャートの形を30種類から50種類に増やしたときの、追加の20種類の出典である。調査と文章づくりは Claude のエージェントが行い、証券会社・取引所などの解説ページを読んで自分の言葉で書いた(出典の文は写していない)。
+- この表の URL は、文章を書いた担当者が読んだ URL で、HTTP の応答は、まだ確認していない。ここまでの節の「URL の確認」は 2026-10-09 に行った確認のことで、この節の URL は、あとの手順で確認する。
+- 備考が空の項目は、書き手が出典ページの内容と食い違う点を記録していない。
+
+| id | 名前 | 難易度 | 出典URL | 備考 |
+|----|------|--------|---------|------|
+| box-breakout-up | ボックス上抜け(上放れ) | ★ | https://www.gaitame.com/beginner/market/technical/pattern.html; https://www.daiwa.jp/seminar/technical/03/; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
+| box-breakout-down | ボックス下抜け(下放れ) | ★★ | https://www.gaitame.com/beginner/market/technical/pattern.html; https://www.daiwa.jp/seminar/technical/03/; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
+| n-wave-up | N字上昇(上昇N波動) | ★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/; https://media.monex.co.jp/articles/-/566 |  |
+| broadening-top | 拡大三角形(ブロードニングトップ) | ★★★ | https://financial-field.com/assets/entry-117766 |  |
+| n-wave-down | N字下降(逆N波動) | ★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/; https://media.monex.co.jp/articles/-/566 |  |
+| false-breakout-up | 上抜けダマシ(フォールスブレイクアウト・上) | ★★★★ | https://www.oanda.jp/lab-education/technical_analysis/price_action/false_breakout; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
+| false-breakout-down | 下抜けダマシ(フォールスブレイクアウト・下) | ★★★★ | https://www.oanda.jp/lab-education/technical_analysis/price_action/false_breakout; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
+| triangle-breakout-up | 三角保ち合い上放れ | ★★★★ | https://www.daiwa.jp/seminar/technical/03/; https://www.gaitame.com/beginner/market/technical/pattern.html |  |
+| triangle-breakout-down | 三角保ち合い下放れ | ★★★★ | https://www.daiwa.jp/seminar/technical/03/; https://www.gaitame.com/beginner/market/technical/pattern.html |  |
+| return-move-up | リターンムーブ(上抜け後の押し戻し) | ★★★★ | https://www.oanda.jp/lab-education/dictionary/breakout/; https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/ |  |
+| return-move-down | リターンムーブ(下抜け後の戻り) | ★★★★ | https://www.oanda.jp/lab-education/dictionary/breakout/; https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/ |  |
+| elliott-impulse-up | エリオット波動 上昇5波(推進波) | ★★★★★ | https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/; http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html |  |
+| elliott-impulse-down | エリオット波動 下降5波(推進波) | ★★★★★ | https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/; http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html |  |
+| elliott-cycle-up | エリオット波動 上昇5波+調整3波(1サイクル) | ★★★★★ | http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html; https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/ |  |
+| elliott-cycle-down | エリオット波動 下降5波+戻り3波(1サイクル) | ★★★★★ | http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html; https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/ |  |
+| falling-wedge-breakout-up | 下降ウェッジ上抜け(上放れ) | ★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-wedge-trade-method/ |  |
+| rising-wedge-breakout-down | 上昇ウェッジ下抜け(下放れ) | ★★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-wedge-trade-method/ |  |
+| ascending-channel-breakdown | 上昇チャネル下抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 |  |
+| descending-channel-breakout-up | 下降チャネル上抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 |  |
+| selling-climax | セリングクライマックス(急落の最終局面) | ★★★★★ | https://www.oanda.jp/lab-education/dictionary/sellingclimax/ |  |

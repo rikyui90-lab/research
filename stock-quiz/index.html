@@ -397,6 +397,8 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['selling-climax', 'elliott-impulse-down'], ['ascending-channel-breakdown', 'rising-wedge'],
   ['descending-channel-breakout-up', 'falling-wedge'], ['elliott-impulse-up', 'n-wave-up'],
   ['elliott-impulse-down', 'n-wave-down'],
+  // 最終確認で足した、エリオット推進波とウェッジ
+  ['elliott-impulse-up', 'rising-wedge'], ['elliott-impulse-down', 'falling-wedge'],
   // チャートの形20種類の確認(v6)で足した、見た目が近い組
   ['box-breakout-down', 'triple-top'], ['box-breakout-up', 'triple-bottom'],
   ['false-breakout-up', 'triple-top'], ['false-breakout-down', 'triple-bottom'],
@@ -446,7 +448,7 @@ const MODE_LABELS = {
 };
 
 // 答え合わせで見せる、この後の値動き(教科書的な傾向)
-const OUTLOOK_LABELS = { up: '上がりやすい', down: '下がりやすい', flat: '横ばい', either: '上下どちらに抜けるかは、抜けるまで分からないよ' };
+const OUTLOOK_LABELS = { up: '上がりやすい', down: '下がりやすい', flat: '横ばい', either: '上下どちらに動くかは、この形だけでは決められないよ' };
 
 // ローソク足: o=始値 h=高値 l=安値 c=終値(0〜100 の相対値)
 const CANDLE_PATTERNS = [
@@ -574,8 +576,8 @@ const CANDLE_PATTERNS = [
     detail: 'いったん買いが入って戻したものの、前の陰線の実体の半分にも届かないので、反発力は限られると読まれるよ。切り込み線と形が近いけれど、終値が実体の半分より下にとどまる点が違うよ。下落の途中では戻り売りの場面と見る人も多く、上昇への転換とは限らないよ。' },
   { id: 'irikubi-line', name: '入り首線',
     candles: [{ o: 70, h: 72, l: 36, c: 40 }, { o: 30, h: 46, l: 28, c: 43 }],
-    explanation: '大陰線のあと、前日の終値より安く始まった陽線が、前日の安値をわずかに上回るだけで終わる2本の形だよ。戻りがとても弱く、下落が続きやすいとされるよ。',
-    detail: '陽線になっても戻した幅が小さく、前の安値のあたりで頭を押さえられた状態だよ。差し込み線と比べても戻りが小さいのが特徴で、買いの力が乏しいと読まれるよ。下落途中の戻り売りの目安にされることがあるけれど、差し込み線との差は小さいので、線引きにこだわりすぎないほうがいいよ。' },
+    explanation: '大陰線のあと、前日の終値より安く始まった陽線が、前日の終値(実体の下端)をわずかに上回るだけで終わる2本の形だよ。戻りがとても弱く、下落が続きやすいとされるよ。',
+    detail: '陽線になっても戻した幅が小さく、前の陰線の実体に少し入ったところで頭を押さえられた状態だよ。差し込み線と比べても戻りが小さいのが特徴で、買いの力が乏しいと読まれるよ。下落途中の戻り売りの目安にされることがあるけれど、差し込み線との差は小さいので、線引きにこだわりすぎないほうがいいよ。' },
   { id: 'yukichigai-line', name: '行き違い線',
     candles: [{ o: 62, h: 64, l: 38, c: 40 }, { o: 62, h: 86, l: 60, c: 84 }],
     explanation: '前日と逆の色で、ほぼ同じ始値から同じ長さの実体が出る2本の形だよ。前日の動きを打ち消して反対向きに動くため、流れの変わり目とされることがあるよ。',

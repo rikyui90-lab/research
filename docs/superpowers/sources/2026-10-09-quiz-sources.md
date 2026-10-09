@@ -1,6 +1,6 @@
 # 株クイズ 内容の出典URL
 
-- 目的: 株クイズに追加した用語クイズ80問と、全180問の「くわしく」の内容について、読んだ解説ページの URL を記録する。あわせて、2026-10-10 に追加したチャートの形20種類(節4)とローソク足20種類(節5)の URL も記録する。
+- 目的: 株クイズに追加した用語クイズ80問と、全180問の「くわしく」の内容について、読んだ解説ページの URL を記録する。あわせて、2026-10-09 に追加したチャートの形20種類(節4)とローソク足20種類(節5)の URL も記録する。
 - 記録日: 2026-10-09
 - 作り方: 証券会社・取引所などの解説ページを読み、自分の言葉で書いた。文章は写していない。調査と文章づくりは Claude のエージェントが行い、別のエージェントが事実確認した。
 - URL の確認(節1〜3): 次の3件の babypips の URL は、スクリプトからのアクセスでは 403 が返る(事実確認の担当者は、ブラウザのツールで読んだ)。ほかに挙げた URL は、2026-10-09 に HTTP 200 が返ることを確認した。
@@ -206,10 +206,10 @@
 | abandoned-baby-bottom | 捨て子線(底) | ローソク足 | https://www.oanda.jp/lab-education/tradingviewstrategy/basic/candlestick_abandoned_baby |  |
 | abandoned-baby-top | 捨て子線(天井) | ローソク足 | https://www.oanda.jp/lab-education/tradingviewstrategy/basic/candlestick_abandoned_baby |  |
 
-## 4. チャートの形(2026-10-10 追加分)20種類
+## 4. チャートの形(2026-10-09 追加分)20種類
 
 - チャートの形を30種類から50種類に増やしたときの、追加の20種類の出典である。調査と文章づくりは Claude のエージェントが行い、証券会社・取引所などの解説ページを読んで自分の言葉で書いた(出典の文は写していない)。
-- この表の URL は、文章を書いた担当者が読んだ URL で、HTTP の応答は、まだ確認していない。ここまでの節の「URL の確認」は 2026-10-09 に行った確認のことで、この節の URL は、あとの手順で確認する。
+- この表の URL は、文章を書いた担当者が読んだ URL で、新しい項目の節(節4・節5)の異なる URL 全16件は、2026-10-09 に curl で確認し、すべて HTTP 200 で応答した。
 - 備考が空の項目は、書き手が出典ページの内容と食い違う点を記録していない。
 
 | id | 名前 | 難易度 | 出典URL | 備考 |
@@ -235,10 +235,10 @@
 | descending-channel-breakout-up | 下降チャネル上抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 | 出典が薄い(フラッグ(チャネル)のブレイク解説のみ)。方向は解釈 |
 | selling-climax | セリングクライマックス(急落の最終局面) | ★★★★★ | https://www.oanda.jp/lab-education/dictionary/sellingclimax/ | 単一出典(OANDA)。「傾向」「必ずではない」と書かれているので、文章は「〜しやすいと言われる」にとどめた。価格だけでは出来高の急増を描けない |
 
-## 5. ローソク足(2026-10-10 追加分)20種類
+## 5. ローソク足(2026-10-09 追加分)20種類
 
 - ローソク足を30種類から50種類に増やしたときの、追加の20種類の出典である。調査と文章づくりは Claude のエージェントが行い、証券会社・取引所などの解説ページを読んで自分の言葉で書いた。文章は写していない。
-- この節の URL は、文章を書いた担当者が読んだ URL で、HTTP の応答は、まだ確認していない。あとの工程で確認する。
+- この節の URL は、文章を書いた担当者が読んだ URL で、節4・節5の異なる URL 全16件は、2026-10-09 に curl で確認し、すべて HTTP 200 で応答した(節4の注記を参照)。
 - 備考が空の項目は、書き手が出典ページの内容と食い違う点を記録していない。
 
 | id | 名前 | 難易度 | 出典URL | 備考 |
@@ -253,7 +253,7 @@
 | upward-gap-side-by-side-white | 上放れ並び赤 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
 | downward-gap-side-by-side-black | 下放れ並び黒 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/ |  |
 | thrusting-line | 差し込み線 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 |  |
-| irikubi-line | 入り首線 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 出典間で整理が割れる(ZAI は差し込み線と並列、HOX は差し込み線を入り首線の一種とする)。差し込み線・陽の出合い線・毛抜き底と絵が近く、差し替えるなら坊主三羽が候補 |
+| irikubi-line | 入り首線 | ★★★★ | https://www.oanda.jp/lab-education/beginners/technical_analysis/candlesticks/; https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 出典間で整理が割れる(ZAI は差し込み線と並列に並べる)。差し込み線・陽の出合い線・毛抜き底と絵が近く、差し替えるなら坊主三羽が候補 |
 | yukichigai-line | 行き違い線 | ★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | たすき線と定義・絵が近いため、陽のたすき線と紛らわしい組に入れた |
 | bullish-deai-line | 陽の出合い線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 「陽の/陰の」の呼び分けは、確認できた出典になし(出合い線の一般名)。2本目の色で呼び分けていると文章で断っている |
 | bearish-deai-line | 陰の出合い線 | ★★★★★ | https://zai.diamond.jp/articles/-/304623; https://zai.diamond.jp/articles/-/304622 | 「陽の/陰の」の呼び分けは、確認できた出典になし(出合い線の一般名)。2本目の色で呼び分けていると文章で断っている |

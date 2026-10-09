@@ -263,7 +263,7 @@ test('MODES と MODE_LABELS が揃っている', () => {
   assert.throws(() => L.makeOutlookQuestion, ReferenceError);
   assert.throws(() => L.OUTLOOK_CHOICES, ReferenceError);
   // 答え合わせ画面は「この後の値動き: 」にこの文言をそのままつなげて出す(either の特別扱いはしない)
-  assert.equal(L.OUTLOOK_LABELS.either, '上下どちらに抜けるかは、抜けるまで分からないよ');
+  assert.equal(L.OUTLOOK_LABELS.either, '上下どちらに動くかは、この形だけでは決められないよ');
 });
 
 test('CANDLE_PATTERNS: 50個(既存30+追加20)で、ローソク足の値が矛盾していない', () => {
@@ -2485,11 +2485,26 @@ test('確認で足したチャートの形14組: 両方向で isConfusable で�
   }
 });
 
-test('チャートの形どうしの紛らわしい組の数は 109(確認前の 95 組に 14 組を足した)', () => {
+// 最終確認で足した、チャートの形どうしの紛らわしい組(2組)
+test('最終確認で足したエリオット推進波とウェッジの2組: 両方向で isConfusable で、形状の選択肢に同時に出ない', () => {
+  for (const [a, b] of [['elliott-impulse-up', 'rising-wedge'], ['elliott-impulse-down', 'falling-wedge']]) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+    for (let seed = 1; seed <= 60; seed++) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makePatternQuestion(L.findPattern(x), seed);
+        assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null, `${x} seed=${seed}`);
+      }
+    }
+  }
+});
+
+test('チャートの形どうしの紛らわしい組の数は 111(確認前の 95 組に 14 組、最終確認で 2 組を足した)', () => {
   const patternIds = new Set(L.PATTERNS.map((p) => p.id));
   const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => patternIds.has(a) && patternIds.has(b));
-  assert.equal(pairs.length, 109);
-  assert.equal(new Set(pairs.map(([a, b]) => [a, b].sort().join('|'))).size, 109, '重複なし');
+  assert.equal(pairs.length, 111);
+  assert.equal(new Set(pairs.map(([a, b]) => [a, b].sort().join('|'))).size, 111, '重複なし');
 });
 
 test('新規チャート20種類: 各難易度の形状のラウンドは10問で、その難易度の10種類がちょうど1回ずつ出る', () => {

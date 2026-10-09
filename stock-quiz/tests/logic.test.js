@@ -1565,9 +1565,6 @@ test('逆カップウィズハンドル: 取っ手は、カップ(山)の高さ�
 const countChars = (s) => [...s].length;
 const countSentences = (s) => (s.match(/。/g) || []).length;
 const FORBIDDEN_WORDS = ['必ず', '絶対', '買うべき', '売るべき'];
-// 否定の形で注意を促す「絶対に続くとは限らない」(bull-market の detail)だけは、断定ではないので許す
-const ALLOWED_PHRASES = ['絶対に続くとは限らない'];
-const withoutAllowed = (s) => ALLOWED_PHRASES.reduce((acc, p) => acc.split(p).join(''), s);
 
 test('detail の網羅: 形状30・ローソク足30・用語120の全180項目に、空でない detail がある', () => {
   assert.equal(L.PATTERNS.length, 30);
@@ -1618,8 +1615,8 @@ test('detail の質: explanation と同じ・explanation を含む detail はな
     assert.notEqual(x.detail, x.explanation, x.id);
     assert.ok(!x.detail.includes(x.explanation), `${x.id}: detail が explanation を含む`);
     for (const w of FORBIDDEN_WORDS) {
-      assert.ok(!withoutAllowed(x.detail).includes(w), `${x.id}: detail に「${w}」`);
-      assert.ok(!withoutAllowed(x.explanation).includes(w), `${x.id}: explanation に「${w}」`);
+      assert.ok(!x.detail.includes(w), `${x.id}: detail に「${w}」`);
+      assert.ok(!x.explanation.includes(w), `${x.id}: explanation に「${w}」`);
     }
   }
 });

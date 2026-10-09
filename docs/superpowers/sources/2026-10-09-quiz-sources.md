@@ -217,7 +217,7 @@
 | box-breakout-up | ボックス上抜け(上放れ) | ★ | https://www.gaitame.com/beginner/market/technical/pattern.html; https://www.daiwa.jp/seminar/technical/03/; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
 | box-breakout-down | ボックス下抜け(下放れ) | ★★ | https://www.gaitame.com/beginner/market/technical/pattern.html; https://www.daiwa.jp/seminar/technical/03/; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
 | n-wave-up | N字上昇(上昇N波動) | ★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/; https://media.monex.co.jp/articles/-/566 |  |
-| broadening-top | 拡大三角形(ブロードニングトップ) | ★★★ | https://financial-field.com/assets/entry-117766 |  |
+| broadening-top | 拡大三角形(ブロードニングトップ) | ★★★ | https://financial-field.com/assets/entry-117766 | 出典(financial-field)は典型を上抜け・失敗を下抜けとし、方向が割れる。outlook は either(上下どちらにも抜けうる) |
 | n-wave-down | N字下降(逆N波動) | ★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/; https://media.monex.co.jp/articles/-/566 |  |
 | false-breakout-up | 上抜けダマシ(フォールスブレイクアウト・上) | ★★★★ | https://www.oanda.jp/lab-education/technical_analysis/price_action/false_breakout; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
 | false-breakout-down | 下抜けダマシ(フォールスブレイクアウト・下) | ★★★★ | https://www.oanda.jp/lab-education/technical_analysis/price_action/false_breakout; https://www.oanda.jp/lab-education/dictionary/breakout/ |  |
@@ -225,15 +225,15 @@
 | triangle-breakout-down | 三角保ち合い下放れ | ★★★★ | https://www.daiwa.jp/seminar/technical/03/; https://www.gaitame.com/beginner/market/technical/pattern.html |  |
 | return-move-up | リターンムーブ(上抜け後の押し戻し) | ★★★★ | https://www.oanda.jp/lab-education/dictionary/breakout/; https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/ |  |
 | return-move-down | リターンムーブ(下抜け後の戻り) | ★★★★ | https://www.oanda.jp/lab-education/dictionary/breakout/; https://crexgroup.com/ja/fx/analysis-strategy/fx-n-wave-patterns-guide/ |  |
-| elliott-impulse-up | エリオット波動 上昇5波(推進波) | ★★★★★ | https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/; http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html |  |
-| elliott-impulse-down | エリオット波動 下降5波(推進波) | ★★★★★ | https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/; http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html |  |
+| elliott-impulse-up | エリオット波動 上昇5波(推進波) | ★★★★★ | https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/; http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html | 5波後の調整は理論上の標準だが、完了時点を図から断定できない。outlook は either。第3波が最大か第5波が伸びるかは見解が割れる(松井証券は第3波、別解説は第5波) |
+| elliott-impulse-down | エリオット波動 下降5波(推進波) | ★★★★★ | https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/; http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html | 上昇側の鏡写し。outlook は either。第3波・第5波の見解は割れる |
 | elliott-cycle-up | エリオット波動 上昇5波+調整3波(1サイクル) | ★★★★★ | http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html; https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/ |  |
-| elliott-cycle-down | エリオット波動 下降5波+戻り3波(1サイクル) | ★★★★★ | http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html; https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/ |  |
+| elliott-cycle-down | エリオット波動 下降5波+調整3波(1サイクル) | ★★★★★ | http://www.matsui.co.jp/money-satellite/column/beginner/fx/analysis/cl-elliott.html; https://www.oanda.jp/lab-education/technical_analysis/elliott_wave/basic-1/ | 名前を「戻り3波」から「調整3波」に改めた(上昇側と語をそろえた。松井証券は「修正」) |
 | falling-wedge-breakout-up | 下降ウェッジ上抜け(上放れ) | ★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-wedge-trade-method/ |  |
 | rising-wedge-breakout-down | 上昇ウェッジ下抜け(下放れ) | ★★★★★ | https://crexgroup.com/ja/fx/analysis-strategy/fx-wedge-trade-method/ |  |
-| ascending-channel-breakdown | 上昇チャネル下抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 |  |
-| descending-channel-breakout-up | 下降チャネル上抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 |  |
-| selling-climax | セリングクライマックス(急落の最終局面) | ★★★★★ | https://www.oanda.jp/lab-education/dictionary/sellingclimax/ |  |
+| ascending-channel-breakdown | 上昇チャネル下抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 | 出典が薄い(フラッグ(チャネル)のブレイク解説のみ)。方向は解釈 |
+| descending-channel-breakout-up | 下降チャネル上抜け | ★★★★★ | https://gentosha-go.com/articles/-/44408 | 出典が薄い(フラッグ(チャネル)のブレイク解説のみ)。方向は解釈 |
+| selling-climax | セリングクライマックス(急落の最終局面) | ★★★★★ | https://www.oanda.jp/lab-education/dictionary/sellingclimax/ | 単一出典(OANDA)。「傾向」「必ずではない」と書かれているので、文章は「〜しやすいと言われる」にとどめた。価格だけでは出来高の急増を描けない |
 
 ## 5. ローソク足(2026-10-10 追加分)20種類
 

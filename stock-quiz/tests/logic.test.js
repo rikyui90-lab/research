@@ -13,7 +13,7 @@ const NEW_CHART20 = {
   'box-breakout-up': ['ボックス上抜け(上放れ)', 'up', 'easy'],
   'box-breakout-down': ['ボックス下抜け(下放れ)', 'down', 'normal'],
   'n-wave-up': ['N字上昇(上昇N波動)', 'up', 'hard'],
-  'broadening-top': ['拡大三角形(ブロードニングトップ)', 'down', 'hard'],
+  'broadening-top': ['拡大三角形(ブロードニングトップ)', 'either', 'hard'],
   'n-wave-down': ['N字下降(逆N波動)', 'down', 'expert'],
   'false-breakout-up': ['上抜けダマシ(フォールスブレイクアウト・上)', 'down', 'expert'],
   'false-breakout-down': ['下抜けダマシ(フォールスブレイクアウト・下)', 'up', 'expert'],
@@ -21,10 +21,10 @@ const NEW_CHART20 = {
   'triangle-breakout-down': ['三角保ち合い下放れ', 'down', 'expert'],
   'return-move-up': ['リターンムーブ(上抜け後の押し戻し)', 'up', 'expert'],
   'return-move-down': ['リターンムーブ(下抜け後の戻り)', 'down', 'expert'],
-  'elliott-impulse-up': ['エリオット波動 上昇5波(推進波)', 'down', 'master'],
-  'elliott-impulse-down': ['エリオット波動 下降5波(推進波)', 'up', 'master'],
+  'elliott-impulse-up': ['エリオット波動 上昇5波(推進波)', 'either', 'master'],
+  'elliott-impulse-down': ['エリオット波動 下降5波(推進波)', 'either', 'master'],
   'elliott-cycle-up': ['エリオット波動 上昇5波+調整3波(1サイクル)', 'up', 'master'],
-  'elliott-cycle-down': ['エリオット波動 下降5波+戻り3波(1サイクル)', 'down', 'master'],
+  'elliott-cycle-down': ['エリオット波動 下降5波+調整3波(1サイクル)', 'down', 'master'],
   'falling-wedge-breakout-up': ['下降ウェッジ上抜け(上放れ)', 'up', 'expert'],
   'rising-wedge-breakout-down': ['上昇ウェッジ下抜け(下放れ)', 'down', 'master'],
   'ascending-channel-breakdown': ['上昇チャネル下抜け', 'down', 'master'],
@@ -322,9 +322,21 @@ test('形状の問題: outlook を持ち、チャートの続きの方向がそ�
   }
 });
 
-test('三角持ち合いの outlook は either(方向は抜けるまで分からない)', () => {
-  assert.equal(L.findPattern('symmetrical-triangle').outlook, 'either');
-  assert.equal(L.PATTERNS.filter((p) => p.outlook === 'either').length, 1);
+test('三角持ち合い・拡大三角形・エリオット推進波(上・下)の outlook は either(方向は抜けるまで分からない)', () => {
+  const eitherIds = ['symmetrical-triangle', 'broadening-top', 'elliott-impulse-up', 'elliott-impulse-down'];
+  for (const id of eitherIds) assert.equal(L.findPattern(id).outlook, 'either', id);
+  assert.deepEqual(L.PATTERNS.filter((p) => p.outlook === 'either').map((p) => p.id).sort(), eitherIds.slice().sort());
+});
+
+test('either の形は続きの点線が空(拡大三角形・エリオット推進波の上・下)', () => {
+  for (const id of ['broadening-top', 'elliott-impulse-up', 'elliott-impulse-down']) {
+    assert.deepEqual(L.generateContinuation(50, L.findPattern(id).outlook, 7), [], id);
+    for (let seed = 1; seed <= 20; seed++) {
+      const q = L.makePatternQuestion(L.findPattern(id), seed);
+      assert.equal(q.outlook, 'either', id);
+      assert.deepEqual(L.chartForQuestion(q).continuation, [], `${id} seed=${seed}`);
+    }
+  }
 });
 
 test('outlook の問題・モードはどこにもない', () => {
@@ -2015,7 +2027,7 @@ test('新規チャート20種類: 骨格が正しく、問題が有効で、続�
       assert.equal(q.difficulty, NEW_CHART20[id][2], id);
       const c = L.chartForQuestion(q);
       assert.equal(c.values.length, 120, id);
-      assert.equal(c.continuation.length, 30, id);
+      assert.equal(c.continuation.length, p.outlook === 'either' ? 0 : 30, id);
       assert.equal(c.ma, undefined, id);
       const last = c.values[119];
       const end = c.continuation[29];
@@ -2370,6 +2382,39 @@ test('新規チャート20種類の紛らわしい組が両方向で isConfusabl
     assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
     assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
   }
+});
+
+// v6 の確認で足した、チャートの形どうしの紛らわしい組(14組)
+const CHART20_CHECK_PAIRS = [
+  ['box-breakout-down', 'triple-top'], ['box-breakout-up', 'triple-bottom'],
+  ['false-breakout-up', 'triple-top'], ['false-breakout-down', 'triple-bottom'],
+  ['false-breakout-up', 'return-move-down'], ['false-breakout-down', 'return-move-up'],
+  ['elliott-cycle-up', 'ascending-channel-breakdown'], ['elliott-cycle-down', 'descending-channel-breakout-up'],
+  ['elliott-cycle-up', 'rising-wedge-breakout-down'], ['elliott-cycle-down', 'falling-wedge-breakout-up'],
+  ['selling-climax', 'rounding-top'], ['selling-climax', 'bearish-perfect-order'],
+  ['triangle-breakout-up', 'box-breakout-up'], ['triangle-breakout-down', 'box-breakout-down'],
+];
+
+test('確認で足したチャートの形14組: 両方向で isConfusable で、形状の選択肢に同時に出ない', () => {
+  assert.equal(CHART20_CHECK_PAIRS.length, 14);
+  for (const [a, b] of CHART20_CHECK_PAIRS) {
+    assert.equal(L.isConfusable(a, b), true, `${a}/${b}`);
+    assert.equal(L.isConfusable(b, a), true, `${b}/${a}`);
+    for (let seed = 1; seed <= 60; seed++) {
+      for (const [x, y] of [[a, b], [b, a]]) {
+        const q = L.makePatternQuestion(L.findPattern(x), seed);
+        assert.ok(!q.choices.includes(L.findPattern(y).name), `${x} vs ${y} seed=${seed}`);
+        assert.equal(L.validateQuestion(q), null, `${x} seed=${seed}`);
+      }
+    }
+  }
+});
+
+test('チャートの形どうしの紛らわしい組の数は 109(確認前の 95 組に 14 組を足した)', () => {
+  const patternIds = new Set(L.PATTERNS.map((p) => p.id));
+  const pairs = L.CONFUSABLE_PAIRS.filter(([a, b]) => patternIds.has(a) && patternIds.has(b));
+  assert.equal(pairs.length, 109);
+  assert.equal(new Set(pairs.map(([a, b]) => [a, b].sort().join('|'))).size, 109, '重複なし');
 });
 
 test('新規チャート20種類: 各難易度の形状のラウンドは10問で、その難易度の10種類がちょうど1回ずつ出る', () => {

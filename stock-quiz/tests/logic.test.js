@@ -3164,14 +3164,15 @@ test('株価予想のデータ: 20問で、id が重複せず、難易度ごと�
   for (const q of FQ) assert.equal(L.validateQuestion(L.makeForecastQuestion(q, L.createRng(1))), null, q.id);
 });
 
-test('株価予想のデータ: 答えは3つの選択肢のどれかで、3種類とも出てくる(分布は内容に依存する数)', () => {
+test('株価予想のデータ: 答えは3つの選択肢のどれかで、「上がりやすい」「一概には言えない」が出てくる(分布は内容に依存する数)', () => {
   for (const q of FQ) assert.ok(L.FORECAST_CHOICES.includes(q.answer), q.id);
   const n = (a) => FQ.filter((q) => q.answer === a).length;
-  assert.ok(L.FORECAST_CHOICES.every((c) => n(c) >= 1), '3つの答えがどれも1問以上ある');
-  // 内容に依存する数。問題を足したり答えを直したら、設計書の表と一緒に直す
+  assert.ok(n('上がりやすい') >= 1 && n('一概には言えない') >= 1);
+  // 内容に依存する数。問題を足したり答えを直したら、設計書の表と一緒に直す。
+  // 「下がりやすい」が答えの問題は0問(減配の例が上下に分かれ、例と矛盾しない「下がりやすい」の問いを作れなかった。偏りとして設計書に書いてある)
   assert.equal(n('上がりやすい'), 4);
-  assert.equal(n('下がりやすい'), 1);
-  assert.equal(n('一概には言えない'), 15);
+  assert.equal(n('下がりやすい'), 0);
+  assert.equal(n('一概には言えない'), 16);
 });
 
 test('株価予想のデータ: 各問に例が2〜3個あり、騰落率は株価から計算した値と合う', () => {
@@ -3233,9 +3234,11 @@ test('株価予想のデータ: 文章の質(解説1〜2文・くわしく120〜
   }
 });
 
-test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、画面の注記は「株式分割を調整した終値」', () => {
+test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、画面の注記に取得元・調整・週ごとの終値と、選び方の偏りを書く', () => {
   assert.equal(L.buildPool('all', L.createRng(1)).filter((q) => q.type === 'forecast').length, 20);
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  assert.ok(html.includes('株価データ: Yahoo!ファイナンス(株式分割を調整した終値)'));
+  assert.ok(html.includes('株価データ: Yahoo Finance(株式分割を調整した、週ごとの終値)'));
+  assert.ok(!html.includes('Yahoo!ファイナンス'));
   assert.ok(!html.includes('調整後終値'));
+  for (const w of ['配当を含まない', 'あらかじめ決めた順', '九州・沖縄', '上場廃止', '上がりやすい時期に偏る']) assert.ok(html.includes(w), w);
 });

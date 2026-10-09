@@ -1383,7 +1383,7 @@ test('保存データ: 値動き予想(outlook)の古いキーが残っていて
 });
 
 test('formatShareText: 難易度つき', () => {
-  assert.equal(L.formatShareText('pattern', 7, 10), '株クイズ(チャートの形状)で 10問中7問正解!');
+  assert.equal(L.formatShareText('pattern', 7, 10), 'カブレベル(チャートの形状)で 10問中7問正解!');
   const t = L.formatShareText('pattern', 7, 10, 'normal');
   assert.ok(t.includes('チャートの形状') && t.includes('★★') && t.includes('7') && t.includes('10'));
   assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
@@ -2979,7 +2979,7 @@ test('株価予想: プール・出題・難易度の絞り込み・全部まぜ
     assert.deepEqual(LF.buildDeck(mode, 11), L.buildDeck(mode, 11), mode);
   }
   assert.equal(LF.statsKey('forecast', 'hard'), 'forecast:hard');
-  assert.equal(LF.formatShareText('forecast', 1, 1, 'normal'), '株クイズ(株価予想・★★)で 1問中1問正解!');
+  assert.equal(LF.formatShareText('forecast', 1, 1, 'normal'), 'カブレベル(株価予想・★★)で 1問中1問正解!');
   assert.deepEqual(LF.updateStats(LF.defaultStats(), 'forecast:normal', 1, 1).played['forecast:normal'], { correct: 1, total: 1 });
 });
 

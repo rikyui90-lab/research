@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>株クイズ</title>
+<title>カブレベル</title>
 <style>
 :root {
   color-scheme: dark;
@@ -3238,7 +3238,7 @@ function parseStats(text) {
 
 function formatShareText(mode, correct, total, difficulty = 'all') {
   const label = difficulty === 'all' ? MODE_LABELS[mode] : `${MODE_LABELS[mode]}・${DIFFICULTY_LABELS[difficulty]}`;
-  return `株クイズ(${label})で ${total}問中${correct}問正解!`;
+  return `カブレベル(${label})で ${total}問中${correct}問正解!`;
 }
 
 // ==LOGIC-END==
@@ -3550,7 +3550,7 @@ function showStart() {
   }).join('');
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
-  app.innerHTML = `<h1>株クイズ</h1>
+  app.innerHTML = `<h1>カブレベル</h1>
     <p class="lead">チャートの形、ローソク足、用語${FORECAST_PUBLIC ? '、株価予想' : ''}をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <p class="sec">あなたのレベルは?</p>
     <div class="levels">${levelCards()}</div>

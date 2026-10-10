@@ -24,6 +24,12 @@ main { max-width: 560px; margin: 0 auto; padding: 22px 16px 12px; }
 h1 { font-size: 30px; font-weight: 800; letter-spacing: .04em; margin: 6px 0 6px; line-height: 1.3;
   background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent; width: fit-content; }
+h1.title { display: flex; align-items: center; gap: 16px; width: auto; background: none; color: var(--text);
+  -webkit-text-fill-color: currentcolor; margin: 8px 0 10px; }
+h1.title span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent; }
+.stamp { flex: none; width: 56px; height: 56px; border-radius: 50%; object-fit: cover; transform: rotate(-8deg);
+  box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--accent), var(--shadow); }
 .lead, .note, .sub { color: var(--muted); font-size: 14px; margin: 4px 0 14px; text-wrap: pretty; }
 .tendency { font-size: 14px; margin: 4px 0 12px; }
 .q { font-size: 17px; font-weight: 700; margin: 14px 0 10px; line-height: 1.6; text-wrap: pretty; }
@@ -3537,7 +3543,7 @@ function showStart() {
   }).join('');
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
-  app.innerHTML = `<h1>カブレベル</h1>
+  app.innerHTML = `<h1 class="title"><img class="stamp" src="images/salaryman-stamp.jpg" width="56" height="56" alt=""><span>カブレベル</span></h1>
     <p class="lead">チャートの形、ローソク足、用語${FORECAST_PUBLIC ? '、株価予想' : ''}をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <figure class="hero"><img src="images/salaryman.jpg" width="1120" height="747" alt="疲れ切った50歳くらいのサラリーマンを後ろから見た絵。モニターの下がっていく株価チャートを見つめている"></figure>
     <p class="sec">あなたのレベルは?</p>

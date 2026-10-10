@@ -49,12 +49,6 @@ canvas { display: block; }
 .sec { font-size: 15px; font-weight: 700; color: var(--muted); letter-spacing: .08em; margin: 14px 0 8px; }
 .hero { margin: 4px 0 16px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
 .hero img { display: block; width: 100%; height: auto; }
-.levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 4px 0 14px; }
-.levels button { text-align: center; padding: 14px 4px 12px; }
-.levels button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft);
-  box-shadow: 0 0 0 2px var(--accent), var(--shadow-hover); }
-.levels b { display: block; font-size: 16px; font-weight: 700; }
-.levels small { text-align: center; }
 .examples .sec { margin-top: 18px; }
 .example { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin-bottom: 14px;
   box-shadow: var(--shadow); }
@@ -3534,19 +3528,6 @@ function drawExampleCharts(q) {
 
 window.addEventListener('resize', () => { if (redraw) redraw(); });
 
-// ---- スタート画面のレベル(初心者・中堅者・上級者) ----
-const LEVEL_GROUPS = [
-  { key: 'beginner', label: '初心者', stars: '★1〜★2', pick: 'easy', levels: ['easy', 'normal'] },
-  { key: 'middle', label: '中堅者', stars: '★3', pick: 'hard', levels: ['hard'] },
-  { key: 'expert', label: '上級者', stars: '★4〜★5', pick: 'expert', levels: ['expert', 'master'] },
-];
-
-function levelCards() {
-  return LEVEL_GROUPS.map((g) =>
-    `<button data-level="${g.pick}" aria-pressed="${g.levels.includes(difficulty)}" aria-label="${g.label}(難易度 ${g.stars})">
-      <b>${g.label}</b><small>${g.stars}</small></button>`).join('');
-}
-
 // ---- 画面 ----
 function showStart() {
   redraw = null;
@@ -3566,8 +3547,6 @@ function showStart() {
   app.innerHTML = `<h1 class="title"><img class="stamp" src="images/stamp.svg" width="68" height="68" alt=""><span>カブレベル</span></h1>
     <p class="lead">チャートの形、ローソク足、用語${FORECAST_PUBLIC ? '、株価予想' : ''}をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <figure class="hero"><img src="images/salaryman.jpg" width="1120" height="747" alt="疲れ切った50歳くらいのサラリーマンを後ろから見た絵。モニターの下がっていく株価チャートを見つめている"></figure>
-    <p class="sec">あなたのレベルは?</p>
-    <div class="levels">${levelCards()}</div>
     <p class="sec">難易度</p>
     <div class="diffs">${diffs}</div>
     <div class="choices">${rows}</div>`;
@@ -3578,8 +3557,6 @@ function showStart() {
     if (again) again.focus(); // 描き直したあとも、押したボタンにフォーカスを戻す
   });
   app.querySelectorAll('[data-diff]').forEach(pickDifficulty('diff'));
-  // レベルの絵は、その段階の代表の難易度を選ぶ(細かい選び直しは下の難易度ボタン)
-  app.querySelectorAll('[data-level]').forEach(pickDifficulty('level'));
   // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
   app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => { if (b.getAttribute('aria-disabled') !== 'true') startGame(b.dataset.mode); })));
   shownAt = performance.now();

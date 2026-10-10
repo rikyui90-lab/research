@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+<defs>
+  <radialGradient id="skin" cx="0.42" cy="0.35" r="0.8"><stop offset="0" stop-color="#e8c0a6"/><stop offset=".65" stop-color="#d4a186"/><stop offset="1" stop-color="#b17c63"/></radialGradient>
+  <linearGradient id="lightR" x1="0" y1="0" x2="1" y2="0"><stop offset=".4" stop-color="#4c8dff" stop-opacity="0"/><stop offset="1" stop-color="#7fb0ff" stop-opacity=".42"/></linearGradient>
+  <linearGradient id="jk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#23242f"/><stop offset=".7" stop-color="#2f3140"/><stop offset="1" stop-color="#43557a"/></linearGradient>
+  <clipPath id="face"><path d="M 56 108 C 56 52 86 30 120 30 C 154 30 184 52 184 108 C 184 154 160 188 120 194 C 80 188 56 154 56 108 Z"/></clipPath>
+  <clipPath id="circ"><circle cx="120" cy="120" r="118"/></clipPath>
+  <filter id="b3"><feGaussianBlur stdDeviation="3"/></filter>
+  <filter id="b1"><feGaussianBlur stdDeviation="1"/></filter>
+  <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="5" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/>
+  </filter>
+  <filter id="paper" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="2"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 .4  0 0 0 0 .3  0 0 0 0 .2  0 0 0 .5 -.12"/>
+  </filter>
+</defs>
+<g clip-path="url(#circ)">
+  <rect width="240" height="240" fill="#f4ecdc"/>
+  <rect width="240" height="240" filter="url(#paper)" opacity=".5"/>
+</g>
+<g filter="url(#rough)" fill="none" stroke="#c8322c" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="120" cy="120" r="112" stroke-width="7"/>
+  <circle cx="120" cy="120" r="100" stroke-width="2.4"/>
+  <!-- 頭と顔 -->
+  <path d="M 60 112 C 60 58 88 36 120 36 C 152 36 180 58 180 112 C 180 154 158 184 120 190 C 82 184 60 154 60 112 Z" stroke-width="5"/>
+  <ellipse cx="57" cy="116" rx="8" ry="15" stroke-width="4"/><ellipse cx="183" cy="116" rx="8" ry="15" stroke-width="4"/>
+  <!-- 横の髪 -->
+  <path d="M 62 108 C 58 84 62 62 74 50 M 66 104 C 64 84 66 68 74 58 M 178 108 C 182 84 178 62 166 50 M 174 104 C 176 84 174 68 166 58" stroke-width="3.4"/>
+  <!-- つやの線 -->
+  <path d="M 90 54 q 16 -10 36 -8" stroke-width="3"/>
+  <!-- 眉・目・くま -->
+  <path d="M 80 104 C 90 97 102 94 112 96 M 160 104 C 150 97 138 94 128 96" stroke-width="5"/>
+  <path d="M 84 114 C 92 108 104 108 112 114 M 128 114 C 136 108 148 108 156 114" stroke-width="4"/>
+  <circle cx="98" cy="116" r="3.6" fill="#c8322c" stroke="none"/><circle cx="142" cy="116" r="3.6" fill="#c8322c" stroke="none"/>
+  <path d="M 86 125 C 94 134 104 134 110 126 M 130 126 C 136 134 146 134 154 125" stroke-width="3"/>
+  <!-- 眉間・額 -->
+  <path d="M 116 92 q 2 8 0 14 M 124 92 q -2 8 0 14" stroke-width="2.6"/>
+  <path d="M 90 68 q 30 -7 60 0" stroke-width="2.4"/>
+  <!-- 鼻 -->
+  <path d="M 120 118 C 119 136 116 146 111 152 C 116 156 124 156 129 152" stroke-width="3.6"/>
+  <!-- ほうれい線 -->
+  <path d="M 98 150 C 88 164 86 176 92 186 M 142 150 C 152 164 154 176 148 186" stroke-width="3"/>
+  <!-- への字の口 -->
+  <path d="M 98 178 C 110 170 130 170 142 178" stroke-width="5"/>
+  <path d="M 98 178 q -4 6 -2 11 M 142 178 q 4 6 2 11" stroke-width="3.2"/>
+  <!-- ひげ(点) -->
+  <g fill="#c8322c" stroke="none"><circle cx="149" cy="171" r="1.5"/><circle cx="89" cy="163" r="1.5"/><circle cx="98" cy="163" r="1.5"/><circle cx="105" cy="181" r="1.5"/><circle cx="97" cy="166" r="1.5"/><circle cx="117" cy="162" r="1.5"/><circle cx="126" cy="167" r="1.5"/><circle cx="118" cy="184" r="1.5"/><circle cx="100" cy="173" r="1.5"/><circle cx="87" cy="159" r="1.5"/><circle cx="159" cy="166" r="1.5"/><circle cx="122" cy="184" r="1.5"/><circle cx="93" cy="166" r="1.5"/><circle cx="135" cy="181" r="1.5"/><circle cx="92" cy="174" r="1.5"/><circle cx="158" cy="161" r="1.5"/><circle cx="138" cy="160" r="1.5"/><circle cx="132" cy="176" r="1.5"/><circle cx="87" cy="159" r="1.5"/><circle cx="123" cy="177" r="1.5"/><circle cx="85" cy="168" r="1.5"/><circle cx="126" cy="171" r="1.5"/><circle cx="122" cy="174" r="1.5"/><circle cx="124" cy="173" r="1.5"/><circle cx="106" cy="179" r="1.5"/><circle cx="135" cy="176" r="1.5"/><circle cx="132" cy="160" r="1.5"/><circle cx="96" cy="164" r="1.5"/><circle cx="117" cy="158" r="1.5"/><circle cx="110" cy="183" r="1.5"/><circle cx="132" cy="175" r="1.5"/><circle cx="112" cy="187" r="1.5"/><circle cx="101" cy="172" r="1.5"/><circle cx="108" cy="162" r="1.5"/><circle cx="124" cy="177" r="1.5"/><circle cx="120" cy="160" r="1.5"/><circle cx="86" cy="165" r="1.5"/><circle cx="127" cy="178" r="1.5"/><circle cx="97" cy="180" r="1.5"/></g>
+  <!-- 首・襟・ネクタイ -->
+  <path d="M 100 188 L 100 206 M 140 188 L 140 206" stroke-width="4"/>
+  <path d="M 84 206 L 120 226 L 156 206" stroke-width="5"/>
+  <path d="M 112 214 L 128 214 L 134 238 L 120 244 L 106 238 Z" stroke-width="3.6"/>
+</g></svg>

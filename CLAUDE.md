@@ -63,6 +63,10 @@ python .claude/skills/fushoji-page/scripts/build_pages.py fushoji/companies.json
 - 公開リポジトリ。`companies.json` などに個人情報や認証情報を入れない。
 - GitHub Pages は `main` のルートから公開。URL は `https://rikyui90-lab.github.io/research/fushoji/`(株クイズは `.../research/stock-quiz/`)。
 
+## Web ページのデザイン
+
+Web ページを作る・直すときは、`docs/design-guidelines.md` の指針に従う(ユーザーの指示)。文字は 16px 以上、コントラスト比は文字 4.5:1・枠線 3:1 以上、フォーカスの印は黄と黒の二重、押せる部品は高さ 44px 以上、色だけで伝えない。作ったら、ブラウザで開いて、スマホ幅(375px)でも確かめる。詳しい数値とチェックは、その文書を読む。
+
 ## 運用
 
 - `main` に直接コミットしない。ブランチ → PR → マージ。マージ済みのブランチは `main` から作り直す。

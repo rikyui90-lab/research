@@ -451,6 +451,15 @@ test('judge: 正解の選択肢だけ true', () => {
   for (const c of q.choices.filter((x) => x !== q.answer)) assert.equal(L.judge(q, c), false);
 });
 
+test('accuracyPercent: 正答率を整数の%に丸める(0問のときは 0)', () => {
+  assert.equal(L.accuracyPercent(7, 10), 70);
+  assert.equal(L.accuracyPercent(10, 10), 100);
+  assert.equal(L.accuracyPercent(0, 10), 0);
+  assert.equal(L.accuracyPercent(1, 3), 33);
+  assert.equal(L.accuracyPercent(2, 3), 67);
+  assert.equal(L.accuracyPercent(0, 0), 0);
+});
+
 test('summarizeRound: 正解数と間違えた問題を数える', () => {
   const results = [
     { id: 'a', question: 'Qa', answer: 'A', picked: 'A', correct: true },
@@ -3284,7 +3293,9 @@ test('株価予想の切り替え(FORECAST_PUBLIC): 公開中は true。false �
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   // 公開中は true。隠すときは false にして、この行を直す
   assert.match(html, /const FORECAST_PUBLIC = true;/);
-  assert.ok(html.includes("MODES.filter((m) => m !== 'forecast' || FORECAST_PUBLIC)"));
+  assert.ok(html.includes("m !== 'forecast' || FORECAST_PUBLIC"));
+  // 「全部まぜ」は、画面のモード一覧には出さない(中の仕組みは残してある)
+  assert.ok(html.includes("MODES.filter((m) => m !== 'all' && "));
   const H = loadLogic({ forecastPublic: false });
   for (let seed = 1; seed <= 30; seed++) {
     for (const d of H.DIFFICULTY_FILTERS) {

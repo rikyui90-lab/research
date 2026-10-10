@@ -98,6 +98,8 @@ button.primary:hover { border-color: transparent; box-shadow: 0 10px 22px rgba(7
 .score { font-size: 56px; font-weight: 800; margin: 6px 0 10px; line-height: 1.2; width: fit-content;
   background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent; }
+.rate { font-size: 18px; font-weight: 700; margin: -2px 0 14px; }
+.rate b { color: var(--accent); font-size: 30px; font-weight: 800; }
 ul.wrong { padding: 0; margin: 0 0 8px; list-style: none; font-size: 16px; display: grid; gap: 8px; }
 ul.wrong li { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--bad-edge); border-radius: 12px;
   padding: 8px 12px; box-shadow: var(--shadow); }
@@ -3205,6 +3207,11 @@ function summarizeRound(results) {
   };
 }
 
+// 正答率(%)。整数に丸める。問題が0問なら 0
+function accuracyPercent(correct, total) {
+  return total > 0 ? Math.round((correct / total) * 100) : 0;
+}
+
 // 成績の保存キー。難易度が all ならモード名そのまま、それ以外は「モード名:難易度」
 function statsKey(mode, difficulty = 'all') {
   return difficulty === 'all' ? mode : `${mode}:${difficulty}`;
@@ -3532,7 +3539,7 @@ window.addEventListener('resize', () => { if (redraw) redraw(); });
 function showStart() {
   redraw = null;
   game = null; // 途中のラウンドは捨てる(成績にも残さない)
-  const rows = MODES.filter((m) => m !== 'forecast' || FORECAST_PUBLIC).map((m) => {
+  const rows = MODES.filter((m) => m !== 'all' && (m !== 'forecast' || FORECAST_PUBLIC)).map((m) => {
     const key = statsKey(m, difficulty);
     const size = roundSize(m, difficulty);
     const p = stats.played[key];
@@ -3540,7 +3547,7 @@ function showStart() {
     if (size === 0) {
       return `<button class="choice" data-mode="${m}" aria-disabled="true">${MODE_LABELS[m]}<small>この難易度の問題は、まだないよ</small></button>`;
     }
-    return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[key]} / ${size}　正解率 ${rate}　${size}問</small></button>`;
+    return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[key]} / ${size}　正答率 ${rate}　${size}問</small></button>`;
   }).join('');
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
@@ -3643,7 +3650,7 @@ function next() {
 
 function finish() {
   const summary = summarizeRound(game.results);
-  if (!game.retry) { // やり直しは最高スコアにも正解率にも入れない
+  if (!game.retry) { // やり直しは最高スコアにも正答率にも入れない
     stats = updateStats(stats, statsKey(game.mode, game.difficulty), summary.correct, summary.total);
     saveStats();
   }
@@ -3658,8 +3665,9 @@ function showResult(summary) {
   const retryBtn = summary.wrong.length
     ? `<button class="primary" id="retry">${retryLabel}(${summary.wrong.length}問)</button>` : '';
   app.innerHTML = `<h1>${game.retry ? 'やり直しの結果' : '結果'}</h1>
-    ${game.retry ? '<p class="note">やり直しの結果は、最高スコアと正解率には入らないよ。</p>' : ''}
+    ${game.retry ? '<p class="note">やり直しの結果は、最高スコアと正答率には入らないよ。</p>' : ''}
     <p class="score">${summary.correct} / ${summary.total}</p>
+    <p class="rate">正答率 <b>${accuracyPercent(summary.correct, summary.total)}%</b></p>
     ${wrong ? `<p class="q">間違えた問題</p><ul class="wrong">${wrong}</ul>` : '<p class="lead">全問正解だよ。</p>'}
     <div class="actions">
       ${retryBtn}

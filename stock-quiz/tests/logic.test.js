@@ -334,6 +334,30 @@ test('三角持ち合い・拡大三角形・エリオット推進波(上・下)
   assert.deepEqual(L.PATTERNS.filter((p) => p.outlook === 'either').map((p) => p.id).sort(), eitherIds.slice().sort());
 });
 
+test('OUTLOOK_STATS: 統計があるのは either の形のうち、三角持ち合いと拡大三角形だけ(出典の URL と割合つき)', () => {
+  assert.deepEqual(Object.keys(L.OUTLOOK_STATS).sort(), ['broadening-top', 'symmetrical-triangle']);
+  for (const [id, st] of Object.entries(L.OUTLOOK_STATS)) {
+    assert.equal(L.findPattern(id).outlook, 'either', id);
+    assert.ok(st.upRate > 50 && st.upRate < 100, id);
+    assert.ok(st.basis.length > 0, id);
+    assert.match(st.url, /^https:\/\/thepatternsite\.com\/(st|bt)\.html$/, id);
+  }
+});
+
+test('outlookStatInfo: 統計のある形は「上に抜けることが多い」と「決まってはいない」を言い、実務家の集計だと断る。ない形は null', () => {
+  for (const id of ['symmetrical-triangle', 'broadening-top']) {
+    const info = L.outlookStatInfo(id);
+    assert.ok(info.line.includes('上に抜けることが多い'), id);
+    assert.ok(info.line.includes('約60%'), id);
+    assert.ok(info.line.includes('決まってはいない'), id);
+    assert.ok(info.note.includes('約40%'), id);
+    assert.ok(info.note.includes('学術研究の結論ではなく'), id);
+    assert.ok(info.note.includes('Thomas Bulkowski'), id);
+  }
+  assert.equal(L.outlookStatInfo('elliott-impulse-up'), null);
+  assert.equal(L.outlookStatInfo('double-top'), null);
+});
+
 test('either の形は続きの点線が空(拡大三角形・エリオット推進波の上・下)', () => {
   for (const id of ['broadening-top', 'elliott-impulse-up', 'elliott-impulse-down']) {
     assert.deepEqual(L.generateContinuation(50, L.findPattern(id).outlook, 7), [], id);

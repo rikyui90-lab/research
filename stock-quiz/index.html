@@ -31,6 +31,7 @@ h1.title span { background: linear-gradient(90deg, var(--accent), var(--accent2)
 .stamp { flex: none; width: 56px; height: 56px; border-radius: 50%; object-fit: cover; transform: rotate(-8deg);
   box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--accent), var(--shadow); }
 .lead, .note, .sub { color: var(--muted); font-size: 16px; margin: 4px 0 14px; text-wrap: pretty; }
+.note a { color: var(--accent); text-underline-offset: 3px; margin-left: .4em; }
 .tendency { font-size: 16px; margin: 4px 0 12px; }
 .q { font-size: 17px; font-weight: 700; margin: 14px 0 10px; line-height: 1.6; text-wrap: pretty; }
 .stars { color: var(--star); font-size: 16px; letter-spacing: .12em; white-space: nowrap; }
@@ -2723,6 +2724,13 @@ assignDetail(PATTERNS, DETAIL_BY_ID.patterns);
 assignDetail(CANDLE_PATTERNS, DETAIL_BY_ID.candles);
 assignDetail(TERMS, DETAIL_BY_ID.terms);
 
+// 方向が決まらない形(outlook: 'either')のうち、過去の統計がある形。実務家(Thomas Bulkowski)の集計で、学術研究の結論ではない
+// 出典: https://thepatternsite.com/st.html(三角持ち合い)、https://thepatternsite.com/bt.html(拡大三角形)。2026-10-10 に確認した
+const OUTLOOK_STATS = {
+  'symmetrical-triangle': { upRate: 60, basis: '条件を満たす3,000件超の取引', url: 'https://thepatternsite.com/st.html' },
+  'broadening-top': { upRate: 60, basis: '条件を満たす2,019件の取引(上抜け1,215件・下抜け804件)', url: 'https://thepatternsite.com/bt.html' },
+};
+
 // ==DATA-END==
 
 // ==LOGIC-START==
@@ -3086,6 +3094,18 @@ function validateForecastQuestion(q) {
     if (err) return err;
   }
   return null;
+}
+
+// 方向が決まらない形に添える、過去の統計の文。統計がない形は null
+function outlookStatInfo(patternId) {
+  const st = OUTLOOK_STATS[patternId];
+  if (!st) return null;
+  const down = 100 - st.upRate;
+  return {
+    line: `上に抜けることが多いとされるよ(過去の統計で約${st.upRate}%)。ただし、決まってはいないよ`,
+    note: `米国株について、Thomas Bulkowski が集計した${st.basis}では、上に抜けたのが約${st.upRate}%、下に抜けたのが約${down}%だよ。実務家の集計で、学術研究の結論ではなく、期間や選び方で変わるよ。実際の相場がこの通りに動くとは限らないよ。`,
+    url: st.url,
+  };
 }
 
 // 問題に不備があればその説明を、なければ null を返す
@@ -3607,8 +3627,10 @@ function answer(q, picked) {
 function showExplain(q, picked, correct) {
   const hasChart = q.type === 'pattern' || q.type === 'candle';
   const last = game.index === game.deck.length - 1;
+  const stat = q.type === 'pattern' && q.outlook === 'either' ? outlookStatInfo(q.patternId) : null;
   const tendency = q.type === 'pattern'
-    ? `<p class="tendency">この後の値動き: ${esc(OUTLOOK_LABELS[q.outlook])}</p>` : '';
+    ? `<p class="tendency">この後の値動き: ${esc(stat ? stat.line : OUTLOOK_LABELS[q.outlook])}</p>`
+      + (stat ? `<p class="note">${esc(stat.note)}<a href="${esc(stat.url)}" target="_blank" rel="noopener">出典(別のタブで開く)</a></p>` : '') : '';
   app.innerHTML = `${header()}
     <div class="result ${correct ? 'good' : 'bad'}">
       <p class="label">${correct ? '正解!' : '不正解… 正しい答えは'}</p>

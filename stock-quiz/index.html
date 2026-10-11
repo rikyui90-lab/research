@@ -32,6 +32,12 @@ h1.title span { background: linear-gradient(90deg, var(--accent), var(--accent2)
   box-shadow: 0 3px 8px rgba(0, 0, 0, .5); }
 .lead, .note, .sub { color: var(--muted); font-size: 16px; margin: 4px 0 14px; text-wrap: pretty; }
 .note a { color: var(--accent); text-underline-offset: 3px; margin-left: .4em; }
+.stat-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 10px; }
+.stat-row { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); }
+.stat-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; line-height: 1.5; }
+.stat-head b { color: var(--accent); font-weight: 800; white-space: nowrap; }
+.meter { display: block; height: 10px; border-radius: 999px; background: var(--border); margin-top: 8px; overflow: hidden; }
+.meter > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 999px; }
 .tendency { font-size: 16px; margin: 4px 0 12px; }
 .q { font-size: 17px; font-weight: 700; margin: 14px 0 10px; line-height: 1.6; text-wrap: pretty; }
 .stars { color: var(--star); font-size: 16px; letter-spacing: .12em; white-space: nowrap; }
@@ -3173,9 +3179,16 @@ function buildPool(mode, rng, difficulty = 'all') {
   return pool;
 }
 
-function buildDeck(mode, seed, difficulty = 'all') {
+// 未出題の問題を前に、出題済みを後ろに並べ直す(それぞれの中の並びは変えない)。seen がなければ、そのまま
+function preferUnseen(deck, seen) {
+  if (!seen || seen.size === 0) return deck;
+  return [...deck.filter((q) => !seen.has(q.id)), ...deck.filter((q) => seen.has(q.id))];
+}
+
+// seen(出題済みの id の集合)を渡すと、まだ出ていない問題を優先して出す。同じシードなら同じ並びになる
+function buildDeck(mode, seed, difficulty = 'all', seen = null) {
   const rng = createRng(seed);
-  return shuffle(buildPool(mode, rng, difficulty), rng).slice(0, ROUND_SIZE);
+  return preferUnseen(shuffle(buildPool(mode, rng, difficulty), rng), seen).slice(0, ROUND_SIZE);
 }
 
 // そのモード・難易度の1ラウンドの問題数(問題の数は乱数に依存しない)
@@ -3205,11 +3218,6 @@ function summarizeRound(results) {
     correct: results.filter((r) => r.correct).length,
     wrong: results.filter((r) => !r.correct),
   };
-}
-
-// 正答率(%)。整数に丸める。問題が0問なら 0
-function accuracyPercent(correct, total) {
-  return total > 0 ? Math.round((correct / total) * 100) : 0;
 }
 
 // 成績の保存キー。難易度が all ならモード名そのまま、それ以外は「モード名:難易度」
@@ -3269,6 +3277,107 @@ function formatShareText(mode, correct, total, difficulty = 'all') {
   return `カブレベル(${label})で ${total}問中${correct}問正解!`;
 }
 
+// ---- 前回出た問題を避ける ----
+// そのモード・難易度で出る問題の id(問題の数は乱数に依存しない)
+function poolIds(mode, difficulty = 'all') {
+  return buildPool(mode, createRng(1), difficulty).map((q) => q.id);
+}
+
+// 出題範囲の問題が全部出題済みなら、その範囲の印だけを消して、新しい周回を始める(ほかの範囲の印は残す)
+function refreshSeen(seen, mode, difficulty = 'all') {
+  const ids = poolIds(mode, difficulty);
+  if (ids.length === 0 || !ids.every((id) => seen.has(id))) return seen;
+  const next = new Set(seen);
+  ids.forEach((id) => next.delete(id));
+  return next;
+}
+
+// localStorage の文字列から、出題済みの id の集合を読む。壊れていたら空にする
+function parseSeen(text) {
+  try {
+    const raw = JSON.parse(text);
+    if (!Array.isArray(raw)) return new Set();
+    return new Set(raw.filter((x) => typeof x === 'string' && x.length > 0 && x.length < 120));
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function serializeSeen(seen) {
+  return JSON.stringify(Array.from(seen));
+}
+
+// ---- 成績の見える化 ----
+const HISTORY_LIMIT = 30; // 保存する、ラウンドの記録の数
+const RECENT_SHOWN = 10; // 成績画面に出す、最近のラウンドの数
+const WEAK_MIN_TOTAL = 10; // 「苦手」を決めるのに必要な、そのモードの回答数
+const STATS_MODES = ['pattern', 'candle', 'term', 'forecast']; // 成績画面に出すモード(「全部まぜ」は画面から外した)
+
+// 正答率(%)。整数に丸める。問題が0問なら 0
+function accuracyPercent(correct, total) {
+  return total > 0 ? Math.round((correct / total) * 100) : 0;
+}
+
+function isValidHistoryEntry(e) {
+  return Boolean(e) && typeof e === 'object' && STATS_MODES.includes(e.mode) && DIFFICULTY_FILTERS.includes(e.difficulty)
+    && Number.isFinite(e.correct) && Number.isFinite(e.total) && e.total > 0 && e.correct >= 0 && e.correct <= e.total
+    && Number.isFinite(e.at);
+}
+
+// localStorage の文字列から、ラウンドの記録を読む。壊れていても、正しい記録だけ使う
+function parseHistory(text) {
+  try {
+    const raw = JSON.parse(text);
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(isValidHistoryEntry)
+      .map((e) => ({ mode: e.mode, difficulty: e.difficulty, correct: e.correct, total: e.total, at: e.at }))
+      .slice(-HISTORY_LIMIT);
+  } catch (e) {
+    return [];
+  }
+}
+
+// 記録を1つ足した新しい配列を返す(元は変えない)。古いものから捨てて、HISTORY_LIMIT 件まで
+function appendHistory(history, entry) {
+  if (!isValidHistoryEntry(entry)) return history;
+  const e = { mode: entry.mode, difficulty: entry.difficulty, correct: entry.correct, total: entry.total, at: entry.at };
+  return [...history, e].slice(-HISTORY_LIMIT);
+}
+
+// 成績画面に出す数字を集計する(画面に依存しない)
+function summarizeStats(stats, history = []) {
+  const sum = (keys) => keys.reduce((a, k) => {
+    const p = stats.played[k];
+    return p ? { correct: a.correct + p.correct, total: a.total + p.total } : a;
+  }, { correct: 0, total: 0 });
+  const withRate = (s) => ({ ...s, rate: s.total > 0 ? accuracyPercent(s.correct, s.total) : null });
+  // モード別: そのモードの、すべての難易度の絞り込みを合わせる
+  const byMode = STATS_MODES.map((m) => ({
+    mode: m, label: MODE_LABELS[m], ...withRate(sum(DIFFICULTY_FILTERS.map((d) => statsKey(m, d)))),
+  }));
+  // 難易度別: 難易度を選んで遊んだ分だけ(「すべて」で遊んだ分は、難易度が混ざるので入れない)
+  const byLevel = DIFFICULTY_LEVELS.map((d) => ({
+    level: d, label: DIFFICULTY_LABELS[d], ...withRate(sum(STATS_MODES.map((m) => statsKey(m, d)))),
+  }));
+  const recent = history.slice(-RECENT_SHOWN).reverse().map((e) => ({
+    ...e, modeLabel: MODE_LABELS[e.mode], levelLabel: DIFFICULTY_LABELS[e.difficulty], rate: accuracyPercent(e.correct, e.total),
+  }));
+  // 苦手: 回答が十分あるモードのうち、正答率がいちばん低いもの(2つ以上あって、差があるときだけ)
+  const rated = byMode.filter((m) => m.total >= WEAK_MIN_TOTAL);
+  let weakest = null;
+  if (rated.length >= 2) {
+    const low = rated.reduce((a, b) => (b.rate < a.rate ? b : a));
+    const high = rated.reduce((a, b) => (b.rate > a.rate ? b : a));
+    if (low.rate < high.rate) weakest = low;
+  }
+  return { hasData: byMode.some((m) => m.total > 0), byMode, byLevel, recent, weakest };
+}
+
+// ローソク足が陽線(終値が始値以上)か。陽線は中空、陰線は塗りつぶしで描き、色だけに頼らない
+function candleIsUp(c) {
+  return c.c >= c.o;
+}
+
 // ==LOGIC-END==
 
 // ==UI-START==
@@ -3292,6 +3401,44 @@ function saveStats() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
   } catch (e) {
     // 保存できなくても、ゲームはそのまま続ける
+  }
+}
+
+// 出題済みの問題の印と、ラウンドの記録も、保存できなくても、ゲームはそのまま続ける
+const SEEN_KEY = 'stockQuiz.seen.v1';
+const HISTORY_KEY = 'stockQuiz.history.v1';
+let seen = loadSeen();
+let history = loadHistory();
+
+function loadSeen() {
+  try {
+    return parseSeen(localStorage.getItem(SEEN_KEY));
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveSeen() {
+  try {
+    localStorage.setItem(SEEN_KEY, serializeSeen(seen));
+  } catch (e) {
+    // 保存できなくても続ける
+  }
+}
+
+function loadHistory() {
+  try {
+    return parseHistory(localStorage.getItem(HISTORY_KEY));
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistory() {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    // 保存できなくても続ける
   }
 }
 
@@ -3411,7 +3558,8 @@ function drawCandles(ctx, w, h, candles, colors) {
   const bodyW = Math.min(56, slot * 0.4);
   candles.forEach((c, i) => {
     const cx = slot * (i + 0.5);
-    const color = c.c >= c.o ? colors.up : colors.down;
+    const up = candleIsUp(c);
+    const color = up ? colors.up : colors.down;
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineWidth = 2;
@@ -3421,7 +3569,16 @@ function drawCandles(ctx, w, h, candles, colors) {
     ctx.stroke();
     const top = y(Math.max(c.o, c.c));
     const bottom = y(Math.min(c.o, c.c));
-    ctx.fillRect(cx - bodyW / 2, top, bodyW, Math.max(2, bottom - top));
+    const bodyH = Math.max(4, bottom - top);
+    if (up) {
+      // 陽線は中空(色の枠だけ)。色が見分けにくくても、形で陰線と区別できる
+      ctx.fillStyle = colors.card;
+      ctx.fillRect(cx - bodyW / 2, top, bodyW, bodyH);
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(cx - bodyW / 2 + 1.25, top + 1.25, bodyW - 2.5, bodyH - 2.5);
+    } else {
+      ctx.fillRect(cx - bodyW / 2, top, bodyW, bodyH);
+    }
   });
 }
 
@@ -3556,7 +3713,9 @@ function showStart() {
     <figure class="hero"><img src="images/salaryman.jpg" width="1120" height="747" alt="疲れ切った50歳くらいのサラリーマンを後ろから見た絵。モニターの下がっていく株価チャートを見つめている"></figure>
     <p class="sec">難易度</p>
     <div class="diffs">${diffs}</div>
-    <div class="choices">${rows}</div>`;
+    <div class="choices">${rows}
+      <button class="choice" data-action="stats">成績を見る<small>モード別の正答率と、最近のラウンド</small></button>
+    </div>`;
   const pickDifficulty = (attr) => (b) => b.addEventListener('click', () => {
     difficulty = b.dataset[attr];
     showStart();
@@ -3564,13 +3723,46 @@ function showStart() {
     if (again) again.focus(); // 描き直したあとも、押したボタンにフォーカスを戻す
   });
   app.querySelectorAll('[data-diff]').forEach(pickDifficulty('diff'));
+  app.querySelectorAll('[data-action="stats"]').forEach((b) => b.addEventListener('click', guarded(showStats)));
   // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
   app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => { if (b.getAttribute('aria-disabled') !== 'true') startGame(b.dataset.mode); })));
   shownAt = performance.now();
 }
 
+// 成績画面。数字は summarizeStats が作る。バーは飾りで、数字は文字でも出す(色や長さだけに頼らない)
+function showStats() {
+  redraw = null;
+  game = null;
+  const sum = summarizeStats(stats, history);
+  const meter = (rate) => `<span class="meter" aria-hidden="true"><span style="width:${rate === null ? 0 : rate}%"></span></span>`;
+  const row = (label, valueText, rate) =>
+    `<li class="stat-row"><div class="stat-head"><span>${esc(label)}</span><b>${esc(valueText)}</b></div>${meter(rate)}</li>`;
+  const valueOf = (r) => (r.total > 0 ? `${r.rate}%(${r.correct}/${r.total}問)` : 'まだ記録なし');
+  const byMode = sum.byMode.filter((m) => m.mode !== 'forecast' || FORECAST_PUBLIC)
+    .map((m) => row(m.label, valueOf(m), m.rate)).join('');
+  const byLevel = sum.byLevel.map((l) => row(l.label, valueOf(l), l.rate)).join('');
+  const recent = sum.recent.map((r) => {
+    const d = new Date(r.at);
+    const label = `${d.getMonth() + 1}/${d.getDate()} ${r.modeLabel}${r.difficulty === 'all' ? '' : `・${r.levelLabel}`}`;
+    return row(label, `${r.correct} / ${r.total}(${r.rate}%)`, r.rate);
+  }).join('');
+  const weak = sum.weakest
+    ? `<p class="note">いちばん苦手なのは「${esc(sum.weakest.label)}」だよ(正答率 ${sum.weakest.rate}%)。</p>` : '';
+  const body = sum.hasData
+    ? `<p class="sec">モード別の正答率</p>${weak}<ul class="stat-list">${byMode}</ul>
+      <p class="sec">難易度別の正答率</p><p class="note">難易度を選んで遊んだ分だけの数字だよ。</p><ul class="stat-list">${byLevel}</ul>
+      <p class="sec">最近のラウンド(新しい順)</p>${recent ? `<ul class="stat-list">${recent}</ul>` : '<p class="note">まだ記録がないよ。</p>'}`
+    : '<p class="lead">まだ記録がないよ。クイズを遊ぶと、ここに成績が出るよ。</p>';
+  app.innerHTML = `${leaveSlot()}<h1>成績</h1>${body}
+    <button class="primary" id="top-from-stats">トップへ戻る</button>`;
+  bindLeave();
+  document.getElementById('top-from-stats').addEventListener('click', guarded(showStart));
+  shownAt = performance.now();
+}
+
 function startGame(mode) {
-  game = { mode, difficulty, deck: buildDeck(mode, Date.now() % 2147483647, difficulty), index: 0, results: [] };
+  seen = refreshSeen(seen, mode, difficulty); // 出題範囲が全部出題済みなら、印を消して新しい周回にする
+  game = { mode, difficulty, deck: buildDeck(mode, Date.now() % 2147483647, difficulty, seen), index: 0, results: [] };
   showQuestion();
 }
 
@@ -3590,7 +3782,7 @@ function showQuestion() {
   app.innerHTML = `${header()}
     <p class="q">${esc(q.question)}</p>
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
-    ${q.type === 'candle' ? '<p class="note">赤が陽線(上昇)、青が陰線(下落)だよ。</p>' : ''}
+    ${q.type === 'candle' ? '<p class="note">赤の中空(白ぬき)が陽線(上昇)、青の塗りつぶしが陰線(下落)だよ。</p>' : ''}
     ${priceNote(q)}
     ${maNote(q)}
     <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
@@ -3605,6 +3797,10 @@ function showQuestion() {
 function answer(q, picked) {
   const correct = judge(q, picked);
   game.results.push({ id: q.id, question: q.question, answer: q.answer, picked, correct, difficulty: q.difficulty });
+  if (!game.retry) { // やり直しは、すでに出た問題なので、印をつけない
+    seen.add(q.id);
+    saveSeen();
+  }
   showExplain(q, picked, correct);
 }
 
@@ -3653,6 +3849,8 @@ function finish() {
   if (!game.retry) { // やり直しは最高スコアにも正答率にも入れない
     stats = updateStats(stats, statsKey(game.mode, game.difficulty), summary.correct, summary.total);
     saveStats();
+    history = appendHistory(history, { mode: game.mode, difficulty: game.difficulty, correct: summary.correct, total: summary.total, at: Date.now() });
+    saveHistory();
   }
   showResult(summary);
 }

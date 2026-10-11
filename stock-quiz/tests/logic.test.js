@@ -451,6 +451,131 @@ test('judge: 正解の選択肢だけ true', () => {
   for (const c of q.choices.filter((x) => x !== q.answer)) assert.equal(L.judge(q, c), false);
 });
 
+// ---- 前回出た問題を避ける ----
+test('preferUnseen: 未出題を前に、出題済みを後ろに。それぞれの中の並びは変えない。seen がなければそのまま', () => {
+  const deck = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id }));
+  assert.equal(L.preferUnseen(deck, null), deck);
+  assert.equal(L.preferUnseen(deck, new Set()), deck);
+  assert.deepEqual(L.preferUnseen(deck, new Set(['a', 'c'])).map((q) => q.id), ['b', 'd', 'e', 'a', 'c']);
+  assert.deepEqual(L.preferUnseen(deck, new Set(['a', 'b', 'c', 'd', 'e'])).map((q) => q.id), ['a', 'b', 'c', 'd', 'e']);
+});
+
+test('buildDeck(seen): 出題済みを避けて10問出す。同じシードなら同じ。seen なしは、これまでと同じ', () => {
+  for (const mode of ['pattern', 'candle', 'term']) {
+    const base = L.buildDeck(mode, 5);
+    assert.deepEqual(L.buildDeck(mode, 5, 'all', null), base, mode);
+    const seen = new Set(base.slice(0, 6).map((q) => q.id));
+    const deck = L.buildDeck(mode, 5, 'all', seen);
+    assert.equal(deck.length, 10, mode);
+    assert.ok(deck.every((q) => !seen.has(q.id)), `${mode}: 出題済みが入っていない`);
+    assert.deepEqual(L.buildDeck(mode, 5, 'all', seen), deck, mode);
+    assert.equal(new Set(deck.map((q) => q.id)).size, 10, mode);
+  }
+});
+
+test('buildDeck(seen): 未出題が足りないときは、出題済みで埋める(未出題が先)', () => {
+  const ids = L.poolIds('term', 'expert'); // 20問
+  assert.equal(ids.length, 20);
+  const seen = new Set(ids.slice(0, 17)); // 未出題は3問だけ
+  const deck = L.buildDeck('term', 3, 'expert', seen);
+  assert.equal(deck.length, 10);
+  const unseenIds = ids.slice(17);
+  assert.deepEqual(deck.slice(0, 3).map((q) => q.id).sort(), unseenIds.slice().sort());
+  assert.ok(deck.slice(3).every((q) => seen.has(q.id)));
+});
+
+test('refreshSeen: 範囲が全部出題済みなら、その範囲だけ消す。足りなければ、そのまま', () => {
+  const ids = L.poolIds('term', 'expert');
+  const other = 'pattern:double-top';
+  const all = new Set([...ids, other]);
+  const next = L.refreshSeen(all, 'term', 'expert');
+  assert.ok(ids.every((id) => !next.has(id)));
+  assert.ok(next.has(other), 'ほかの範囲の印は残る');
+  assert.ok(all.has(ids[0]), '元の集合は変わらない');
+  const partial = new Set(ids.slice(0, 19));
+  assert.equal(L.refreshSeen(partial, 'term', 'expert'), partial);
+  assert.equal(L.refreshSeen(new Set(), 'term', 'expert').size, 0);
+});
+
+test('poolIds: 重複がなく、buildPool と同じ数', () => {
+  for (const mode of ['pattern', 'candle', 'term', 'forecast']) {
+    const ids = L.poolIds(mode);
+    assert.equal(new Set(ids).size, ids.length, mode);
+    assert.equal(ids.length, L.buildPool(mode, L.createRng(9)).length, mode);
+  }
+});
+
+test('parseSeen / serializeSeen: 往復できて、壊れたデータは空にする', () => {
+  const seen = new Set(['pattern:double-top', 'term:per']);
+  assert.deepEqual(Array.from(L.parseSeen(L.serializeSeen(seen))).sort(), Array.from(seen).sort());
+  for (const bad of [null, undefined, '', 'xxx', '{}', '123', '"a"']) assert.equal(L.parseSeen(bad).size, 0, String(bad));
+  assert.deepEqual(Array.from(L.parseSeen('["a", 1, null, "", {"x":1}, "b"]')), ['a', 'b']);
+});
+
+// ---- 成績の見える化 ----
+test('parseHistory / appendHistory: 正しい記録だけ読み、30件まで残す。元は変えない', () => {
+  const e = (n) => ({ mode: 'term', difficulty: 'easy', correct: 7, total: 10, at: 1000 + n });
+  let h = [];
+  for (let i = 0; i < 35; i++) h = L.appendHistory(h, e(i));
+  assert.equal(h.length, 30);
+  assert.equal(h[0].at, 1005);
+  assert.equal(h[29].at, 1034);
+  const before = h.slice();
+  L.appendHistory(h, e(99));
+  assert.deepEqual(h, before);
+  // 不正な記録は足さない
+  for (const bad of [null, {}, { ...e(1), mode: 'all' }, { ...e(1), difficulty: 'x' }, { ...e(1), correct: 11 }, { ...e(1), total: 0 }, { ...e(1), at: 'x' }]) {
+    assert.equal(L.appendHistory(h, bad), h);
+  }
+  assert.deepEqual(L.parseHistory(JSON.stringify(h)), h);
+  assert.deepEqual(L.parseHistory(JSON.stringify([e(1), { bad: true }, e(2)])).map((x) => x.at), [1001, 1002]);
+  for (const bad of [null, '', 'xxx', '{}', '5']) assert.deepEqual(L.parseHistory(bad), [], String(bad));
+});
+
+test('summarizeStats: モード別・難易度別の正答率、最近のラウンド(新しい順)、苦手なモード', () => {
+  let st = L.defaultStats();
+  assert.equal(L.summarizeStats(st, []).hasData, false);
+  st = L.updateStats(st, 'pattern', 3, 10); // すべて
+  st = L.updateStats(st, 'pattern:easy', 5, 10);
+  st = L.updateStats(st, 'term', 9, 10);
+  st = L.updateStats(st, 'term:hard', 8, 10);
+  const s = L.summarizeStats(st, []);
+  assert.equal(s.hasData, true);
+  const by = (m) => s.byMode.find((x) => x.mode === m);
+  assert.deepEqual([by('pattern').correct, by('pattern').total, by('pattern').rate], [8, 20, 40]);
+  assert.deepEqual([by('term').correct, by('term').total, by('term').rate], [17, 20, 85]);
+  assert.deepEqual([by('candle').total, by('candle').rate], [0, null]);
+  assert.deepEqual(s.byMode.map((m) => m.mode), ['pattern', 'candle', 'term', 'forecast']);
+  assert.ok(!s.byMode.some((m) => m.mode === 'all'));
+  const lv = (d) => s.byLevel.find((x) => x.level === d);
+  assert.deepEqual([lv('easy').correct, lv('easy').total, lv('easy').rate], [5, 10, 50]);
+  assert.deepEqual([lv('hard').correct, lv('hard').total, lv('hard').rate], [8, 10, 80]);
+  assert.equal(lv('master').rate, null);
+  assert.equal(s.weakest.mode, 'pattern');
+  // 回答が少ない・差がないときは、苦手を決めない
+  let st2 = L.updateStats(L.defaultStats(), 'pattern', 3, 5);
+  st2 = L.updateStats(st2, 'term', 1, 5);
+  assert.equal(L.summarizeStats(st2, []).weakest, null);
+  let st3 = L.updateStats(L.defaultStats(), 'pattern', 5, 10);
+  st3 = L.updateStats(st3, 'term', 5, 10);
+  assert.equal(L.summarizeStats(st3, []).weakest, null);
+  // 最近のラウンドは新しい順で、10件まで
+  let h = [];
+  for (let i = 0; i < 12; i++) h = L.appendHistory(h, { mode: 'candle', difficulty: 'normal', correct: i % 11, total: 10, at: 100 + i });
+  const r = L.summarizeStats(st, h).recent;
+  assert.equal(r.length, 10);
+  assert.equal(r[0].at, 111);
+  assert.equal(r[9].at, 102);
+  assert.deepEqual([r[0].modeLabel, r[0].levelLabel, r[0].rate], ['ローソク足', '★★', 0]); // 12件目は 11 % 11 = 0問正解
+  assert.equal(r[1].rate, 100); // 11件目は 10問正解
+});
+
+test('candleIsUp: 終値が始値以上なら陽線(中空)。下がっていれば陰線(塗りつぶし)', () => {
+  assert.equal(L.candleIsUp({ o: 30, h: 72, l: 28, c: 70 }), true);
+  assert.equal(L.candleIsUp({ o: 70, h: 72, l: 28, c: 30 }), false);
+  assert.equal(L.candleIsUp({ o: 50, h: 60, l: 40, c: 50 }), true);
+});
+
 test('accuracyPercent: 正答率を整数の%に丸める(0問のときは 0)', () => {
   assert.equal(L.accuracyPercent(7, 10), 70);
   assert.equal(L.accuracyPercent(10, 10), 100);

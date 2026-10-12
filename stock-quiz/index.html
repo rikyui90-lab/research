@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>株クイズ</title>
+<title>カブレベル</title>
 <!-- Google アナリティクス(測定ID: G-EMJMH8CBZF) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-EMJMH8CBZF"></script>
 <script>
@@ -14,22 +14,13 @@ gtag('config', 'G-EMJMH8CBZF');
 </script>
 <style>
 :root {
-  --bg: #eef1f9; --bg2: #f8f4ff; --card: #ffffff; --text: #141a2e; --muted: #5a6280; --border: #dde2f1;
-  --accent: #4f46e5; --accent2: #7c3aed; --on-accent: #ffffff; --accent-soft: #eceafd; --star: #b86e00;
-  --good-bg: #e6f7ef; --good: #0b6b46; --good-edge: #1faa75; --bad-bg: #fdecee; --bad: #9b1c28; --bad-edge: #e5484d;
-  --shadow: 0 1px 2px rgba(20, 26, 46, .06), 0 6px 18px rgba(79, 70, 229, .08);
-  --shadow-hover: 0 2px 4px rgba(20, 26, 46, .08), 0 10px 26px rgba(79, 70, 229, .16);
-  --line: #4f46e5; --ma-short: #d85a30; --ma-mid: #0f6e56; --ma-long: #7f77dd; --up: #d03a3a; --down: #2a6fd6; --cont: #a32d2d;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0a0f20; --bg2: #151030; --card: #151c37; --text: #eaedf9; --muted: #9aa3c7; --border: #2a3358;
-    --accent: #8b93ff; --accent2: #b28bff; --on-accent: #0a0f20; --accent-soft: #232a55; --star: #ffcb47;
-    --good-bg: #0f2e24; --good: #9be8c6; --good-edge: #34c38f; --bad-bg: #3a1620; --bad: #ffc2c8; --bad-edge: #ff6b78;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .35);
-    --shadow-hover: 0 2px 4px rgba(0, 0, 0, .5), 0 10px 26px rgba(139, 147, 255, .22);
-    --line: #8b93ff; --ma-short: #f0997b; --ma-mid: #5dcaa5; --ma-long: #afa9ec; --up: #f09595; --down: #85b7eb; --cont: #f09595;
-  }
+  color-scheme: dark;
+  --bg: #060914; --bg2: #140e33; --card: #0f1630; --text: #eef0fb; --muted: #9ea7cc; --border: #232b50;
+  --border-ui: #5a66a6; --accent: #8b93ff; --accent2: #b78cff; --on-accent: #070a18; --accent-soft: #1f2652; --star: #ffcb47;
+  --good-bg: #0c2a21; --good: #9be8c6; --good-edge: #34c38f; --bad-bg: #36121c; --bad: #ffc2c8; --bad-edge: #ff6b78;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 22px rgba(0, 0, 0, .45);
+  --shadow-hover: 0 2px 4px rgba(0, 0, 0, .6), 0 10px 28px rgba(139, 147, 255, .25);
+  --line: #8b93ff; --ma-short: #f0997b; --ma-mid: #5dcaa5; --ma-long: #afa9ec; --up: #f09595; --down: #85b7eb; --cont: #f09595;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -41,11 +32,24 @@ main { max-width: 560px; margin: 0 auto; padding: 22px 16px 12px; }
 h1 { font-size: 30px; font-weight: 800; letter-spacing: .04em; margin: 6px 0 6px; line-height: 1.3;
   background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent; width: fit-content; }
-.lead, .note, .sub { color: var(--muted); font-size: 14px; margin: 4px 0 14px; text-wrap: pretty; }
-.tendency { font-size: 14px; margin: 4px 0 12px; }
+h1.title { display: flex; align-items: center; gap: 16px; width: auto; background: none; color: var(--text);
+  -webkit-text-fill-color: currentcolor; margin: 8px 0 10px; }
+h1.title span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent; }
+.stamp { flex: none; width: 68px; height: 68px; border-radius: 50%; transform: rotate(-8deg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .5); }
+.lead, .note, .sub { color: var(--muted); font-size: 16px; margin: 4px 0 14px; text-wrap: pretty; }
+.note a { color: var(--accent); text-underline-offset: 3px; margin-left: .4em; }
+.stat-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 10px; }
+.stat-row { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); }
+.stat-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; line-height: 1.5; }
+.stat-head b { color: var(--accent); font-weight: 800; white-space: nowrap; }
+.meter { display: block; height: 10px; border-radius: 999px; background: var(--border); margin-top: 8px; overflow: hidden; }
+.meter > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 999px; }
+.tendency { font-size: 16px; margin: 4px 0 12px; }
 .q { font-size: 17px; font-weight: 700; margin: 14px 0 10px; line-height: 1.6; text-wrap: pretty; }
-.stars { color: var(--star); font-size: 14px; letter-spacing: .12em; white-space: nowrap; }
-.head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--muted);
+.stars { color: var(--star); font-size: 16px; letter-spacing: .12em; white-space: nowrap; }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 16px; color: var(--muted);
   font-weight: 600; }
 .head > span:first-child, .head > span:last-child { background: var(--card); border: 1px solid var(--border); border-radius: 999px;
   padding: 2px 12px; box-shadow: var(--shadow); }
@@ -56,45 +60,40 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: .04em; margin: 6px 0 6px
   box-shadow: var(--shadow); }
 canvas { display: block; }
 .choices { display: grid; gap: 10px; }
-.sec { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .08em; margin: 14px 0 8px; }
-.levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 4px 0 14px; }
-.levels button { text-align: center; padding: 12px 4px 10px; }
-.levels button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft);
-  box-shadow: 0 0 0 2px var(--accent), var(--shadow-hover); }
-.levels svg { display: block; width: 72px; height: 72px; margin: 0 auto 4px; }
-.levels b { display: block; font-size: 14px; font-weight: 700; }
-.levels small { text-align: center; }
+.sec { font-size: 15px; font-weight: 700; color: var(--muted); letter-spacing: .08em; margin: 14px 0 8px; }
+.hero { margin: 4px 0 16px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
+.hero img { display: block; width: 100%; height: auto; }
 .examples .sec { margin-top: 18px; }
 .example { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin-bottom: 14px;
   box-shadow: var(--shadow); }
 .example p { margin: 0; }
-.example .ex-title { font-size: 14px; font-weight: 700; }
-.example .ex-meta { font-size: 13px; color: var(--muted); }
-.example .ex-result { font-size: 14px; margin: 4px 0 6px; }
+.example .ex-title { font-size: 16px; font-weight: 700; }
+.example .ex-meta { font-size: 14px; color: var(--muted); }
+.example .ex-result { font-size: 16px; margin: 4px 0 6px; }
 .example .ex-chart { margin: 0; }
-.example .ex-dates { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); padding: 2px 52px 0 8px; }
+.example .ex-dates { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); padding: 2px 52px 0 8px; }
 .chg-up { color: var(--up); font-weight: 700; }
 .chg-down { color: var(--down); font-weight: 700; }
 .chg-flat { font-weight: 700; }
 .diffs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-.diffs button { text-align: center; padding: 6px 14px; min-width: 56px; border-radius: 999px; font-weight: 600; font-size: 14px;
+.diffs button { text-align: center; padding: 8px 14px; min-height: 44px; min-width: 56px; border-radius: 999px; font-weight: 600; font-size: 16px;
   box-shadow: none; }
 .diffs button[aria-pressed="true"] { border-color: transparent; color: var(--on-accent); font-weight: 700;
   background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 4px 12px rgba(79, 70, 229, .3); }
 .choice[aria-disabled="true"] { opacity: .6; cursor: not-allowed; }
-.choice[aria-disabled="true"]:hover { border-color: var(--border); transform: none; box-shadow: var(--shadow); }
+.choice[aria-disabled="true"]:hover { border-color: var(--border-ui); transform: none; box-shadow: var(--shadow); }
 ul.wrong .stars { margin-right: 6px; }
 button.link { background: none; border: none; box-shadow: none; color: var(--accent); text-decoration: underline;
-  text-underline-offset: 3px; padding: 6px 0; font-weight: 600; }
+  text-underline-offset: 3px; padding: 6px 0; min-height: 44px; font-weight: 600; font-size: 16px; }
 button.link:hover { border: none; box-shadow: none; transform: none; }
 .leave { margin-bottom: 6px; }
-button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-  padding: 14px 16px; text-align: left; cursor: pointer; box-shadow: var(--shadow);
+button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border-ui); border-radius: 14px;
+  padding: 14px 16px; min-height: 44px; text-align: left; cursor: pointer; box-shadow: var(--shadow);
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; -webkit-tap-highlight-color: transparent; }
 button:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
 button:active { transform: translateY(0) scale(.99); }
-button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-button small { display: block; color: var(--muted); font-size: 13px; font-weight: 400; margin-top: 2px; }
+button:focus-visible { outline: 3px solid #ffd43d; outline-offset: 2px; box-shadow: 0 0 0 2px #000; }
+button small { display: block; color: var(--muted); font-size: 14px; font-weight: 400; margin-top: 2px; }
 .choice { font-weight: 600; font-size: 16px; }
 button.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--on-accent); border-color: transparent;
   text-align: center; width: 100%; margin-top: 8px; font-weight: 700; font-size: 16px;
@@ -103,21 +102,23 @@ button.primary:hover { border-color: transparent; box-shadow: 0 10px 22px rgba(7
 .result { border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; border-left: 6px solid transparent; box-shadow: var(--shadow); }
 .result.good { background: var(--good-bg); color: var(--good); border-left-color: var(--good-edge); }
 .result.bad { background: var(--bad-bg); color: var(--bad); border-left-color: var(--bad-edge); }
-.result .label { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .06em; }
+.result .label { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .06em; }
 .result .answer { margin: 2px 0 0; font-size: 24px; font-weight: 800; line-height: 1.4; text-wrap: balance; }
-.result .exp { margin: 8px 0 0; font-size: 14px; }
+.result .exp { margin: 8px 0 0; font-size: 16px; }
 .detail { background: var(--card); border: 1px solid var(--border); border-left: 6px solid var(--accent); border-radius: 16px;
   padding: 12px 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
-.detail .detail-title { margin: 0 0 4px; font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--accent); }
-.detail .detail-body { margin: 0; font-size: 14px; line-height: 1.85; }
+.detail .detail-title { margin: 0 0 4px; font-size: 14px; font-weight: 800; letter-spacing: .1em; color: var(--accent); }
+.detail .detail-body { margin: 0; font-size: 16px; line-height: 1.9; }
 .score { font-size: 56px; font-weight: 800; margin: 6px 0 10px; line-height: 1.2; width: fit-content;
   background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent; }
-ul.wrong { padding: 0; margin: 0 0 8px; list-style: none; font-size: 14px; display: grid; gap: 8px; }
+.rate { font-size: 18px; font-weight: 700; margin: -2px 0 14px; }
+.rate b { color: var(--accent); font-size: 30px; font-weight: 800; }
+ul.wrong { padding: 0; margin: 0 0 8px; list-style: none; font-size: 16px; display: grid; gap: 8px; }
 ul.wrong li { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--bad-edge); border-radius: 12px;
   padding: 8px 12px; box-shadow: var(--shadow); }
 .actions { display: grid; gap: 10px; margin-top: 14px; }
-.disclaimer { max-width: 560px; margin: 0 auto; padding: 12px 16px 28px; font-size: 12px; color: var(--muted); text-align: center; }
+.disclaimer { max-width: 560px; margin: 0 auto; padding: 12px 16px 28px; font-size: 13px; color: var(--muted); text-align: center; }
 @media (max-width: 380px) {
   h1 { font-size: 26px; }
   .score { font-size: 48px; }
@@ -2733,6 +2734,13 @@ assignDetail(PATTERNS, DETAIL_BY_ID.patterns);
 assignDetail(CANDLE_PATTERNS, DETAIL_BY_ID.candles);
 assignDetail(TERMS, DETAIL_BY_ID.terms);
 
+// 方向が決まらない形(outlook: 'either')のうち、過去の統計がある形。実務家(Thomas Bulkowski)の集計で、学術研究の結論ではない
+// 出典: https://thepatternsite.com/st.html(三角持ち合い)、https://thepatternsite.com/bt.html(拡大三角形)。2026-10-10 に確認した
+const OUTLOOK_STATS = {
+  'symmetrical-triangle': { upRate: 60, basis: '条件を満たす3,000件超の取引', url: 'https://thepatternsite.com/st.html' },
+  'broadening-top': { upRate: 60, basis: '条件を満たす2,019件の取引(上抜け1,215件・下抜け804件)', url: 'https://thepatternsite.com/bt.html' },
+};
+
 // ==DATA-END==
 
 // ==LOGIC-START==
@@ -3098,6 +3106,18 @@ function validateForecastQuestion(q) {
   return null;
 }
 
+// 方向が決まらない形に添える、過去の統計の文。統計がない形は null
+function outlookStatInfo(patternId) {
+  const st = OUTLOOK_STATS[patternId];
+  if (!st) return null;
+  const down = 100 - st.upRate;
+  return {
+    line: `上に抜けることが多いとされるよ(過去の統計で約${st.upRate}%)。ただし、決まってはいないよ`,
+    note: `米国株について、Thomas Bulkowski が集計した${st.basis}では、上に抜けたのが約${st.upRate}%、下に抜けたのが約${down}%だよ。実務家の集計で、学術研究の結論ではなく、期間や選び方で変わるよ。実際の相場がこの通りに動くとは限らないよ。`,
+    url: st.url,
+  };
+}
+
 // 問題に不備があればその説明を、なければ null を返す
 function validateQuestion(q) {
   if (!['pattern', 'candle', 'term', 'forecast'].includes(q.type)) return `type が不正: ${q.type}`;
@@ -3167,9 +3187,16 @@ function buildPool(mode, rng, difficulty = 'all') {
   return pool;
 }
 
-function buildDeck(mode, seed, difficulty = 'all') {
+// 未出題の問題を前に、出題済みを後ろに並べ直す(それぞれの中の並びは変えない)。seen がなければ、そのまま
+function preferUnseen(deck, seen) {
+  if (!seen || seen.size === 0) return deck;
+  return [...deck.filter((q) => !seen.has(q.id)), ...deck.filter((q) => seen.has(q.id))];
+}
+
+// seen(出題済みの id の集合)を渡すと、まだ出ていない問題を優先して出す。同じシードなら同じ並びになる
+function buildDeck(mode, seed, difficulty = 'all', seen = null) {
   const rng = createRng(seed);
-  return shuffle(buildPool(mode, rng, difficulty), rng).slice(0, ROUND_SIZE);
+  return preferUnseen(shuffle(buildPool(mode, rng, difficulty), rng), seen).slice(0, ROUND_SIZE);
 }
 
 // そのモード・難易度の1ラウンドの問題数(問題の数は乱数に依存しない)
@@ -3255,7 +3282,108 @@ function parseStats(text) {
 
 function formatShareText(mode, correct, total, difficulty = 'all') {
   const label = difficulty === 'all' ? MODE_LABELS[mode] : `${MODE_LABELS[mode]}・${DIFFICULTY_LABELS[difficulty]}`;
-  return `株クイズ(${label})で ${total}問中${correct}問正解!`;
+  return `カブレベル(${label})で ${total}問中${correct}問正解!`;
+}
+
+// ---- 前回出た問題を避ける ----
+// そのモード・難易度で出る問題の id(問題の数は乱数に依存しない)
+function poolIds(mode, difficulty = 'all') {
+  return buildPool(mode, createRng(1), difficulty).map((q) => q.id);
+}
+
+// 出題範囲の問題が全部出題済みなら、その範囲の印だけを消して、新しい周回を始める(ほかの範囲の印は残す)
+function refreshSeen(seen, mode, difficulty = 'all') {
+  const ids = poolIds(mode, difficulty);
+  if (ids.length === 0 || !ids.every((id) => seen.has(id))) return seen;
+  const next = new Set(seen);
+  ids.forEach((id) => next.delete(id));
+  return next;
+}
+
+// localStorage の文字列から、出題済みの id の集合を読む。壊れていたら空にする
+function parseSeen(text) {
+  try {
+    const raw = JSON.parse(text);
+    if (!Array.isArray(raw)) return new Set();
+    return new Set(raw.filter((x) => typeof x === 'string' && x.length > 0 && x.length < 120));
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function serializeSeen(seen) {
+  return JSON.stringify(Array.from(seen));
+}
+
+// ---- 成績の見える化 ----
+const HISTORY_LIMIT = 30; // 保存する、ラウンドの記録の数
+const RECENT_SHOWN = 10; // 成績画面に出す、最近のラウンドの数
+const WEAK_MIN_TOTAL = 10; // 「苦手」を決めるのに必要な、そのモードの回答数
+const STATS_MODES = ['pattern', 'candle', 'term', 'forecast']; // 成績画面に出すモード(「全部まぜ」は画面から外した)
+
+// 正答率(%)。整数に丸める。問題が0問なら 0
+function accuracyPercent(correct, total) {
+  return total > 0 ? Math.round((correct / total) * 100) : 0;
+}
+
+function isValidHistoryEntry(e) {
+  return Boolean(e) && typeof e === 'object' && STATS_MODES.includes(e.mode) && DIFFICULTY_FILTERS.includes(e.difficulty)
+    && Number.isFinite(e.correct) && Number.isFinite(e.total) && e.total > 0 && e.correct >= 0 && e.correct <= e.total
+    && Number.isFinite(e.at);
+}
+
+// localStorage の文字列から、ラウンドの記録を読む。壊れていても、正しい記録だけ使う
+function parseHistory(text) {
+  try {
+    const raw = JSON.parse(text);
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(isValidHistoryEntry)
+      .map((e) => ({ mode: e.mode, difficulty: e.difficulty, correct: e.correct, total: e.total, at: e.at }))
+      .slice(-HISTORY_LIMIT);
+  } catch (e) {
+    return [];
+  }
+}
+
+// 記録を1つ足した新しい配列を返す(元は変えない)。古いものから捨てて、HISTORY_LIMIT 件まで
+function appendHistory(history, entry) {
+  if (!isValidHistoryEntry(entry)) return history;
+  const e = { mode: entry.mode, difficulty: entry.difficulty, correct: entry.correct, total: entry.total, at: entry.at };
+  return [...history, e].slice(-HISTORY_LIMIT);
+}
+
+// 成績画面に出す数字を集計する(画面に依存しない)
+function summarizeStats(stats, history = []) {
+  const sum = (keys) => keys.reduce((a, k) => {
+    const p = stats.played[k];
+    return p ? { correct: a.correct + p.correct, total: a.total + p.total } : a;
+  }, { correct: 0, total: 0 });
+  const withRate = (s) => ({ ...s, rate: s.total > 0 ? accuracyPercent(s.correct, s.total) : null });
+  // モード別: そのモードの、すべての難易度の絞り込みを合わせる
+  const byMode = STATS_MODES.map((m) => ({
+    mode: m, label: MODE_LABELS[m], ...withRate(sum(DIFFICULTY_FILTERS.map((d) => statsKey(m, d)))),
+  }));
+  // 難易度別: 難易度を選んで遊んだ分だけ(「すべて」で遊んだ分は、難易度が混ざるので入れない)
+  const byLevel = DIFFICULTY_LEVELS.map((d) => ({
+    level: d, label: DIFFICULTY_LABELS[d], ...withRate(sum(STATS_MODES.map((m) => statsKey(m, d)))),
+  }));
+  const recent = history.slice(-RECENT_SHOWN).reverse().map((e) => ({
+    ...e, modeLabel: MODE_LABELS[e.mode], levelLabel: DIFFICULTY_LABELS[e.difficulty], rate: accuracyPercent(e.correct, e.total),
+  }));
+  // 苦手: 回答が十分あるモードのうち、正答率がいちばん低いもの(2つ以上あって、差があるときだけ)
+  const rated = byMode.filter((m) => m.total >= WEAK_MIN_TOTAL);
+  let weakest = null;
+  if (rated.length >= 2) {
+    const low = rated.reduce((a, b) => (b.rate < a.rate ? b : a));
+    const high = rated.reduce((a, b) => (b.rate > a.rate ? b : a));
+    if (low.rate < high.rate) weakest = low;
+  }
+  return { hasData: byMode.some((m) => m.total > 0), byMode, byLevel, recent, weakest };
+}
+
+// ローソク足が陽線(終値が始値以上)か。陽線は中空、陰線は塗りつぶしで描き、色だけに頼らない
+function candleIsUp(c) {
+  return c.c >= c.o;
 }
 
 // ==LOGIC-END==
@@ -3281,6 +3409,44 @@ function saveStats() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
   } catch (e) {
     // 保存できなくても、ゲームはそのまま続ける
+  }
+}
+
+// 出題済みの問題の印と、ラウンドの記録も、保存できなくても、ゲームはそのまま続ける
+const SEEN_KEY = 'stockQuiz.seen.v1';
+const HISTORY_KEY = 'stockQuiz.history.v1';
+let seen = loadSeen();
+let history = loadHistory();
+
+function loadSeen() {
+  try {
+    return parseSeen(localStorage.getItem(SEEN_KEY));
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveSeen() {
+  try {
+    localStorage.setItem(SEEN_KEY, serializeSeen(seen));
+  } catch (e) {
+    // 保存できなくても続ける
+  }
+}
+
+function loadHistory() {
+  try {
+    return parseHistory(localStorage.getItem(HISTORY_KEY));
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistory() {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    // 保存できなくても続ける
   }
 }
 
@@ -3316,7 +3482,7 @@ function drawPriceGrid(ctx, w, ticks, yOf, colors) {
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.setLineDash([2, 3]);
-  ctx.font = '11px sans-serif';
+  ctx.font = '12px sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
   for (const price of ticks) {
@@ -3374,7 +3540,7 @@ function drawLines(ctx, w, h, chart, reveal, colors) {
     ];
     for (const [, series, color] of lines) stroke(series.map((v, i) => [i, v]), color, 1.5);
     // 各線の右端のそばに、その線の名前を同じ色で小さく書く
-    ctx.font = '11px sans-serif';
+    ctx.font = '12px sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     for (const [label, series, color] of lines) {
@@ -3400,7 +3566,8 @@ function drawCandles(ctx, w, h, candles, colors) {
   const bodyW = Math.min(56, slot * 0.4);
   candles.forEach((c, i) => {
     const cx = slot * (i + 0.5);
-    const color = c.c >= c.o ? colors.up : colors.down;
+    const up = candleIsUp(c);
+    const color = up ? colors.up : colors.down;
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineWidth = 2;
@@ -3410,7 +3577,16 @@ function drawCandles(ctx, w, h, candles, colors) {
     ctx.stroke();
     const top = y(Math.max(c.o, c.c));
     const bottom = y(Math.min(c.o, c.c));
-    ctx.fillRect(cx - bodyW / 2, top, bodyW, Math.max(2, bottom - top));
+    const bodyH = Math.max(4, bottom - top);
+    if (up) {
+      // 陽線は中空(色の枠だけ)。色が見分けにくくても、形で陰線と区別できる
+      ctx.fillStyle = colors.card;
+      ctx.fillRect(cx - bodyW / 2, top, bodyW, bodyH);
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(cx - bodyW / 2 + 1.25, top + 1.25, bodyW - 2.5, bodyH - 2.5);
+    } else {
+      ctx.fillRect(cx - bodyW / 2, top, bodyW, bodyH);
+    }
   });
 }
 
@@ -3524,38 +3700,11 @@ function drawExampleCharts(q) {
 
 window.addEventListener('resize', () => { if (redraw) redraw(); });
 
-// ---- スタート画面のイラスト(初心者・中堅者・上級者) ----
-const SKIN = '#f3cfa8';
-const LEVEL_GROUPS = [
-  { key: 'beginner', label: '初心者', stars: '★1〜★2', pick: 'easy', levels: ['easy', 'normal'],
-    art: `<circle cx="36" cy="30" r="14" fill="${SKIN}"/><path d="M22 28c0-12 8-16 14-16s14 4 14 16c-6-5-22-5-28 0z" fill="#6b4a2f"/>
-      <circle cx="31" cy="32" r="1.8" fill="#333"/><circle cx="41" cy="32" r="1.8" fill="#333"/><path d="M32 38q4 3 8 0" stroke="#333" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      <path d="M18 70c0-14 8-20 18-20s18 6 18 20z" fill="#7fb77e"/>
-      <path d="M52 60V48" stroke="#4e8a3e" stroke-width="2.4" stroke-linecap="round"/><path d="M52 50c-8 0-9-7-9-7 8 0 9 7 9 7z" fill="#5fae4a"/><path d="M52 47c7 0 9-6 9-6-7 0-9 6-9 6z" fill="#4e8a3e"/>` },
-  { key: 'middle', label: '中堅者', stars: '★3', pick: 'hard', levels: ['hard'],
-    art: `<circle cx="36" cy="30" r="14" fill="${SKIN}"/><path d="M22 29c0-12 8-17 14-17s14 5 14 17c-4-6-24-6-28 0z" fill="#2f3a4a"/>
-      <circle cx="31" cy="32" r="4.6" fill="none" stroke="#333" stroke-width="1.6"/><circle cx="41" cy="32" r="4.6" fill="none" stroke="#333" stroke-width="1.6"/><path d="M35.6 32h.8" stroke="#333" stroke-width="1.6"/>
-      <path d="M33 40q3 2 6 0" stroke="#333" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      <path d="M18 70c0-14 8-20 18-20s18 6 18 20z" fill="#5b8fd0"/>
-      <rect x="46" y="46" width="22" height="18" rx="2" fill="#fff" stroke="#888" stroke-width="1"/><path d="M49 60l5-6 4 3 6-8" stroke="#d03a3a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` },
-  { key: 'expert', label: '上級者', stars: '★4〜★5', pick: 'expert', levels: ['expert', 'master'],
-    art: `<circle cx="36" cy="30" r="14" fill="${SKIN}"/><path d="M22 28c0-12 8-16 14-16s14 4 14 16c-5-4-23-4-28 0z" fill="#aaa"/>
-      <path d="M26 31h8M38 31h8" stroke="#333" stroke-width="2" stroke-linecap="round"/><path d="M32 38q4 2.4 8 0" stroke="#333" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      <path d="M18 70c0-14 8-20 18-20s18 6 18 20z" fill="#2f3a4a"/><path d="M36 50l-4 8 4 12 4-12z" fill="#fff"/><path d="M36 52l-2 5 2 2 2-2z" fill="#d03a3a"/>
-      <path d="M26 8l5 6 5-8 5 8 5-6-2 10H28z" fill="#e8b923" stroke="#b8860b" stroke-width="1"/>` },
-];
-
-function levelCards() {
-  return LEVEL_GROUPS.map((g) =>
-    `<button data-level="${g.pick}" aria-pressed="${g.levels.includes(difficulty)}" aria-label="${g.label}(難易度 ${g.stars})">
-      <svg viewBox="0 0 72 72" aria-hidden="true" focusable="false">${g.art}</svg><b>${g.label}</b><small>${g.stars}</small></button>`).join('');
-}
-
 // ---- 画面 ----
 function showStart() {
   redraw = null;
   game = null; // 途中のラウンドは捨てる(成績にも残さない)
-  const rows = MODES.filter((m) => m !== 'forecast' || FORECAST_PUBLIC).map((m) => {
+  const rows = MODES.filter((m) => m !== 'all' && (m !== 'forecast' || FORECAST_PUBLIC)).map((m) => {
     const key = statsKey(m, difficulty);
     const size = roundSize(m, difficulty);
     const p = stats.played[key];
@@ -3563,17 +3712,18 @@ function showStart() {
     if (size === 0) {
       return `<button class="choice" data-mode="${m}" aria-disabled="true">${MODE_LABELS[m]}<small>この難易度の問題は、まだないよ</small></button>`;
     }
-    return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[key]} / ${size}　正解率 ${rate}　${size}問</small></button>`;
+    return `<button class="choice" data-mode="${m}">${MODE_LABELS[m]}<small>最高 ${stats.best[key]} / ${size}　正答率 ${rate}　${size}問</small></button>`;
   }).join('');
   const diffs = DIFFICULTY_FILTERS.map((d) =>
     `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
-  app.innerHTML = `<h1>株クイズ</h1>
+  app.innerHTML = `<h1 class="title"><img class="stamp" src="images/stamp.svg" width="68" height="68" alt=""><span>カブレベル</span></h1>
     <p class="lead">チャートの形、ローソク足、用語${FORECAST_PUBLIC ? '、株価予想' : ''}をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
-    <p class="sec">あなたのレベルは?</p>
-    <div class="levels">${levelCards()}</div>
+    <figure class="hero"><img src="images/salaryman.jpg" width="1120" height="747" alt="疲れ切った50歳くらいのサラリーマンを後ろから見た絵。モニターの下がっていく株価チャートを見つめている"></figure>
     <p class="sec">難易度</p>
     <div class="diffs">${diffs}</div>
-    <div class="choices">${rows}</div>`;
+    <div class="choices">${rows}
+      <button class="choice" data-action="stats">成績を見る<small>モード別の正答率と、最近のラウンド</small></button>
+    </div>`;
   const pickDifficulty = (attr) => (b) => b.addEventListener('click', () => {
     difficulty = b.dataset[attr];
     showStart();
@@ -3581,15 +3731,46 @@ function showStart() {
     if (again) again.focus(); // 描き直したあとも、押したボタンにフォーカスを戻す
   });
   app.querySelectorAll('[data-diff]').forEach(pickDifficulty('diff'));
-  // レベルの絵は、その段階の代表の難易度を選ぶ(細かい選び直しは下の難易度ボタン)
-  app.querySelectorAll('[data-level]').forEach(pickDifficulty('level'));
+  app.querySelectorAll('[data-action="stats"]').forEach((b) => b.addEventListener('click', guarded(showStats)));
   // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
   app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => { if (b.getAttribute('aria-disabled') !== 'true') startGame(b.dataset.mode); })));
   shownAt = performance.now();
 }
 
+// 成績画面。数字は summarizeStats が作る。バーは飾りで、数字は文字でも出す(色や長さだけに頼らない)
+function showStats() {
+  redraw = null;
+  game = null;
+  const sum = summarizeStats(stats, history);
+  const meter = (rate) => `<span class="meter" aria-hidden="true"><span style="width:${rate === null ? 0 : rate}%"></span></span>`;
+  const row = (label, valueText, rate) =>
+    `<li class="stat-row"><div class="stat-head"><span>${esc(label)}</span><b>${esc(valueText)}</b></div>${meter(rate)}</li>`;
+  const valueOf = (r) => (r.total > 0 ? `${r.rate}%(${r.correct}/${r.total}問)` : 'まだ記録なし');
+  const byMode = sum.byMode.filter((m) => m.mode !== 'forecast' || FORECAST_PUBLIC)
+    .map((m) => row(m.label, valueOf(m), m.rate)).join('');
+  const byLevel = sum.byLevel.map((l) => row(l.label, valueOf(l), l.rate)).join('');
+  const recent = sum.recent.map((r) => {
+    const d = new Date(r.at);
+    const label = `${d.getMonth() + 1}/${d.getDate()} ${r.modeLabel}${r.difficulty === 'all' ? '' : `・${r.levelLabel}`}`;
+    return row(label, `${r.correct} / ${r.total}(${r.rate}%)`, r.rate);
+  }).join('');
+  const weak = sum.weakest
+    ? `<p class="note">いちばん苦手なのは「${esc(sum.weakest.label)}」だよ(正答率 ${sum.weakest.rate}%)。</p>` : '';
+  const body = sum.hasData
+    ? `<p class="sec">モード別の正答率</p>${weak}<ul class="stat-list">${byMode}</ul>
+      <p class="sec">難易度別の正答率</p><p class="note">難易度を選んで遊んだ分だけの数字だよ。</p><ul class="stat-list">${byLevel}</ul>
+      <p class="sec">最近のラウンド(新しい順)</p>${recent ? `<ul class="stat-list">${recent}</ul>` : '<p class="note">まだ記録がないよ。</p>'}`
+    : '<p class="lead">まだ記録がないよ。クイズを遊ぶと、ここに成績が出るよ。</p>';
+  app.innerHTML = `${leaveSlot()}<h1>成績</h1>${body}
+    <button class="primary" id="top-from-stats">トップへ戻る</button>`;
+  bindLeave();
+  document.getElementById('top-from-stats').addEventListener('click', guarded(showStart));
+  shownAt = performance.now();
+}
+
 function startGame(mode) {
-  game = { mode, difficulty, deck: buildDeck(mode, Date.now() % 2147483647, difficulty), index: 0, results: [] };
+  seen = refreshSeen(seen, mode, difficulty); // 出題範囲が全部出題済みなら、印を消して新しい周回にする
+  game = { mode, difficulty, deck: buildDeck(mode, Date.now() % 2147483647, difficulty, seen), index: 0, results: [] };
   showQuestion();
 }
 
@@ -3609,7 +3790,7 @@ function showQuestion() {
   app.innerHTML = `${header()}
     <p class="q">${esc(q.question)}</p>
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
-    ${q.type === 'candle' ? '<p class="note">赤が陽線(上昇)、青が陰線(下落)だよ。</p>' : ''}
+    ${q.type === 'candle' ? '<p class="note">赤の中空(白ぬき)が陽線(上昇)、青の塗りつぶしが陰線(下落)だよ。</p>' : ''}
     ${priceNote(q)}
     ${maNote(q)}
     <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
@@ -3624,14 +3805,20 @@ function showQuestion() {
 function answer(q, picked) {
   const correct = judge(q, picked);
   game.results.push({ id: q.id, question: q.question, answer: q.answer, picked, correct, difficulty: q.difficulty });
+  if (!game.retry) { // やり直しは、すでに出た問題なので、印をつけない
+    seen.add(q.id);
+    saveSeen();
+  }
   showExplain(q, picked, correct);
 }
 
 function showExplain(q, picked, correct) {
   const hasChart = q.type === 'pattern' || q.type === 'candle';
   const last = game.index === game.deck.length - 1;
+  const stat = q.type === 'pattern' && q.outlook === 'either' ? outlookStatInfo(q.patternId) : null;
   const tendency = q.type === 'pattern'
-    ? `<p class="tendency">この後の値動き: ${esc(OUTLOOK_LABELS[q.outlook])}</p>` : '';
+    ? `<p class="tendency">この後の値動き: ${esc(stat ? stat.line : OUTLOOK_LABELS[q.outlook])}</p>`
+      + (stat ? `<p class="note">${esc(stat.note)}<a href="${esc(stat.url)}" target="_blank" rel="noopener">出典(別のタブで開く)</a></p>` : '') : '';
   app.innerHTML = `${header()}
     <div class="result ${correct ? 'good' : 'bad'}">
       <p class="label">${correct ? '正解!' : '不正解… 正しい答えは'}</p>
@@ -3667,9 +3854,11 @@ function next() {
 
 function finish() {
   const summary = summarizeRound(game.results);
-  if (!game.retry) { // やり直しは最高スコアにも正解率にも入れない
+  if (!game.retry) { // やり直しは最高スコアにも正答率にも入れない
     stats = updateStats(stats, statsKey(game.mode, game.difficulty), summary.correct, summary.total);
     saveStats();
+    history = appendHistory(history, { mode: game.mode, difficulty: game.difficulty, correct: summary.correct, total: summary.total, at: Date.now() });
+    saveHistory();
   }
   showResult(summary);
 }
@@ -3682,8 +3871,9 @@ function showResult(summary) {
   const retryBtn = summary.wrong.length
     ? `<button class="primary" id="retry">${retryLabel}(${summary.wrong.length}問)</button>` : '';
   app.innerHTML = `<h1>${game.retry ? 'やり直しの結果' : '結果'}</h1>
-    ${game.retry ? '<p class="note">やり直しの結果は、最高スコアと正解率には入らないよ。</p>' : ''}
+    ${game.retry ? '<p class="note">やり直しの結果は、最高スコアと正答率には入らないよ。</p>' : ''}
     <p class="score">${summary.correct} / ${summary.total}</p>
+    <p class="rate">正答率 <b>${accuracyPercent(summary.correct, summary.total)}%</b></p>
     ${wrong ? `<p class="q">間違えた問題</p><ul class="wrong">${wrong}</ul>` : '<p class="lead">全問正解だよ。</p>'}
     <div class="actions">
       ${retryBtn}

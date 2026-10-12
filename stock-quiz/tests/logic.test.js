@@ -334,6 +334,30 @@ test('三角持ち合い・拡大三角形・エリオット推進波(上・下)
   assert.deepEqual(L.PATTERNS.filter((p) => p.outlook === 'either').map((p) => p.id).sort(), eitherIds.slice().sort());
 });
 
+test('OUTLOOK_STATS: 統計があるのは either の形のうち、三角持ち合いと拡大三角形だけ(出典の URL と割合つき)', () => {
+  assert.deepEqual(Object.keys(L.OUTLOOK_STATS).sort(), ['broadening-top', 'symmetrical-triangle']);
+  for (const [id, st] of Object.entries(L.OUTLOOK_STATS)) {
+    assert.equal(L.findPattern(id).outlook, 'either', id);
+    assert.ok(st.upRate > 50 && st.upRate < 100, id);
+    assert.ok(st.basis.length > 0, id);
+    assert.match(st.url, /^https:\/\/thepatternsite\.com\/(st|bt)\.html$/, id);
+  }
+});
+
+test('outlookStatInfo: 統計のある形は「上に抜けることが多い」と「決まってはいない」を言い、実務家の集計だと断る。ない形は null', () => {
+  for (const id of ['symmetrical-triangle', 'broadening-top']) {
+    const info = L.outlookStatInfo(id);
+    assert.ok(info.line.includes('上に抜けることが多い'), id);
+    assert.ok(info.line.includes('約60%'), id);
+    assert.ok(info.line.includes('決まってはいない'), id);
+    assert.ok(info.note.includes('約40%'), id);
+    assert.ok(info.note.includes('学術研究の結論ではなく'), id);
+    assert.ok(info.note.includes('Thomas Bulkowski'), id);
+  }
+  assert.equal(L.outlookStatInfo('elliott-impulse-up'), null);
+  assert.equal(L.outlookStatInfo('double-top'), null);
+});
+
 test('either の形は続きの点線が空(拡大三角形・エリオット推進波の上・下)', () => {
   for (const id of ['broadening-top', 'elliott-impulse-up', 'elliott-impulse-down']) {
     assert.deepEqual(L.generateContinuation(50, L.findPattern(id).outlook, 7), [], id);
@@ -425,6 +449,140 @@ test('judge: 正解の選択肢だけ true', () => {
   const q = L.buildDeck('term', 1)[0];
   assert.equal(L.judge(q, q.answer), true);
   for (const c of q.choices.filter((x) => x !== q.answer)) assert.equal(L.judge(q, c), false);
+});
+
+// ---- 前回出た問題を避ける ----
+test('preferUnseen: 未出題を前に、出題済みを後ろに。それぞれの中の並びは変えない。seen がなければそのまま', () => {
+  const deck = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id }));
+  assert.equal(L.preferUnseen(deck, null), deck);
+  assert.equal(L.preferUnseen(deck, new Set()), deck);
+  assert.deepEqual(L.preferUnseen(deck, new Set(['a', 'c'])).map((q) => q.id), ['b', 'd', 'e', 'a', 'c']);
+  assert.deepEqual(L.preferUnseen(deck, new Set(['a', 'b', 'c', 'd', 'e'])).map((q) => q.id), ['a', 'b', 'c', 'd', 'e']);
+});
+
+test('buildDeck(seen): 出題済みを避けて10問出す。同じシードなら同じ。seen なしは、これまでと同じ', () => {
+  for (const mode of ['pattern', 'candle', 'term']) {
+    const base = L.buildDeck(mode, 5);
+    assert.deepEqual(L.buildDeck(mode, 5, 'all', null), base, mode);
+    const seen = new Set(base.slice(0, 6).map((q) => q.id));
+    const deck = L.buildDeck(mode, 5, 'all', seen);
+    assert.equal(deck.length, 10, mode);
+    assert.ok(deck.every((q) => !seen.has(q.id)), `${mode}: 出題済みが入っていない`);
+    assert.deepEqual(L.buildDeck(mode, 5, 'all', seen), deck, mode);
+    assert.equal(new Set(deck.map((q) => q.id)).size, 10, mode);
+  }
+});
+
+test('buildDeck(seen): 未出題が足りないときは、出題済みで埋める(未出題が先)', () => {
+  const ids = L.poolIds('term', 'expert'); // 20問
+  assert.equal(ids.length, 20);
+  const seen = new Set(ids.slice(0, 17)); // 未出題は3問だけ
+  const deck = L.buildDeck('term', 3, 'expert', seen);
+  assert.equal(deck.length, 10);
+  const unseenIds = ids.slice(17);
+  assert.deepEqual(deck.slice(0, 3).map((q) => q.id).sort(), unseenIds.slice().sort());
+  assert.ok(deck.slice(3).every((q) => seen.has(q.id)));
+});
+
+test('refreshSeen: 範囲が全部出題済みなら、その範囲だけ消す。足りなければ、そのまま', () => {
+  const ids = L.poolIds('term', 'expert');
+  const other = 'pattern:double-top';
+  const all = new Set([...ids, other]);
+  const next = L.refreshSeen(all, 'term', 'expert');
+  assert.ok(ids.every((id) => !next.has(id)));
+  assert.ok(next.has(other), 'ほかの範囲の印は残る');
+  assert.ok(all.has(ids[0]), '元の集合は変わらない');
+  const partial = new Set(ids.slice(0, 19));
+  assert.equal(L.refreshSeen(partial, 'term', 'expert'), partial);
+  assert.equal(L.refreshSeen(new Set(), 'term', 'expert').size, 0);
+});
+
+test('poolIds: 重複がなく、buildPool と同じ数', () => {
+  for (const mode of ['pattern', 'candle', 'term', 'forecast']) {
+    const ids = L.poolIds(mode);
+    assert.equal(new Set(ids).size, ids.length, mode);
+    assert.equal(ids.length, L.buildPool(mode, L.createRng(9)).length, mode);
+  }
+});
+
+test('parseSeen / serializeSeen: 往復できて、壊れたデータは空にする', () => {
+  const seen = new Set(['pattern:double-top', 'term:per']);
+  assert.deepEqual(Array.from(L.parseSeen(L.serializeSeen(seen))).sort(), Array.from(seen).sort());
+  for (const bad of [null, undefined, '', 'xxx', '{}', '123', '"a"']) assert.equal(L.parseSeen(bad).size, 0, String(bad));
+  assert.deepEqual(Array.from(L.parseSeen('["a", 1, null, "", {"x":1}, "b"]')), ['a', 'b']);
+});
+
+// ---- 成績の見える化 ----
+test('parseHistory / appendHistory: 正しい記録だけ読み、30件まで残す。元は変えない', () => {
+  const e = (n) => ({ mode: 'term', difficulty: 'easy', correct: 7, total: 10, at: 1000 + n });
+  let h = [];
+  for (let i = 0; i < 35; i++) h = L.appendHistory(h, e(i));
+  assert.equal(h.length, 30);
+  assert.equal(h[0].at, 1005);
+  assert.equal(h[29].at, 1034);
+  const before = h.slice();
+  L.appendHistory(h, e(99));
+  assert.deepEqual(h, before);
+  // 不正な記録は足さない
+  for (const bad of [null, {}, { ...e(1), mode: 'all' }, { ...e(1), difficulty: 'x' }, { ...e(1), correct: 11 }, { ...e(1), total: 0 }, { ...e(1), at: 'x' }]) {
+    assert.equal(L.appendHistory(h, bad), h);
+  }
+  assert.deepEqual(L.parseHistory(JSON.stringify(h)), h);
+  assert.deepEqual(L.parseHistory(JSON.stringify([e(1), { bad: true }, e(2)])).map((x) => x.at), [1001, 1002]);
+  for (const bad of [null, '', 'xxx', '{}', '5']) assert.deepEqual(L.parseHistory(bad), [], String(bad));
+});
+
+test('summarizeStats: モード別・難易度別の正答率、最近のラウンド(新しい順)、苦手なモード', () => {
+  let st = L.defaultStats();
+  assert.equal(L.summarizeStats(st, []).hasData, false);
+  st = L.updateStats(st, 'pattern', 3, 10); // すべて
+  st = L.updateStats(st, 'pattern:easy', 5, 10);
+  st = L.updateStats(st, 'term', 9, 10);
+  st = L.updateStats(st, 'term:hard', 8, 10);
+  const s = L.summarizeStats(st, []);
+  assert.equal(s.hasData, true);
+  const by = (m) => s.byMode.find((x) => x.mode === m);
+  assert.deepEqual([by('pattern').correct, by('pattern').total, by('pattern').rate], [8, 20, 40]);
+  assert.deepEqual([by('term').correct, by('term').total, by('term').rate], [17, 20, 85]);
+  assert.deepEqual([by('candle').total, by('candle').rate], [0, null]);
+  assert.deepEqual(s.byMode.map((m) => m.mode), ['pattern', 'candle', 'term', 'forecast']);
+  assert.ok(!s.byMode.some((m) => m.mode === 'all'));
+  const lv = (d) => s.byLevel.find((x) => x.level === d);
+  assert.deepEqual([lv('easy').correct, lv('easy').total, lv('easy').rate], [5, 10, 50]);
+  assert.deepEqual([lv('hard').correct, lv('hard').total, lv('hard').rate], [8, 10, 80]);
+  assert.equal(lv('master').rate, null);
+  assert.equal(s.weakest.mode, 'pattern');
+  // 回答が少ない・差がないときは、苦手を決めない
+  let st2 = L.updateStats(L.defaultStats(), 'pattern', 3, 5);
+  st2 = L.updateStats(st2, 'term', 1, 5);
+  assert.equal(L.summarizeStats(st2, []).weakest, null);
+  let st3 = L.updateStats(L.defaultStats(), 'pattern', 5, 10);
+  st3 = L.updateStats(st3, 'term', 5, 10);
+  assert.equal(L.summarizeStats(st3, []).weakest, null);
+  // 最近のラウンドは新しい順で、10件まで
+  let h = [];
+  for (let i = 0; i < 12; i++) h = L.appendHistory(h, { mode: 'candle', difficulty: 'normal', correct: i % 11, total: 10, at: 100 + i });
+  const r = L.summarizeStats(st, h).recent;
+  assert.equal(r.length, 10);
+  assert.equal(r[0].at, 111);
+  assert.equal(r[9].at, 102);
+  assert.deepEqual([r[0].modeLabel, r[0].levelLabel, r[0].rate], ['ローソク足', '★★', 0]); // 12件目は 11 % 11 = 0問正解
+  assert.equal(r[1].rate, 100); // 11件目は 10問正解
+});
+
+test('candleIsUp: 終値が始値以上なら陽線(中空)。下がっていれば陰線(塗りつぶし)', () => {
+  assert.equal(L.candleIsUp({ o: 30, h: 72, l: 28, c: 70 }), true);
+  assert.equal(L.candleIsUp({ o: 70, h: 72, l: 28, c: 30 }), false);
+  assert.equal(L.candleIsUp({ o: 50, h: 60, l: 40, c: 50 }), true);
+});
+
+test('accuracyPercent: 正答率を整数の%に丸める(0問のときは 0)', () => {
+  assert.equal(L.accuracyPercent(7, 10), 70);
+  assert.equal(L.accuracyPercent(10, 10), 100);
+  assert.equal(L.accuracyPercent(0, 10), 0);
+  assert.equal(L.accuracyPercent(1, 3), 33);
+  assert.equal(L.accuracyPercent(2, 3), 67);
+  assert.equal(L.accuracyPercent(0, 0), 0);
 });
 
 test('summarizeRound: 正解数と間違えた問題を数える', () => {
@@ -1383,7 +1541,7 @@ test('保存データ: 値動き予想(outlook)の古いキーが残っていて
 });
 
 test('formatShareText: 難易度つき', () => {
-  assert.equal(L.formatShareText('pattern', 7, 10), '株クイズ(チャートの形状)で 10問中7問正解!');
+  assert.equal(L.formatShareText('pattern', 7, 10), 'カブレベル(チャートの形状)で 10問中7問正解!');
   const t = L.formatShareText('pattern', 7, 10, 'normal');
   assert.ok(t.includes('チャートの形状') && t.includes('★★') && t.includes('7') && t.includes('10'));
   assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
@@ -2979,7 +3137,7 @@ test('株価予想: プール・出題・難易度の絞り込み・全部まぜ
     assert.deepEqual(LF.buildDeck(mode, 11), L.buildDeck(mode, 11), mode);
   }
   assert.equal(LF.statsKey('forecast', 'hard'), 'forecast:hard');
-  assert.equal(LF.formatShareText('forecast', 1, 1, 'normal'), '株クイズ(株価予想・★★)で 1問中1問正解!');
+  assert.equal(LF.formatShareText('forecast', 1, 1, 'normal'), 'カブレベル(株価予想・★★)で 1問中1問正解!');
   assert.deepEqual(LF.updateStats(LF.defaultStats(), 'forecast:normal', 1, 1).played['forecast:normal'], { correct: 1, total: 1 });
 });
 
@@ -3260,7 +3418,9 @@ test('株価予想の切り替え(FORECAST_PUBLIC): 公開中は true。false �
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   // 公開中は true。隠すときは false にして、この行を直す
   assert.match(html, /const FORECAST_PUBLIC = true;/);
-  assert.ok(html.includes("MODES.filter((m) => m !== 'forecast' || FORECAST_PUBLIC)"));
+  assert.ok(html.includes("m !== 'forecast' || FORECAST_PUBLIC"));
+  // 「全部まぜ」は、画面のモード一覧には出さない(中の仕組みは残してある)
+  assert.ok(html.includes("MODES.filter((m) => m !== 'all' && "));
   const H = loadLogic({ forecastPublic: false });
   for (let seed = 1; seed <= 30; seed++) {
     for (const d of H.DIFFICULTY_FILTERS) {

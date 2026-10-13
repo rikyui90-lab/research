@@ -4201,7 +4201,17 @@ function currentNavState() {
   return { ...base, modes: modeEntries(stats, difficulty) };
 }
 
+// 画面か問題が切り替わったら、スクロールバーを一番上に戻す(答えを出しただけのときは動かさない)
+let lastScrollKey = '';
+function scrollToTopOnChange() {
+  const inRound = (screen === 'question' || screen === 'explain') && game;
+  const key = inRound ? `q${game.index}${game.retry ? 'r' : ''}` : screen;
+  if (key !== lastScrollKey) window.scrollTo(0, 0);
+  lastScrollKey = key;
+}
+
 function publishState() {
+  scrollToTopOnChange();
   if (inFrame) sendTo(window.parent, frameMessage('state', { state: currentNavState() }));
 }
 
@@ -4336,7 +4346,10 @@ function runNav() {
       const json = JSON.stringify(m.state);
       if (json === lastJson) return;
       lastJson = json;
-      renderNav(root, m.state, (command) => send('command', { command }));
+      renderNav(root, m.state, (command) => {
+        if (command.cmd !== 'difficulty') window.scrollTo(0, 0); // リンクを押したら、左の一覧も一番上に戻す
+        send('command', { command });
+      });
     } else if (m.type === 'focus') {
       focusNavStart(root);
     }

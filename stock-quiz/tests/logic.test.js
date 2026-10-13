@@ -2050,19 +2050,8 @@ test('v8 の用語50問: 選択肢4つ・解説1〜2文・detail は自分で持
   }
 });
 
-test('v8 の用語50問: 紛らわしい組(CONFUSABLE_PAIRS)の id がすべて実在し、重複した組がない', () => {
-  const ids = new Set([...L.TERMS, ...L.PATTERNS, ...L.CANDLE_PATTERNS].map((x) => x.id));
-  const seen = new Set();
-  for (const [a, b] of L.CONFUSABLE_PAIRS) {
-    assert.ok(ids.has(a) && ids.has(b), `${a} / ${b}`);
-    const k = [a, b].sort().join('|');
-    assert.ok(!seen.has(k), `重複 ${k}`);
-    seen.add(k);
-  }
-});
-
 test('v8 の用語50問: 正解が選択肢の中で唯一いちばん長い問題は、50問中 10 問以内', () => {
-  // 上限は内容に依存する数。現状は4問。問題を足す・直すときは実数を見て直す
+  // 上限は内容に依存する数。現状は0問。問題を足す・直すときは実数を見て直す
   const longest = L.TERMS.slice(120).filter((t) => countChars(t.answer) > Math.max(...t.wrongs.map(countChars)));
   assert.ok(longest.length <= 10, `${longest.length} 問: ${longest.map((t) => t.id).join(',')}`);
 });

@@ -102,6 +102,10 @@ button.link { background: none; border: none; box-shadow: none; color: var(--acc
   text-underline-offset: 3px; padding: 6px 0; min-height: 44px; font-weight: 600; font-size: 16px; }
 button.link:hover { border: none; box-shadow: none; transform: none; }
 .leave { margin-bottom: 6px; }
+.leave-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+button.primary.next-mini { width: auto; margin: 0; min-height: 44px; padding: 8px 16px; text-align: center; white-space: nowrap; }
+.choices.grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choices.grid2 .choice { overflow-wrap: anywhere; }
 button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border-ui); border-radius: 14px;
   padding: 14px 16px; min-height: 44px; text-align: left; cursor: pointer; box-shadow: var(--shadow);
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; -webkit-tap-highlight-color: transparent; }
@@ -3986,7 +3990,8 @@ function starsBadge(level) {
 }
 
 // 「← トップに戻る」(確認なし。押すとすぐスタート画面に戻り、途中のラウンドは捨てて成績にも残さない)
-function leaveSlot() {
+function leaveSlot(right = '') {
+  if (right) return `<div class="leave leave-row"><button class="link" id="leave">← トップに戻る</button>${right}</div>`;
   return '<div class="leave"><button class="link" id="leave">← トップに戻る</button></div>';
 }
 
@@ -3994,10 +3999,10 @@ function bindLeave() {
   document.getElementById('leave').addEventListener('click', showStart);
 }
 
-function header(shown = game.index) {
+function header(shown = game.index, right = '') {
   const done = game.results.length;
   const correct = game.results.filter((r) => r.correct).length;
-  return `${leaveSlot()}<div class="head"><span>${game.retry ? 'やり直し ' : ''}問題 ${Math.min(shown + 1, game.deck.length)} / ${game.deck.length}</span>${starsBadge(game.deck[Math.min(shown, game.deck.length - 1)].difficulty)}<span>正解 ${correct}</span></div>
+  return `${leaveSlot(right)}<div class="head"><span>${game.retry ? 'やり直し ' : ''}問題 ${Math.min(shown + 1, game.deck.length)} / ${game.deck.length}</span>${starsBadge(game.deck[Math.min(shown, game.deck.length - 1)].difficulty)}<span>正解 ${correct}</span></div>
     <div class="bar"><div style="width:${(done / game.deck.length) * 100}%"></div></div>
     ${progressSteps(shown)}`;
 }
@@ -4339,7 +4344,7 @@ function showQuestion() {
     ${q.type === 'candle' ? '<p class="note">赤の中空(白ぬき)が陽線(上昇)、青の塗りつぶしが陰線(下落)だよ。</p>' : ''}
     ${priceNote(q)}
     ${maNote(q)}
-    <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
+    <div class="choices${q.choices.length === 4 ? ' grid2' : ''}">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
   if (hasChart) drawQuestionChart(q, false);
   else redraw = null;
   bindLeave();
@@ -4370,7 +4375,7 @@ function showExplain(q, picked, correct, review = false) {
   const tendency = q.type === 'pattern'
     ? `<p class="tendency">この後の値動き: ${esc(stat ? stat.line : OUTLOOK_LABELS[q.outlook])}</p>`
       + (stat ? `<p class="note">${esc(stat.note)}<a href="${esc(stat.url)}" target="_blank" rel="noopener">出典(別のタブで開く)</a></p>` : '') : '';
-  app.innerHTML = `${header(game.shown)}
+  app.innerHTML = `${header(game.shown, `<button class="primary next-mini" id="next-top">${nextLabel}</button>`)}
     ${review ? '<p class="note">見返し中だよ。成績には数えないよ。</p>' : ''}
     <div class="result ${correct ? 'good' : 'bad'}">
       <p class="label">${correct ? '正解!' : '不正解… 正しい答えは'}</p>
@@ -4382,7 +4387,7 @@ function showExplain(q, picked, correct, review = false) {
       <p class="detail-body">${esc(q.detail)}</p>
     </div>
     ${tendency}
-    ${q.type === 'forecast' ? `<button class="primary" id="next-top">${nextLabel}</button>` + examplesHtml(q) : ''}
+    ${q.type === 'forecast' ? examplesHtml(q) : ''}
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
     ${priceNote(q)}
     ${maNote(q)}

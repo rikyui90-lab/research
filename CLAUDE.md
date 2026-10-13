@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 株クイズ(`stock-quiz/`)
 
-単一ファイル `stock-quiz/index.html`(HTML + CSS + JS)。外部ライブラリもサーバーも使わない(例外: Google アナリティクスの計測タグ、測定ID `G-EMJMH8CBZF`。`<head>` にある)。スコアは `localStorage` のみ。設計書は `docs/superpowers/specs/2026-10-06-stock-quiz-design.md`(問題数・難易度表・仕様の根拠はここ)、実装計画は `docs/superpowers/plans/`。
+単一ファイル `stock-quiz/index.html`(HTML + CSS + JS)。外部ライブラリもサーバーも使わない(例外: Google アナリティクスの計測タグ、測定ID `G-EMJMH8CBZF`。`<head>` の小さなスクリプトが、外側のページ(クエリなし・最上位)のときだけ読む。iframe でも読むと、数が3重になる)。スコアは `localStorage` のみ。設計書は `docs/superpowers/specs/2026-10-06-stock-quiz-design.md`(問題数・難易度表・仕様の根拠はここ)、実装計画は `docs/superpowers/plans/`。
 
 ### テスト
 
@@ -25,6 +25,8 @@ node --test --test-name-pattern="<名前の一部>" stock-quiz/tests/logic.test.
 - テストは画面を動かさない。画面まわりを変えたら、ブラウザで開いて(スマホ幅 375px も)確認する。
 
 ### 構造(コードを3ブロックに分ける約束)
+
+**3つの役**: 同じ `index.html` を、左の一覧と右の本体を並べるフレーム構造(iframe)として使う。クエリなし=外側(2つの iframe を並べて、`postMessage` を中継するだけ)、`?pane=main`=右のクイズ本体(直接開いても遊べる)、`?pane=nav`=左の一覧。設計書の §11 を読む。役ごとの起動は UI ブロックの末尾。左の一覧の中身とメッセージの検査は LOGIC の純粋関数(`buildNavItems`、`parseFrameMessage` など)で、テストがある。
 
 `index.html` の `<script>` は、目印コメントで3つに分かれる。
 

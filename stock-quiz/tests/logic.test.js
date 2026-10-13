@@ -3431,3 +3431,161 @@ test('株価予想の切り替え(FORECAST_PUBLIC): 公開中は true。false �
   // 株価予想モードそのものの仕組みは、隠していても動く(公開時に切り替えるだけにするため)
   assert.equal(H.buildPool('forecast', H.createRng(1), 'all').length, 20);
 });
+
+// ---- フレーム構造(外側・左の一覧・右の本体) ----
+test('フレーム: ?pane= で役を選ぶ(なければ外側)', () => {
+  assert.equal(L.paneFromSearch(''), 'host');
+  assert.equal(L.paneFromSearch('?pane=main'), 'main');
+  assert.equal(L.paneFromSearch('?pane=nav'), 'nav');
+  assert.equal(L.paneFromSearch('?pane=main&layout=wide'), 'main');
+  assert.equal(L.paneFromSearch('?pane=other'), 'host');
+  assert.equal(L.paneFromSearch('?utm_source=x'), 'host');
+  assert.equal(L.layoutIsWide('?pane=main&layout=wide'), true);
+  assert.equal(L.layoutIsWide('?pane=main'), false);
+});
+
+const navStart = () => ({
+  screen: 'start', difficulty: 'all',
+  modes: [{ mode: 'pattern', size: 10, best: 7, rate: 65 }, { mode: 'term', size: 0, best: 0, rate: null }],
+});
+const navRound = (over = {}) => ({
+  screen: 'question', difficulty: 'easy',
+  round: { retry: false, total: 10, results: [true, false, true], index: 3, shown: 3, ...over },
+});
+
+test('フレーム: 命令の検査(正しい形だけ通す)', () => {
+  assert.deepEqual(L.sanitizeNavCommand({ cmd: 'start', mode: 'term', extra: 1 }), { cmd: 'start', mode: 'term' });
+  assert.equal(L.sanitizeNavCommand({ cmd: 'start', mode: 'all' }), null); // 全部まぜは画面から外している
+  assert.equal(L.sanitizeNavCommand({ cmd: 'start', mode: 'x' }), null);
+  assert.deepEqual(L.sanitizeNavCommand({ cmd: 'difficulty', value: 'hard' }), { cmd: 'difficulty', value: 'hard' });
+  assert.equal(L.sanitizeNavCommand({ cmd: 'difficulty', value: 'x' }), null);
+  assert.deepEqual(L.sanitizeNavCommand({ cmd: 'goto', index: 4 }), { cmd: 'goto', index: 4 });
+  for (const bad of [-1, 1.5, '2', 20, null]) assert.equal(L.sanitizeNavCommand({ cmd: 'goto', index: bad }), null, String(bad));
+  assert.deepEqual(L.sanitizeNavCommand({ cmd: 'top' }), { cmd: 'top' });
+  assert.deepEqual(L.sanitizeNavCommand({ cmd: 'stats' }), { cmd: 'stats' });
+  for (const bad of [null, 1, 'top', {}, { cmd: 'eval' }]) assert.equal(L.sanitizeNavCommand(bad), null);
+});
+
+test('フレーム: 難易度の命令だけは、狭い画面のメニューを閉じない', () => {
+  assert.equal(L.commandClosesMenu({ cmd: 'difficulty', value: 'easy' }), false);
+  for (const c of [{ cmd: 'start', mode: 'term' }, { cmd: 'goto', index: 0 }, { cmd: 'top' }, { cmd: 'stats' }]) {
+    assert.equal(L.commandClosesMenu(c), true, c.cmd);
+  }
+});
+
+test('フレーム: 状態の検査', () => {
+  assert.deepEqual(L.sanitizeNavState(navStart()), { ...navStart(), round: null });
+  const r = L.sanitizeNavState(navRound());
+  assert.equal(r.round.total, 10);
+  assert.deepEqual(r.round.results, [true, false, true]);
+  for (const screen of ['start', 'result', 'stats']) assert.ok(L.sanitizeNavState({ ...navStart(), screen }), screen);
+  assert.equal(L.sanitizeNavState(null), null);
+  assert.equal(L.sanitizeNavState({ ...navStart(), screen: 'x' }), null);
+  assert.equal(L.sanitizeNavState({ ...navStart(), difficulty: 'x' }), null);
+  assert.equal(L.sanitizeNavState({ ...navStart(), modes: [{ mode: 'all', size: 1, best: 0, rate: null }] }), null);
+  assert.equal(L.sanitizeNavState({ ...navStart(), modes: [{ mode: 'term', size: -1, best: 0, rate: null }] }), null);
+  assert.equal(L.sanitizeNavState({ ...navStart(), modes: [{ mode: 'term', size: 1, best: 0, rate: 101 }] }), null);
+  assert.equal(L.sanitizeNavState({ screen: 'start', difficulty: 'all' }), null); // modes がない
+  assert.equal(L.sanitizeNavState({ screen: 'question', difficulty: 'all' }), null); // round がない
+  assert.equal(L.sanitizeNavState(navRound({ total: 0 })), null);
+  assert.equal(L.sanitizeNavState(navRound({ total: 21 })), null);
+  assert.equal(L.sanitizeNavState(navRound({ results: [true, 'x'] })), null);
+  assert.equal(L.sanitizeNavState(navRound({ results: new Array(11).fill(true) })), null);
+  assert.equal(L.sanitizeNavState(navRound({ index: 10 })), null);
+  assert.equal(L.sanitizeNavState(navRound({ shown: -1 })), null);
+});
+
+test('フレーム: メッセージの検査(印・版・種類・中身)', () => {
+  const ok = L.frameMessage('state', { state: navStart() });
+  assert.equal(L.parseFrameMessage(ok).type, 'state');
+  assert.deepEqual(L.parseFrameMessage(L.frameMessage('ready')), { type: 'ready' });
+  assert.deepEqual(L.parseFrameMessage(L.frameMessage('close')), { type: 'close' });
+  assert.deepEqual(L.parseFrameMessage(L.frameMessage('focus')), { type: 'focus' });
+  assert.deepEqual(L.parseFrameMessage(L.frameMessage('layout', { wide: true })), { type: 'layout', wide: true });
+  assert.deepEqual(L.parseFrameMessage(L.frameMessage('command', { command: { cmd: 'top' } })), { type: 'command', command: { cmd: 'top' } });
+  assert.equal(L.parseFrameMessage(L.frameMessage('layout', { wide: 'yes' })), null);
+  assert.equal(L.parseFrameMessage(L.frameMessage('command', { command: { cmd: 'x' } })), null);
+  assert.equal(L.parseFrameMessage(L.frameMessage('state', { state: { screen: 'start' } })), null);
+  assert.equal(L.parseFrameMessage({ ...ok, app: 'other' }), null);
+  assert.equal(L.parseFrameMessage({ ...ok, v: 2 }), null);
+  assert.equal(L.parseFrameMessage({ ...ok, type: 'unknown' }), null);
+  for (const bad of [null, undefined, 'state', 3, []]) assert.equal(L.parseFrameMessage(bad), null);
+});
+
+test('フレーム: スタート画面の左の一覧(難易度・モード・成績)', () => {
+  const { groups } = L.buildNavItems(L.sanitizeNavState(navStart()));
+  assert.deepEqual(groups.map((g) => g.id), ['difficulty', 'modes', 'more']);
+  const diffs = groups[0].items;
+  assert.deepEqual(diffs.map((d) => d.command.value), L.DIFFICULTY_FILTERS);
+  assert.deepEqual(diffs.filter((d) => d.pressed).map((d) => d.command.value), ['all']);
+  assert.ok(diffs.every((d) => d.aria)); // ★だけにせず、読み上げの言葉を付ける
+  const [pattern, term] = groups[1].items;
+  assert.equal(pattern.label, 'チャートの形状');
+  assert.deepEqual(pattern.command, { cmd: 'start', mode: 'pattern' });
+  assert.equal(pattern.disabled, false);
+  assert.equal(term.disabled, true); // 問題がないモードは押せない
+  assert.match(term.sub, /まだないよ/);
+  assert.equal(groups[2].items[0].current, false);
+  const stats = L.buildNavItems(L.sanitizeNavState({ ...navStart(), screen: 'stats' }));
+  assert.equal(stats.groups[2].items[0].current, true);
+});
+
+test('フレーム: ラウンド中の左の一覧(問1〜問N。回答済みと今の問題だけ押せる)', () => {
+  const { groups } = L.buildNavItems(L.sanitizeNavState(navRound()));
+  const qs = groups[0].items;
+  assert.equal(qs.length, 10);
+  assert.deepEqual(qs.slice(0, 3).map((q) => [q.mark, q.status, q.disabled]), [['○', 'correct', false], ['×', 'wrong', false], ['○', 'correct', false]]);
+  assert.deepEqual(qs.map((q) => q.disabled), [false, false, false, false, true, true, true, true, true, true]);
+  assert.equal(qs[3].mark, '▶'); // いまの問題
+  assert.deepEqual(qs.filter((q) => q.current).map((q) => q.label), ['問4']);
+  assert.match(qs[4].aria, /順番に解いてね/);
+  assert.match(qs[1].aria, /不正解/);
+  assert.deepEqual(qs[5].command, { cmd: 'goto', index: 5 });
+  assert.equal(groups[0].heading, '問題');
+  assert.deepEqual(groups[1].items.map((i) => i.command), [{ cmd: 'top' }]);
+  // 色だけに頼らない: 状態ごとに記号が違う
+  assert.equal(new Set(qs.map((q) => q.mark)).size, 4);
+});
+
+test('フレーム: 答え合わせ中は今の問題も回答済み。見返し中は、見ている問題だけが current', () => {
+  const answered = L.buildNavItems(L.sanitizeNavState(navRound({ results: [true, true, true, false], index: 3, shown: 3 }))).groups[0].items;
+  assert.equal(answered[3].status, 'wrong');
+  assert.equal(answered[3].disabled, false);
+  assert.equal(answered[4].disabled, true);
+  const review = L.buildNavItems(L.sanitizeNavState({ ...navRound({ results: [true, true, true, false], index: 3, shown: 1 }), screen: 'explain' })).groups[0].items;
+  assert.deepEqual(review.filter((q) => q.current).map((q) => q.label), ['問2']);
+  assert.equal(review[3].disabled, false);
+  assert.equal(review[1].sub, 'いま');
+});
+
+test('フレーム: やり直しのラウンドは見出しを変え、問題数もそのまま反映する', () => {
+  const { groups } = L.buildNavItems(L.sanitizeNavState(navRound({ retry: true, total: 3, results: [], index: 0, shown: 0 })));
+  assert.equal(groups[0].heading, 'やり直しの問題');
+  assert.equal(groups[0].items.length, 3);
+});
+
+test('フレーム: モードの数字(全部まぜは出さない。難易度ごとの問題数・最高・正答率)', () => {
+  let stats = L.defaultStats();
+  stats = L.updateStats(stats, L.statsKey('term', 'easy'), 3, 4);
+  const entries = L.modeEntries(stats, 'easy');
+  assert.deepEqual(entries.map((e) => e.mode), ['pattern', 'candle', 'term', 'forecast']);
+  const term = entries.find((e) => e.mode === 'term');
+  assert.equal(term.best, 3);
+  assert.equal(term.rate, 75);
+  assert.equal(term.size, L.roundSize('term', 'easy'));
+  assert.equal(L.modeEntries(L.defaultStats(), 'all')[0].rate, null);
+  assert.deepEqual(loadLogic({ forecastPublic: false }).modeEntries(stats, 'easy').map((e) => e.mode), ['pattern', 'candle', 'term']);
+  assert.equal(L.modeSubText({ size: 0, best: 0, rate: null }), 'この難易度の問題は、まだないよ');
+  assert.equal(L.modeSubText({ size: 10, best: 7, rate: 65 }), '最高 7 / 10　正答率 65%　10問');
+  assert.match(L.modeSubText({ size: 10, best: 0, rate: null }), /正答率 -/);
+  // 状態の検査を通る(本体が実際に送る形)
+  assert.ok(L.sanitizeNavState({ screen: 'start', difficulty: 'easy', modes: entries }));
+});
+
+test('フレーム: Google アナリティクスは、外側(クエリなし・最上位)でだけ読む', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  // 静的な script タグでは読まない(各 iframe でも読まれて、数が3重になるため)
+  assert.ok(!/<script[^>]*src="[^"]*googletagmanager/.test(html));
+  assert.ok(html.includes("window.top === window.self && !location.search.includes('pane=')"));
+  assert.ok(html.includes('G-EMJMH8CBZF'));
+});

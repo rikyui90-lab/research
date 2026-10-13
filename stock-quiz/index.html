@@ -4201,7 +4201,14 @@ function currentNavState() {
   return { ...base, modes: modeEntries(stats, difficulty) };
 }
 
-// 画面か問題が切り替わったら、スクロールバーを一番上に戻す(答えを出しただけのときは動かさない)
+// ボタンの処理で描き直したあと(同期の描画・次のフレームの描画)に、スクロールを一番上に戻す
+function scrollTopAfterRender() {
+  window.scrollTo(0, 0);
+  requestAnimationFrame(() => window.scrollTo(0, 0));
+  setTimeout(() => window.scrollTo(0, 0), 60);
+}
+
+// 画面か問題が切り替わったら、スクロールバーを一番上に戻す(キー操作など、クリック以外のとき用)
 let lastScrollKey = '';
 function scrollToTopOnChange() {
   const inRound = (screen === 'question' || screen === 'explain') && game;
@@ -4223,6 +4230,7 @@ function handleNavCommand(cmd) {
   runNavCommand(cmd);
   // 画面を切り替える命令のあと(広い画面でも)、右の本体へフォーカスを移す
   if (cmd.cmd !== 'difficulty' && (screen !== before || cmd.cmd === 'goto')) focusMainHeading();
+  if (cmd.cmd !== 'difficulty') scrollTopAfterRender();
 }
 
 // 画面の見出し(なければ問題文、答え合わせの結果)へフォーカスを移す。キーボードと読み上げの位置を、新しい画面の先頭にそろえる
@@ -4254,6 +4262,10 @@ function runNavCommand(cmd) {
 function runMain() {
   document.querySelector('#host').remove();
   document.querySelector('#navroot').remove();
+  // 右の画面のボタン・リンクを押したら、右のスクロールを一番上に戻す(描き直しのあとに動かす)
+  app.addEventListener('click', (event) => {
+    if (event.target.closest('button, a')) scrollTopAfterRender();
+  });
   if (inFrame) {
     window.addEventListener('message', (event) => {
       const m = receive(event, window.parent);
@@ -4337,6 +4349,13 @@ function runNav() {
     return;
   }
   root.append(el('p', { class: 'note' }, '読み込み中…'));
+  // 左のリンクを押したら、左の一覧を一番上に戻す(描き直しのあとにも)
+  root.addEventListener('click', (event) => {
+    if (!event.target.closest('button, a')) return;
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+    setTimeout(() => window.scrollTo(0, 0), 60);
+  });
   let lastJson = '';
   const send = (type, payload) => sendTo(window.parent, frameMessage(type, payload));
   window.addEventListener('message', (event) => {
@@ -4346,10 +4365,7 @@ function runNav() {
       const json = JSON.stringify(m.state);
       if (json === lastJson) return;
       lastJson = json;
-      renderNav(root, m.state, (command) => {
-        if (command.cmd !== 'difficulty') window.scrollTo(0, 0); // リンクを押したら、左の一覧も一番上に戻す
-        send('command', { command });
-      });
+      renderNav(root, m.state, (command) => send('command', { command }));
     } else if (m.type === 'focus') {
       focusNavStart(root);
     }

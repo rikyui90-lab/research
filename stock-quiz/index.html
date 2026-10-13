@@ -162,6 +162,7 @@ html[data-role="host"], html[data-role="host"] body { height: 100%; overflow: hi
 .nav-q[data-status="wrong"] .mark { color: var(--bad); }
 .nav-q .here { margin-left: auto; font-size: 16px; color: var(--accent); font-weight: 700; }
 .nav-q[aria-current="step"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.nav-q[aria-current="step"]:focus-visible { outline: 3px solid #ffd43d; outline-offset: 2px; box-shadow: 0 0 0 2px #000, inset 0 0 0 1px var(--accent); }
 .nav-q[aria-disabled="true"] { color: var(--muted); border-style: dashed; background: transparent; cursor: not-allowed; }
 .nav-q[aria-disabled="true"]:hover { border-color: var(--border-ui); transform: none; box-shadow: none; }
 @media (max-width: 380px) {
@@ -3484,6 +3485,11 @@ function sanitizeNavCommand(raw) {
   }
 }
 
+// 画面を描いた直後(ダブルクリックの2回目など)に届いた命令を捨てるか。難易度は設定なので、捨てない
+function navCommandIgnored(cmd, elapsedMs, guardMs) {
+  return cmd.cmd !== 'difficulty' && elapsedMs < guardMs;
+}
+
 // 項目を選んだあと、狭い画面で左のメニューを閉じる命令か(難易度は設定なので、閉じない)
 function commandClosesMenu(cmd) {
   return !!cmd && cmd.cmd !== 'difficulty';
@@ -3622,8 +3628,8 @@ let game = null;
 let difficulty = 'all'; // スタート画面で選んだ難易度(ページを開いているあいだは保つ)
 let redraw = null;
 let screen = 'start'; // いまの画面(start / question / explain / result / stats)。左の一覧へ知らせる
-let wide = layoutIsWide(location.search); // 左の一覧が常に見える広い画面か(外側が知らせる)。広いときは、モードと難易度を右に重ねて出さない
 const inFrame = window.parent !== window; // 親(外側)がなければ(?pane=main を直接開いたとき)、親への通信は黙って省く
+let wide = inFrame && layoutIsWide(location.search); // 左の一覧が常に見える広い画面か(外側が知らせる)。親がなければ、左がないので false
 
 function loadStats() {
   try {
@@ -4201,6 +4207,23 @@ function publishState() {
 
 // 左の一覧からの命令。いまの画面に合わないものは、黙って捨てる(古い操作が遅れて届いても壊れないように)
 function handleNavCommand(cmd) {
+  // 描画直後のクリック(ダブルクリックの2回目)が、描き直された別の項目に当たらないようにする
+  if (navCommandIgnored(cmd, performance.now() - shownAt, CLICK_GUARD_MS)) return;
+  const before = screen;
+  runNavCommand(cmd);
+  // 画面を切り替える命令のあと(広い画面でも)、右の本体へフォーカスを移す
+  if (cmd.cmd !== 'difficulty' && (screen !== before || cmd.cmd === 'goto')) focusMainHeading();
+}
+
+// 画面の見出し(なければ問題文、答え合わせの結果)へフォーカスを移す。キーボードと読み上げの位置を、新しい画面の先頭にそろえる
+function focusMainHeading() {
+  const target = app.querySelector('h1, .q, .result');
+  if (!target) return;
+  target.setAttribute('tabindex', '-1');
+  target.focus();
+}
+
+function runNavCommand(cmd) {
   const idle = screen === 'start' || screen === 'result' || screen === 'stats';
   if (cmd.cmd === 'top') {
     if (screen !== 'start') showStart();
@@ -4391,7 +4414,7 @@ function runHost() {
         if (lastState) toNav(frameMessage('state', { state: lastState }));
       } else if (m.type === 'command') {
         toMain(frameMessage('command', { command: m.command }));
-        if (commandClosesMenu(m.command) && !wideQuery.matches) setOpen(false, 'main'); // 広い画面では、左のまま
+        if (commandClosesMenu(m.command)) setOpen(false, 'main'); // 広い画面でも、右の本体へフォーカスを移す
       } else if (m.type === 'close') {
         if (open) setOpen(false, 'button');
       }

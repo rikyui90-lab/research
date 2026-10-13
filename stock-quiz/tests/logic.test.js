@@ -3589,3 +3589,11 @@ test('フレーム: Google アナリティクスは、外側(クエリなし・�
   assert.ok(html.includes("window.top === window.self && !location.search.includes('pane=')"));
   assert.ok(html.includes('G-EMJMH8CBZF'));
 });
+
+test('フレーム: 描画直後の命令は捨てる(難易度だけは捨てない)', () => {
+  for (const c of [{ cmd: 'start', mode: 'term' }, { cmd: 'stats' }, { cmd: 'top' }, { cmd: 'goto', index: 1 }]) {
+    assert.equal(L.navCommandIgnored(c, 100, 400), true, c.cmd);
+    assert.equal(L.navCommandIgnored(c, 400, 400), false, c.cmd);
+  }
+  assert.equal(L.navCommandIgnored({ cmd: 'difficulty', value: 'easy' }, 0, 400), false);
+});

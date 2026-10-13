@@ -28,7 +28,8 @@ if (window.top === window.self && !location.search.includes('pane=')) {
   --line: #8b93ff; --ma-short: #f0997b; --ma-mid: #5dcaa5; --ma-long: #afa9ec; --up: #f09595; --down: #85b7eb; --cont: #f09595;
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-anchor: none; } /* 描き直しのとき、ブラウザが勝手にスクロール位置をずらさない */
+body { overflow-anchor: none; }
 body { margin: 0; color: var(--text); line-height: 1.75; min-height: 100vh;
   background: radial-gradient(900px 420px at 85% -80px, var(--accent-soft), transparent 70%),
     linear-gradient(180deg, var(--bg2) 0%, var(--bg) 360px) var(--bg);
@@ -4203,9 +4204,11 @@ function currentNavState() {
 
 // ボタンの処理で描き直したあと(同期の描画・次のフレームの描画)に、スクロールを一番上に戻す
 function scrollTopAfterRender() {
-  window.scrollTo(0, 0);
-  requestAnimationFrame(() => window.scrollTo(0, 0));
-  setTimeout(() => window.scrollTo(0, 0), 60);
+  const top = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  top();
+  requestAnimationFrame(() => { top(); requestAnimationFrame(top); });
+  // 描き直しやチャートの描画で高さが変わっても、ブラウザの調整で位置がずれたまま残らないようにする
+  for (const ms of [60, 200, 500]) setTimeout(() => { if (window.scrollY !== 0) top(); }, ms);
 }
 
 // 画面か問題が切り替わったら、スクロールバーを一番上に戻す(キー操作など、クリック以外のとき用)
@@ -4352,9 +4355,10 @@ function runNav() {
   // 左のリンクを押したら、左の一覧を一番上に戻す(描き直しのあとにも)
   root.addEventListener('click', (event) => {
     if (!event.target.closest('button, a')) return;
-    window.scrollTo(0, 0);
-    requestAnimationFrame(() => window.scrollTo(0, 0));
-    setTimeout(() => window.scrollTo(0, 0), 60);
+    const top = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    top();
+    requestAnimationFrame(() => { top(); requestAnimationFrame(top); });
+    for (const ms of [60, 200, 500]) setTimeout(() => { if (window.scrollY !== 0) top(); }, ms);
   });
   let lastJson = '';
   const send = (type, payload) => sendTo(window.parent, frameMessage(type, payload));

@@ -68,6 +68,11 @@ h1.title span { background: linear-gradient(90deg, var(--accent), var(--accent2)
 .step b { font-size: 16px; font-weight: 700; }
 .step i { font-style: normal; font-size: 14px; font-weight: 700; }
 .step.todo { border-style: dashed; }
+.step-btn { all: unset; box-sizing: border-box; width: 100%; display: flex; flex-direction: column; align-items: center; cursor: pointer;
+  line-height: 1.3; min-height: 44px; justify-content: center; border-radius: 7px; }
+.step-btn:hover { background: var(--accent-soft); }
+.step-btn:focus-visible { outline: 3px solid #ffd60a; outline-offset: 1px; box-shadow: 0 0 0 5px #000; }
+.prev-row { margin: -4px 0 8px; }
 .step.ok { background: var(--good-bg); border-color: var(--good-edge); color: var(--good); }
 .step.ng { background: var(--bad-bg); border-color: var(--bad-edge); color: var(--bad); }
 .step.now { border: 2px solid var(--accent); color: var(--text); padding: 1px 0 2px; }
@@ -4014,9 +4019,21 @@ function progressSteps(shown) {
     const state = i === shown ? 'now' : r ? (r.correct ? 'ok' : 'ng') : 'todo';
     const mark = i === shown ? '▶' : r ? (r.correct ? '○' : '×') : '・';
     const label = `${i + 1}問目 ${i === shown ? 'いま' : r ? (r.correct ? '正解' : '不正解') : 'まだ'}`;
-    return `<li class="step ${state}"${i === shown ? ' aria-current="step"' : ''} aria-label="${label}"><b>${i + 1}</b><i aria-hidden="true">${mark}</i></li>`;
+    const inner = `<b>${i + 1}</b><i aria-hidden="true">${mark}</i>`;
+    // 解いた問題・いまの問題は、押すとその問題に移れる(まだ解いていない問題と、いま見ている問題は押せない)
+    const reachable = i !== shown && i <= game.index && i < game.deck.length;
+    const body = reachable ? `<button class="step-btn" data-step="${i}" aria-label="${label}(押すと移動)">${inner}</button>` : inner;
+    return `<li class="step ${state}"${i === shown ? ' aria-current="step"' : ''}${reachable ? '' : ` aria-label="${label}"`}>${body}</li>`;
   }).join('');
-  return `<ol class="steps" aria-label="進み具合">${items}</ol>`;
+  const prev = shown > 0 ? `<div class="prev-row"><button class="link" id="prev-q">← 前の問題へ</button></div>` : '';
+  return `<ol class="steps" aria-label="進み具合">${items}</ol>${prev}`;
+}
+
+// 「1〜10」の進捗と「前の問題へ」のボタンを動かす(回答済みの問題は、成績に数えずに見返せる)
+function bindStepNav() {
+  app.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', guarded(() => gotoQuestion(Number(b.dataset.step)))));
+  const prev = document.getElementById('prev-q');
+  if (prev) prev.addEventListener('click', guarded(() => gotoQuestion(game.shown - 1)));
 }
 
 // ---- チャートの描画 ----
@@ -4348,6 +4365,7 @@ function showQuestion() {
   if (hasChart) drawQuestionChart(q, false);
   else redraw = null;
   bindLeave();
+  bindStepNav();
   app.querySelectorAll('[data-i]').forEach((b) =>
     b.addEventListener('click', guarded(() => answer(q, q.choices[Number(b.dataset.i)]))));
   shownAt = performance.now();
@@ -4370,7 +4388,7 @@ function showExplain(q, picked, correct, review = false) {
   game.shown = review ? game.deck.indexOf(q) : game.index;
   const hasChart = q.type === 'pattern' || q.type === 'candle';
   const last = game.index === game.deck.length - 1;
-  const nextLabel = review ? 'いまの問題に戻る' : (last ? '結果を見る' : '次の問題へ');
+  const nextLabel = review ? (game.index >= game.deck.length ? '結果に戻る' : 'いまの問題に戻る') : (last ? '結果を見る' : '次の問題へ');
   const stat = q.type === 'pattern' && q.outlook === 'either' ? outlookStatInfo(q.patternId) : null;
   const tendency = q.type === 'pattern'
     ? `<p class="tendency">この後の値動き: ${esc(stat ? stat.line : OUTLOOK_LABELS[q.outlook])}</p>`
@@ -4397,7 +4415,9 @@ function showExplain(q, picked, correct, review = false) {
   else if (q.type === 'forecast') drawExampleCharts(q);
   else redraw = null;
   bindLeave();
-  const onNext = review ? () => gotoQuestion(game.index) : () => next();
+  bindStepNav();
+  const finished = game.index >= game.deck.length; // 結果画面から見返しているとき
+  const onNext = review ? (finished ? () => showResult(summarizeRound(game.results)) : () => gotoQuestion(game.index)) : () => next();
   document.getElementById('next').addEventListener('click', guarded(onNext));
   const nextTop = document.getElementById('next-top');
   if (nextTop) nextTop.addEventListener('click', guarded(onNext));
@@ -4455,6 +4475,7 @@ function showResult(summary) {
       ${game.retry ? '' : '<button id="copy">結果をコピー</button>'}
       <button id="top">トップへ戻る</button>
     </div>
+    <p><button class="link" id="back-last">← 最後の問題に戻る</button></p>
     <p class="note" id="copy-note"></p>`;
   const retryEl = document.getElementById('retry');
   if (retryEl) retryEl.addEventListener('click', guarded(() => {
@@ -4465,6 +4486,7 @@ function showResult(summary) {
   document.getElementById('again').addEventListener('click', guarded(() => startGame(game.mode)));
   shownAt = performance.now(); // 直前のダブルクリックの2回目で、やり直しや新ラウンドが始まらないようにする
   document.getElementById('top').addEventListener('click', showStart);
+  document.getElementById('back-last').addEventListener('click', guarded(() => gotoQuestion(game.deck.length - 1)));
   const copyEl = document.getElementById('copy');
   if (copyEl) copyEl.addEventListener('click', () =>
     copyResult(formatShareText(game.mode, summary.correct, summary.total, game.difficulty)));
@@ -4506,7 +4528,7 @@ function receive(event, expectedSource) {
 function currentNavState() {
   const base = { screen, difficulty };
   if ((screen === 'question' || screen === 'explain') && game) {
-    return { ...base, round: { retry: !!game.retry, total: game.deck.length, results: game.results.map((r) => r.correct), index: game.index, shown: game.shown } };
+    return { ...base, round: { retry: !!game.retry, total: game.deck.length, results: game.results.map((r) => r.correct), index: Math.min(game.index, game.deck.length - 1), shown: game.shown } };
   }
   return { ...base, modes: modeEntries(stats, difficulty) };
 }

@@ -284,9 +284,9 @@ test('CANDLE_PATTERNS: 50個(既存30+追加20)で、ローソク足の値が矛
   }
 });
 
-test('TERMS: 120個(既存40+追加80)で、id が重複せず、間違いの選択肢が3つある', () => {
-  assert.equal(L.TERMS.length, 120);
-  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 120);
+test('TERMS: 170個(既存40+v5の80+v8の50)で、id が重複せず、間違いの選択肢が3つある', () => {
+  assert.equal(L.TERMS.length, 170);
+  assert.equal(new Set(L.TERMS.map((t) => t.id)).size, 170);
   for (const t of L.TERMS) {
     assert.equal(t.wrongs.length, 3, t.id);
     assert.ok(!t.wrongs.includes(t.answer), t.id);
@@ -474,12 +474,12 @@ test('buildDeck(seen): 出題済みを避けて10問出す。同じシードな�
 });
 
 test('buildDeck(seen): 未出題が足りないときは、出題済みで埋める(未出題が先)', () => {
-  const ids = L.poolIds('term', 'expert'); // 20問
-  assert.equal(ids.length, 20);
-  const seen = new Set(ids.slice(0, 17)); // 未出題は3問だけ
+  const ids = L.poolIds('term', 'expert'); // 30問
+  assert.equal(ids.length, 30);
+  const seen = new Set(ids.slice(0, 27)); // 未出題は3問だけ
   const deck = L.buildDeck('term', 3, 'expert', seen);
   assert.equal(deck.length, 10);
-  const unseenIds = ids.slice(17);
+  const unseenIds = ids.slice(27);
   assert.deepEqual(deck.slice(0, 3).map((q) => q.id).sort(), unseenIds.slice().sort());
   assert.ok(deck.slice(3).every((q) => seen.has(q.id)));
 });
@@ -492,7 +492,7 @@ test('refreshSeen: 範囲が全部出題済みなら、その範囲だけ消す�
   assert.ok(ids.every((id) => !next.has(id)));
   assert.ok(next.has(other), 'ほかの範囲の印は残る');
   assert.ok(all.has(ids[0]), '元の集合は変わらない');
-  const partial = new Set(ids.slice(0, 19));
+  const partial = new Set(ids.slice(0, 29));
   assert.equal(L.refreshSeen(partial, 'term', 'expert'), partial);
   assert.equal(L.refreshSeen(new Set(), 'term', 'expert').size, 0);
 });
@@ -1205,6 +1205,15 @@ const LEVEL_TABLE = {
 };
 // 用語の表には、追加の80問も足す
 for (const level of Object.keys(NEW80)) LEVEL_TABLE.terms[level].push(...NEW80[level].term, ...NEW80[level].technical);
+// v8 で足した50問(テクニカル分析の問題集から。難易度ごとの id)
+const NEW50 = {
+  easy: ['bullish-candle', 'combine-indicators'],
+  normal: ['trend-indicator', 'dead-cross-term', 'macd-two-lines', 'rsi-overbought-level', 'volume-indicators', 'volume-golden-cross', 'false-signal', 'trend-indicator-weak-range', 'indicator-period-short', 'volume-surge-big-bullish', 'volume-fade-at-highs', 'ma-slope-pullback', 'ma-200day', 'gap-up-earnings', 'rsi-50-line', 'thin-volume-after-limit-up', 'stop-loss-rule'],
+  hard: ['ema-term', 'macd-default-setting', 'macd-histogram', 'bollinger-2sigma-probability', 'envelope-term', 'psychological-line-level', 'pivot-term', 'obv-term', 'bollinger-squeeze', 'bb-plus2sigma-reversal', 'ichimoku-sanyaku-gyakuten', 'envelope-lower-band', 'stochastics-low-cross', 'macd-zero-line', 'macd-histogram-flip', 'lagging-span', 'band-walk', 'rsi-macd-combo'],
+  expert: ['slow-stochastics', 'adx-line', 'mfi-term', 'ad-line-accumulation', 'percent-b', 'adx-peak', 'cci-below-100', 'ichimoku-cloud-twist', 'williams-r', 'granville-buy-1'],
+  master: ['dema-term', 'aroon', 'rci-high-zone'],
+};
+for (const level of Object.keys(NEW50)) LEVEL_TABLE.terms[level].push(...NEW50[level]);
 
 test('下影陽線 / 上影陰線: 実体が値幅の30〜50%で、ヒゲが実体より長い', () => {
   const [a] = candleOf('lower-shadow-bullish');
@@ -1338,7 +1347,7 @@ test('新規10個のローソク足: 問題が有効で難易度が表どおり�
 test('新規の用語20問: 難易度どおりで、問題が validateQuestion を通る', () => {
   const newIds = [];
   for (const level of L.DIFFICULTY_LEVELS) {
-    const newIds80 = Object.values(NEW80).flatMap((lv) => [...lv.term, ...lv.technical]);
+    const newIds80 = [...Object.values(NEW80).flatMap((lv) => [...lv.term, ...lv.technical]), ...Object.values(NEW50).flat()];
     const added = LEVEL_TABLE.terms[level].filter((id) => !newIds80.includes(id)).filter((id) => ![ 'market-cap', 'volume', 'market-order', 'limit-order', 'dividend-yield', 'diversification', 'nisa', 'per', 'pbr', 'earnings', 'nikkei-225', 'moving-average', 'golden-cross-term', 'limit-up', 'roe', 'stop-order', 'short-selling', 'margin-trading', 'record-date', 'ex-rights'].includes(id));
     assert.equal(added.length, 4, level);
     for (const id of added) {
@@ -1395,8 +1404,8 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
     pattern: { easy: 10, normal: 10, hard: 10, expert: 10, master: 10 },
     // ローソク足も、どの難易度も10種類(v6 で 30 → 50 種類にした)
     candle: { easy: 10, normal: 10, hard: 10, expert: 10, master: 10 },
-    // 用語は、v4 までの40問(11/11/10/4/4)に追加の80問(各16)を足した数。内容を足したらここも直す
-    term: { easy: 27, normal: 27, hard: 26, expert: 20, master: 20 },
+    // 用語は、v4 までの40問(11/11/10/4/4)に v5 の80問(各16)と v8 の50問(2/17/18/10/3)を足した数。内容を足したらここも直す
+    term: { easy: 29, normal: 44, hard: 44, expert: 30, master: 23 },
     // 株価予想は、どの難易度も4問(20問)。内容を足したらここも直す
     forecast: { easy: 4, normal: 4, hard: 4, expert: 4, master: 4 },
   };
@@ -1407,8 +1416,8 @@ test('モード×難易度の問題数: どの組み合わせも1問以上で、
       if (expected[mode]) assert.equal(n, expected[mode][level], `${mode}/${level}`);
     }
   }
-  // all モード: 用語 + ローソク足10 + チャートの形状10 + 株価予想4(内容に依存する数)。expert / master は 20+10+10+4 = 44
-  const allExpected = { easy: 51, normal: 51, hard: 50, expert: 44, master: 44 };
+  // all モード: 用語 + ローソク足10 + チャートの形状10 + 株価予想4(内容に依存する数)。easy は 29+10+10+4 = 53(v8 で用語を50問足した後の数)
+  const allExpected = { easy: 53, normal: 68, hard: 68, expert: 54, master: 47 };
   for (const level of L.DIFFICULTY_LEVELS) assert.equal(L.buildPool('all', L.createRng(1), level).length, allExpected[level], `all/${level}`);
 });
 
@@ -1849,10 +1858,10 @@ const countChars = (s) => [...s].length;
 const countSentences = (s) => (s.match(/。/g) || []).length;
 const FORBIDDEN_WORDS = ['必ず', '絶対', '買うべき', '売るべき'];
 
-test('detail の網羅: 形状50・ローソク足50・用語120の全220項目に、空でない detail がある', () => {
+test('detail の網羅: 形状50・ローソク足50・用語170の全270項目に、空でない detail がある', () => {
   assert.equal(L.PATTERNS.length, 50);
   assert.equal(L.CANDLE_PATTERNS.length, 50);
-  assert.equal(L.TERMS.length, 120);
+  assert.equal(L.TERMS.length, 170);
   for (const x of [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS]) {
     assert.equal(typeof x.detail, 'string', x.id);
     assert.ok(x.detail.trim().length > 0, x.id);
@@ -1875,8 +1884,8 @@ test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の�
   const oldTermIds = L.TERMS.slice(0, 40).map((x) => x.id);
   assert.deepEqual(Object.keys(D.terms).sort(), oldTermIds.slice().sort());
   assert.equal(Object.keys(D.patterns).length + Object.keys(D.candles).length + Object.keys(D.terms).length, 100);
-  const newIds = Object.values(NEW80).flatMap((lv) => [...lv.term, ...lv.technical]);
-  assert.equal(newIds.length, 80);
+  const newIds = [...Object.values(NEW80).flatMap((lv) => [...lv.term, ...lv.technical]), ...Object.values(NEW50).flat()];
+  assert.equal(newIds.length, 130);
   for (const id of newIds) {
     assert.ok(!(id in D.terms) && !(id in D.patterns) && !(id in D.candles), `${id} は DETAIL_BY_ID に入れない`);
     const t = L.TERMS.find((x) => x.id === id);
@@ -1888,9 +1897,9 @@ test('DETAIL_BY_ID: 既存の100項目(形状30・ローソク足30・用語の�
   }
 });
 
-test('detail の質: 120〜250字・2〜4文・「。」で終わり、220個すべて違う文', () => {
+test('detail の質: 120〜250字・2〜4文・「。」で終わり、270個すべて違う文', () => {
   const all = [...L.PATTERNS, ...L.CANDLE_PATTERNS, ...L.TERMS];
-  assert.equal(all.length, 220);
+  assert.equal(all.length, 270);
   for (const x of all) {
     const n = countChars(x.detail);
     assert.ok(n >= 120 && n <= 250, `${x.id}: ${n}字`);
@@ -1898,7 +1907,7 @@ test('detail の質: 120〜250字・2〜4文・「。」で終わり、220個す
     assert.ok(s >= 2 && s <= 4, `${x.id}: ${s}文`);
     assert.ok(x.detail.endsWith('。'), x.id);
   }
-  assert.equal(new Set(all.map((x) => x.detail)).size, 220);
+  assert.equal(new Set(all.map((x) => x.detail)).size, 270);
 });
 
 test('detail の質: explanation と同じ・explanation を含む detail はなく、断定や助言の言葉を使わない', () => {
@@ -1941,7 +1950,7 @@ test('形状の問題は、パターン定義の detail を使う', () => {
 });
 
 test('追加の用語80問: id が重複せず既存の40問と重ならず、category は term か technical', () => {
-  const added = L.TERMS.slice(40);
+  const added = L.TERMS.slice(40, 120);
   assert.equal(added.length, 80);
   const oldIds = new Set(L.TERMS.slice(0, 40).map((t) => t.id));
   assert.equal(new Set(added.map((t) => t.id)).size, 80);
@@ -1958,7 +1967,7 @@ test('追加の用語80問: 各難易度にちょうど用語10問+テクニカ�
     const { term, technical } = NEW80[level];
     assert.equal(term.length, 10, level);
     assert.equal(technical.length, 6, level);
-    const inLevel = L.TERMS.slice(40).filter((t) => t.difficulty === level);
+    const inLevel = L.TERMS.slice(40, 120).filter((t) => t.difficulty === level);
     assert.deepEqual(inLevel.map((t) => t.id).sort(), [...term, ...technical].sort(), level);
     assert.deepEqual(inLevel.filter((t) => t.category === 'term').map((t) => t.id).sort(), term.slice().sort(), `${level} 用語`);
     assert.deepEqual(inLevel.filter((t) => t.category === 'technical').map((t) => t.id).sort(), technical.slice().sort(), `${level} テクニカル`);
@@ -1973,7 +1982,7 @@ test('追加の用語80問: 各難易度にちょうど用語10問+テクニカ�
 });
 
 test('追加の用語80問: 選択肢は4つで重複せず、解説は1〜2文', () => {
-  for (const t of L.TERMS.slice(40)) {
+  for (const t of L.TERMS.slice(40, 120)) {
     assert.equal(t.wrongs.length, 3, t.id);
     assert.equal(new Set([t.answer, ...t.wrongs]).size, 4, t.id);
     assert.ok(!t.wrongs.includes(t.answer), t.id);
@@ -1986,7 +1995,7 @@ test('追加の用語80問: 選択肢は4つで重複せず、解説は1〜2文'
 test('追加の用語80問: 正解が選択肢の中で唯一いちばん長い問題は、全体で24問以内・各難易度で7問以内', () => {
   // 上限は内容に依存する数。現状は全体20問・各難易度の最大6問。問題を足す・直すときは実数を見て直す
   const isStrictlyLongest = (t) => countChars(t.answer) > Math.max(...t.wrongs.map(countChars));
-  const added = L.TERMS.slice(40);
+  const added = L.TERMS.slice(40, 120);
   const longest = added.filter(isStrictlyLongest);
   assert.ok(longest.length <= 24, `全体 ${longest.length} 問: ${longest.map((t) => t.id).join(',')}`);
   for (const level of L.DIFFICULTY_LEVELS) {
@@ -1996,7 +2005,7 @@ test('追加の用語80問: 正解が選択肢の中で唯一いちばん長い�
 });
 
 test('追加の用語80問: どの項目から作った問題も validateQuestion を通り、difficulty と detail を持つ', () => {
-  for (const t of L.TERMS.slice(40)) {
+  for (const t of L.TERMS.slice(40, 120)) {
     for (let seed = 1; seed <= 5; seed++) {
       const q = L.makeTermQuestion(t, L.createRng(seed));
       assert.equal(L.validateQuestion(q), null, t.id);
@@ -2005,6 +2014,57 @@ test('追加の用語80問: どの項目から作った問題も validateQuestio
       assert.ok(q.detail.length > 0, t.id);
     }
   }
+});
+
+// ---- v8: テクニカル分析の問題集から足した50問 ----
+test('v8 の用語50問: TERMS の末尾にあり、id が重複せず、表と一致し、難易度の内訳は 2/17/18/10/3', () => {
+  const added = L.TERMS.slice(120);
+  assert.equal(added.length, 50);
+  assert.equal(new Set(added.map((t) => t.id)).size, 50);
+  const oldIds = new Set(L.TERMS.slice(0, 120).map((t) => t.id));
+  for (const t of added) {
+    assert.ok(!oldIds.has(t.id), t.id);
+    assert.ok(['term', 'technical'].includes(t.category), t.id);
+  }
+  const counts = { easy: 2, normal: 17, hard: 18, expert: 10, master: 3 };
+  for (const level of L.DIFFICULTY_LEVELS) {
+    const inLevel = added.filter((t) => t.difficulty === level).map((t) => t.id).sort();
+    assert.deepEqual(inLevel, NEW50[level].slice().sort(), level);
+    assert.equal(inLevel.length, counts[level], level);
+  }
+});
+
+test('v8 の用語50問: 選択肢4つ・解説1〜2文・detail は自分で持ち DETAIL_BY_ID にない・validateQuestion を通る', () => {
+  for (const t of L.TERMS.slice(120)) {
+    assert.equal(new Set([t.answer, ...t.wrongs]).size, 4, t.id);
+    assert.equal(t.wrongs.length, 3, t.id);
+    const s = countSentences(t.explanation);
+    assert.ok(s >= 1 && s <= 2, `${t.id}: 解説${s}文`);
+    assert.ok(t.question.includes('?'), t.id); // 場面の問題は「」を持たない・補足の括弧で終わるものもある
+    assert.ok(!(t.id in L.DETAIL_BY_ID.terms), t.id);
+    for (let seed = 1; seed <= 5; seed++) {
+      const q = L.makeTermQuestion(t, L.createRng(seed));
+      assert.equal(L.validateQuestion(q), null, t.id);
+      assert.equal(q.detail, t.detail, t.id);
+    }
+  }
+});
+
+test('v8 の用語50問: 紛らわしい組(CONFUSABLE_PAIRS)の id がすべて実在し、重複した組がない', () => {
+  const ids = new Set([...L.TERMS, ...L.PATTERNS, ...L.CANDLE_PATTERNS].map((x) => x.id));
+  const seen = new Set();
+  for (const [a, b] of L.CONFUSABLE_PAIRS) {
+    assert.ok(ids.has(a) && ids.has(b), `${a} / ${b}`);
+    const k = [a, b].sort().join('|');
+    assert.ok(!seen.has(k), `重複 ${k}`);
+    seen.add(k);
+  }
+});
+
+test('v8 の用語50問: 正解が選択肢の中で唯一いちばん長い問題は、50問中 10 問以内', () => {
+  // 上限は内容に依存する数。問題を足す・直すときは実数を見て直す
+  const longest = L.TERMS.slice(120).filter((t) => countChars(t.answer) > Math.max(...t.wrongs.map(countChars)));
+  assert.ok(longest.length <= 10, `${longest.length} 問: ${longest.map((t) => t.id).join(',')}`);
 });
 
 // ---- 価格の目盛り(チャートの形状) ----
@@ -3128,9 +3188,9 @@ test('株価予想: プール・出題・難易度の絞り込み・全部まぜ
   const deck = LF.buildDeck('forecast', 5, 'normal');
   assert.deepEqual(deck.map((q) => q.id), ['forecast:per-low']);
   assert.equal(LF.validateQuestion(deck[0]), null);
-  // 全部まぜの候補にも入る(チャートの形50 + ローソク足50 + 用語120 + 株価予想1)
-  assert.equal(LF.buildPool('all', LF.createRng(1)).length, 221);
-  assert.equal(LF.buildPool('all', LF.createRng(1), 'normal').length, 48);
+  // 全部まぜの候補にも入る(チャートの形50 + ローソク足50 + 用語170 + 株価予想1)
+  assert.equal(LF.buildPool('all', LF.createRng(1)).length, 271);
+  assert.equal(LF.buildPool('all', LF.createRng(1), 'normal').length, 65);
   assert.ok(LF.buildPool('all', LF.createRng(1)).some((q) => q.type === 'forecast'));
   // 株価予想を足しても、ほかのモードの出題(順番と乱数の消費)は変わらない
   for (const mode of ['pattern', 'candle', 'term']) {

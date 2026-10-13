@@ -4263,7 +4263,7 @@ function focusMainHeading() {
   const target = app.querySelector('h1, .q, .result');
   if (!target) return;
   target.setAttribute('tabindex', '-1');
-  target.focus();
+  target.focus({ preventScroll: true }); // フォーカスでページが勝手にスクロールしないように(一番上に戻す処理を邪魔しない)
 }
 
 function runNavCommand(cmd) {

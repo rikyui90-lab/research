@@ -2062,7 +2062,7 @@ test('v8 の用語50問: 紛らわしい組(CONFUSABLE_PAIRS)の id がすべて
 });
 
 test('v8 の用語50問: 正解が選択肢の中で唯一いちばん長い問題は、50問中 10 問以内', () => {
-  // 上限は内容に依存する数。問題を足す・直すときは実数を見て直す
+  // 上限は内容に依存する数。現状は4問。問題を足す・直すときは実数を見て直す
   const longest = L.TERMS.slice(120).filter((t) => countChars(t.answer) > Math.max(...t.wrongs.map(countChars)));
   assert.ok(longest.length <= 10, `${longest.length} 問: ${longest.map((t) => t.id).join(',')}`);
 });

@@ -3752,3 +3752,13 @@ test('時事問題: 「今日」を決めると、期間の内の問題だけが
   assert.equal(pool.length, 1);
   assert.equal(L.validateQuestion(pool[0]), null);
 });
+
+test('categoryLabel: 問題の種類ごとにカテゴリ名を返す(画面の「カテゴリ」に出す)', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.ok(html.includes('カテゴリ: <b>'));
+  const want = { pattern: 'チャートの形状', candle: 'ローソク足', term: '用語', forecast: '株価予想', news: '時事' };
+  for (const [type, label] of Object.entries(want)) assert.equal(L.categoryLabel({ type }), label);
+  assert.equal(L.categoryLabel({ type: 'unknown' }), '');
+  // 実際に出る問題のカテゴリは、すべて名前がある
+  for (const q of L.buildPool('all', L.createRng(1))) assert.ok(L.categoryLabel(q), q.id);
+});

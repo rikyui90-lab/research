@@ -4366,7 +4366,7 @@ function bindStepNav() {
   const prev = document.getElementById('prev-q');
   if (prev) prev.addEventListener('click', guarded(() => showQuestionReadonly(game.shown - 1))); // 問題の画面の「前の問題へ」は、前の問題の「問題の画面」へ
   const nowQ = document.getElementById('now-q');
-  if (nowQ) nowQ.addEventListener('click', guarded(showQuestionReadonly));
+  if (nowQ) nowQ.addEventListener('click', guarded(() => showQuestionReadonly())); // クリックのイベントを、問題の番号として渡さない
   const back = document.getElementById('back-now');
   if (back) back.addEventListener('click', guarded(() => (game.index >= game.deck.length ? showResult(summarizeRound(game.results)) : gotoQuestion(game.index))));
 }

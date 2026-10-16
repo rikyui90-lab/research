@@ -3772,7 +3772,8 @@ test('答え合わせの画面は、必ず「今の問題へ」を出し、問�
   assert.ok(html.includes("reviewing ? 'back-now' : 'now-q'"));
   assert.ok(html.includes('} else if (shown > 0) {')); // 問題の画面だけ「前の問題へ」
   // 答えたあとの今の問題の画面: 選択肢は押せない。答え直せないので、採点は増えない
-  assert.ok(html.includes('function showQuestionReadonly()'));
+  assert.ok(html.includes('function showQuestionReadonly(i = game.index)'));
+  assert.ok(html.includes('guarded(() => showQuestionReadonly())')); // イベントを問題の番号として渡さない
   assert.ok(html.includes('class="choice" disabled aria-disabled="true"'));
   assert.ok(html.includes("getElementById('now-q')"));
 });

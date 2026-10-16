@@ -4,6 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>カブレベル</title>
+<meta name="description" content="チャートの形・ローソク足・用語・株価予想を、クイズで学べる無料の株クイズ。登録なしで、スマホからすぐ遊べるよ。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="カブレベル">
+<meta property="og:title" content="カブレベル ― 株クイズ">
+<meta property="og:description" content="チャートの形・ローソク足・用語・株価予想を、クイズで学ぼう。無料・登録なし。">
+<meta property="og:url" content="https://rikyui90-lab.github.io/research/stock-quiz/">
+<meta property="og:image" content="https://rikyui90-lab.github.io/research/stock-quiz/images/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#060914">
+<link rel="canonical" href="https://rikyui90-lab.github.io/research/stock-quiz/">
+<link rel="icon" href="images/stamp.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <!-- Google アナリティクス(測定ID: G-EMJMH8CBZF)。外側のページ(クエリなし)でだけ読む。左右の iframe でも読むと、数が3重になるため -->
 <script>
 if (window.top === window.self && !location.search.includes('pane=')) {
@@ -119,6 +133,11 @@ button:active { transform: translateY(0) scale(.99); }
 button:focus-visible { outline: 3px solid #ffd43d; outline-offset: 2px; box-shadow: 0 0 0 2px #000; }
 button small { display: block; color: var(--muted); font-size: 14px; font-weight: 400; margin-top: 2px; }
 .choice { font-weight: 600; font-size: 16px; }
+a.sharebtn { display: block; font: inherit; font-size: 16px; text-align: left; text-decoration: none; color: var(--text);
+  background: var(--card); border: 1px solid var(--border-ui); border-radius: 14px; padding: 14px 16px; min-height: 44px; box-shadow: var(--shadow);
+  -webkit-tap-highlight-color: transparent; }
+a.sharebtn:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); }
+a.sharebtn:focus-visible { outline: 3px solid #ffd43d; outline-offset: 2px; box-shadow: 0 0 0 2px #000; }
 button.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--on-accent); border-color: transparent;
   text-align: center; width: 100%; margin-top: 8px; font-weight: 700; font-size: 16px;
   box-shadow: 0 6px 16px rgba(79, 70, 229, .32); }
@@ -3637,6 +3656,16 @@ function parseStats(text) {
   return stats;
 }
 
+// 結果を X・LINE に共有するリンク(text は formatShareText の文)
+const SHARE_URL = 'https://rikyui90-lab.github.io/research/stock-quiz/';
+function buildShareLinks(text, url = SHARE_URL) {
+  const u = encodeURIComponent(url);
+  return {
+    x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${text} #カブレベル`)}&url=${u}`,
+    line: `https://social-plugins.line.me/lineit/share?url=${u}&text=${encodeURIComponent(text)}`,
+  };
+}
+
 function formatShareText(mode, correct, total, difficulty = 'all') {
   const label = difficulty === 'all' ? MODE_LABELS[mode] : `${MODE_LABELS[mode]}・${DIFFICULTY_LABELS[difficulty]}`;
   return `カブレベル(${label})で ${total}問中${correct}問正解!`;
@@ -4461,6 +4490,7 @@ function showResult(summary) {
   screen = 'result';
   const wrong = summary.wrong.map((r) =>
     `<li>${starsBadge(r.difficulty)}${esc(r.question)} 正解: ${esc(r.answer)}(あなたの答え: ${esc(r.picked)})</li>`).join('');
+  const shareLinks = buildShareLinks(formatShareText(game.mode, summary.correct, summary.total, game.difficulty));
   const retryLabel = game.retry ? 'まだ間違えた問題をやり直す' : '間違えた問題だけやり直す';
   const retryBtn = summary.wrong.length
     ? `<button class="primary" id="retry">${retryLabel}(${summary.wrong.length}問)</button>` : '';
@@ -4472,7 +4502,9 @@ function showResult(summary) {
     <div class="actions">
       ${retryBtn}
       <button class="${retryBtn ? '' : 'primary'}" id="again">${game.retry ? '新しいラウンドを始める' : 'もう一度'}</button>
-      ${game.retry ? '' : '<button id="copy">結果をコピー</button>'}
+      ${game.retry ? '' : `<a class="sharebtn" id="share-x" href="${shareLinks.x}" target="_blank" rel="noopener noreferrer">Xで結果を共有する</a>
+      <a class="sharebtn" id="share-line" href="${shareLinks.line}" target="_blank" rel="noopener noreferrer">LINEで結果を共有する</a>
+      <button id="copy">結果をコピー</button>`}
       <button id="top">トップへ戻る</button>
     </div>
     <p><button class="link" id="back-last">← 最後の問題に戻る</button></p>

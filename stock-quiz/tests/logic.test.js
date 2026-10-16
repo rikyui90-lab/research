@@ -3520,11 +3520,11 @@ const navRound = (over = {}) => ({
 });
 
 test('フレーム: 命令の検査(正しい形だけ通す)', () => {
-  assert.deepEqual(L.sanitizeNavCommand({ cmd: 'start', mode: 'term', extra: 1 }), { cmd: 'start', mode: 'term' });
-  assert.equal(L.sanitizeNavCommand({ cmd: 'start', mode: 'all' }), null); // 全部まぜは画面から外している
-  assert.equal(L.sanitizeNavCommand({ cmd: 'start', mode: 'x' }), null);
-  assert.deepEqual(L.sanitizeNavCommand({ cmd: 'difficulty', value: 'hard' }), { cmd: 'difficulty', value: 'hard' });
-  assert.equal(L.sanitizeNavCommand({ cmd: 'difficulty', value: 'x' }), null);
+  assert.deepEqual(L.sanitizeNavCommand({ cmd: 'category', mode: 'term', extra: 1 }), { cmd: 'category', mode: 'term' });
+  assert.equal(L.sanitizeNavCommand({ cmd: 'category', mode: 'all' }), null); // 全部まぜは画面から外している
+  assert.equal(L.sanitizeNavCommand({ cmd: 'category', mode: 'x' }), null);
+  assert.equal(L.sanitizeNavCommand({ cmd: 'difficulty', value: 'hard' }), null); // 難易度はカテゴリの画面で選ぶ
+  assert.equal(L.sanitizeNavCommand({ cmd: 'start', mode: 'term' }), null);
   assert.deepEqual(L.sanitizeNavCommand({ cmd: 'goto', index: 4 }), { cmd: 'goto', index: 4 });
   for (const bad of [-1, 1.5, '2', 20, null]) assert.equal(L.sanitizeNavCommand({ cmd: 'goto', index: bad }), null, String(bad));
   assert.deepEqual(L.sanitizeNavCommand({ cmd: 'top' }), { cmd: 'top' });
@@ -3532,9 +3532,8 @@ test('フレーム: 命令の検査(正しい形だけ通す)', () => {
   for (const bad of [null, 1, 'top', {}, { cmd: 'eval' }]) assert.equal(L.sanitizeNavCommand(bad), null);
 });
 
-test('フレーム: 難易度の命令だけは、狭い画面のメニューを閉じない', () => {
-  assert.equal(L.commandClosesMenu({ cmd: 'difficulty', value: 'easy' }), false);
-  for (const c of [{ cmd: 'start', mode: 'term' }, { cmd: 'goto', index: 0 }, { cmd: 'top' }, { cmd: 'stats' }]) {
+test('フレーム: どの命令も、狭い画面のメニューを閉じる', () => {
+  for (const c of [{ cmd: 'category', mode: 'term' }, { cmd: 'goto', index: 0 }, { cmd: 'top' }, { cmd: 'stats' }]) {
     assert.equal(L.commandClosesMenu(c), true, c.cmd);
   }
 });
@@ -3578,22 +3577,19 @@ test('フレーム: メッセージの検査(印・版・種類・中身)', () =
   for (const bad of [null, undefined, 'state', 3, []]) assert.equal(L.parseFrameMessage(bad), null);
 });
 
-test('フレーム: スタート画面の左の一覧(難易度・モード・成績)', () => {
+test('フレーム: スタート画面の左の一覧(カテゴリ・成績。難易度は出さない)', () => {
   const { groups } = L.buildNavItems(L.sanitizeNavState(navStart()));
-  assert.deepEqual(groups.map((g) => g.id), ['difficulty', 'modes', 'more']);
-  const diffs = groups[0].items;
-  assert.deepEqual(diffs.map((d) => d.command.value), L.DIFFICULTY_FILTERS);
-  assert.deepEqual(diffs.filter((d) => d.pressed).map((d) => d.command.value), ['all']);
-  assert.ok(diffs.every((d) => d.aria)); // ★だけにせず、読み上げの言葉を付ける
-  const [pattern, term] = groups[1].items;
+  assert.deepEqual(groups.map((g) => g.id), ['modes', 'more']);
+  assert.ok(groups.every((g) => g.items.every((i) => i.kind !== 'difficulty')));
+  const [pattern, term] = groups[0].items;
   assert.equal(pattern.label, 'チャートの形状');
-  assert.deepEqual(pattern.command, { cmd: 'start', mode: 'pattern' });
+  assert.deepEqual(pattern.command, { cmd: 'category', mode: 'pattern' });
   assert.equal(pattern.disabled, false);
   assert.equal(term.disabled, true); // 問題がないモードは押せない
   assert.match(term.sub, /まだないよ/);
-  assert.equal(groups[2].items[0].current, false);
+  assert.equal(groups[1].items[0].current, false);
   const stats = L.buildNavItems(L.sanitizeNavState({ ...navStart(), screen: 'stats' }));
-  assert.equal(stats.groups[2].items[0].current, true);
+  assert.equal(stats.groups[1].items[0].current, true);
 });
 
 test('フレーム: ラウンド中の左の一覧(問1〜問N。回答済みと今の問題だけ押せる)', () => {
@@ -3656,12 +3652,11 @@ test('フレーム: Google アナリティクスは、外側(クエリなし・�
   assert.ok(html.includes('G-EMJMH8CBZF'));
 });
 
-test('フレーム: 描画直後の命令は捨てる(難易度だけは捨てない)', () => {
-  for (const c of [{ cmd: 'start', mode: 'term' }, { cmd: 'stats' }, { cmd: 'top' }, { cmd: 'goto', index: 1 }]) {
+test('フレーム: 描画直後の命令は捨てる', () => {
+  for (const c of [{ cmd: 'category', mode: 'term' }, { cmd: 'stats' }, { cmd: 'top' }, { cmd: 'goto', index: 1 }]) {
     assert.equal(L.navCommandIgnored(c, 100, 400), true, c.cmd);
     assert.equal(L.navCommandIgnored(c, 400, 400), false, c.cmd);
   }
-  assert.equal(L.navCommandIgnored({ cmd: 'difficulty', value: 'easy' }, 0, 400), false);
 });
 
 // ---- 時事問題の枠 ----

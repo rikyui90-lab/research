@@ -3471,10 +3471,10 @@ test('株価予想のデータ: 文章の質(解説1〜2文・くわしく120〜
   }
 });
 
-test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、画面の注記に取得元・調整・週ごとの終値と、選び方の偏りを書く', () => {
+test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、画面の注記に、選び方の偏りを書く(取得元の表示は出さない)', () => {
   assert.equal(L.buildPool('all', L.createRng(1)).filter((q) => q.type === 'forecast').length, 20);
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  assert.ok(html.includes('株価データ: Yahoo Finance(株式分割を調整した、週ごとの終値)'));
+  assert.ok(!html.includes('株価データ: Yahoo Finance')); // 画面には取得元の表示を出さない(2026-10-16に消した)
   assert.ok(!html.includes('Yahoo!ファイナンス'));
   assert.ok(!html.includes('調整後終値'));
   for (const w of ['配当を含まない', 'あらかじめ決めた順', '九州・沖縄', '上場廃止', '上がりやすい時期に偏る', '「一概には言えない」が答えの問いが多いよ']) assert.ok(html.includes(w), w);

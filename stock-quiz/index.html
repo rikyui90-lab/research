@@ -71,6 +71,8 @@ h1.title .ttl-en { font-size: 16px; font-weight: 600; letter-spacing: .05em; col
 .tendency { font-size: 16px; margin: 4px 0 12px; }
 .q { font-size: 17px; font-weight: 700; margin: 14px 0 10px; line-height: 1.6; text-wrap: pretty; }
 .stars { color: var(--star); font-size: 16px; letter-spacing: .12em; white-space: nowrap; }
+.cat { margin: 6px 0 8px; font-size: 16px; color: var(--muted); }
+.cat b { color: var(--text); font-weight: 700; background: var(--accent-soft); border: 1px solid var(--border-ui); border-radius: 999px; padding: 2px 12px; margin-left: 4px; }
 .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 16px; color: var(--muted);
   font-weight: 600; }
 .head > span:first-child, .head > span:last-child { background: var(--card); border: 1px solid var(--border); border-radius: 999px;
@@ -3431,6 +3433,11 @@ function makeTermQuestion(term, rng) {
   };
 }
 
+// 問題のカテゴリ名(問題の種類 type は、モード名と同じ。チャートの形状・ローソク足・用語・株価予想・時事)
+function categoryLabel(q) {
+  return MODE_LABELS[q.type] || '';
+}
+
 // ---- 時事問題 ----
 // 「今日」(YYYY-MM-DD・日本時間)。画面側が起動時に setNewsToday で決める。決まっていないあいだは、時事問題は1つも出ない(テストを日付に左右させないため)
 let NEWS_TODAY = null;
@@ -4192,6 +4199,7 @@ function header(shown = game.index, right = '') {
   const correct = game.results.filter((r) => r.correct).length;
   return `${leaveSlot(right)}<div class="head"><span>${game.retry ? 'やり直し ' : ''}問題 ${Math.min(shown + 1, game.deck.length)} / ${game.deck.length}</span>${starsBadge(game.deck[Math.min(shown, game.deck.length - 1)].difficulty)}<span>正解 ${correct}</span></div>
     <div class="bar"><div style="width:${(done / game.deck.length) * 100}%"></div></div>
+    <p class="cat">カテゴリ: <b>${esc(categoryLabel(game.deck[Math.min(shown, game.deck.length - 1)]))}</b></p>
     ${progressSteps(shown)}`;
 }
 

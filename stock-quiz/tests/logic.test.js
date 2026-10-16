@@ -1556,6 +1556,23 @@ test('formatShareText: 難易度つき', () => {
   assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
 });
 
+test('buildShareLinks: XとLINEの共有リンクに、文とURLが入る(記号は符号化される)', () => {
+  const text = L.formatShareText('pattern', 7, 10);
+  const links = L.buildShareLinks(text);
+  const xu = new URL(links.x);
+  assert.equal(xu.origin + xu.pathname, 'https://twitter.com/intent/tweet');
+  assert.equal(xu.searchParams.get('text'), `${text} #カブレベル`);
+  assert.equal(xu.searchParams.get('url'), L.SHARE_URL);
+  const lu = new URL(links.line);
+  assert.equal(lu.origin, 'https://social-plugins.line.me');
+  assert.equal(lu.searchParams.get('text'), text);
+  assert.equal(lu.searchParams.get('url'), L.SHARE_URL);
+  assert.ok(L.SHARE_URL.startsWith('https://') && L.SHARE_URL.endsWith('/stock-quiz/'));
+  const custom = L.buildShareLinks('a&b=c', 'https://example.com/?q=1&r=2');
+  assert.equal(new URL(custom.line).searchParams.get('text'), 'a&b=c');
+  assert.equal(new URL(custom.line).searchParams.get('url'), 'https://example.com/?q=1&r=2');
+});
+
 test('reshuffleChoices: 選択肢の集合と正解が変わらず、元の問題を変更しない', () => {
   const deck = L.buildDeck('all', 4);
   for (const q of deck) {

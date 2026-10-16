@@ -629,18 +629,18 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
 const MODES = ['all', 'pattern', 'candle', 'term', 'forecast', 'news'];
 // 株価予想モードを画面に出すか(false にすると、モード一覧と「全部まぜ」から外れる)
 const FORECAST_PUBLIC = true;
-// 時事問題(日替わり・週替わりで足していく問題)。「全部まぜ」には入れず、有効期限の内だけ、モード「時事」で出る。
+// 時事問題(日替わり・週替わりで足していく問題)。「全部まぜ」には入れず、モード「時事」で出る。出す期間(validFrom〜validUntil)は「新しい問題」の期間で、終わったあとも、過去の問題として残って遊べる。
 // 1問の形(すべて必須。守っているかは validateNewsItem が確かめる。書き方は設計書 §12):
 //   id:        英小文字・数字・ハイフンだけ(例: '2026-10-16-boj-rate')。重複しない
 //   question, answer, wrongs(誤りの選択肢3つ), explanation(短い解説), detail(くわしく)
 //   difficulty: 'easy' | 'normal' | 'hard' | 'expert' | 'master'
 //   date:      出来事の日(YYYY-MM-DD)
-//   validFrom, validUntil: 出す期間(YYYY-MM-DD。NEWS_MAX_DAYS 日以内)
+//   validFrom, validUntil: 新しい問題として出す期間(YYYY-MM-DD。NEWS_MAX_DAYS 日以内)。validFrom の前は出ない。validUntil のあとは、過去の問題として出る
 //   sources:   [{ label: '媒体名(日付)', url: 'https://…' }]。出典を読んだものだけ
 const NEWS_QUESTIONS = [];
-// 時事モードを画面に出すか(問題が1つもないあいだは、モード一覧と成績画面から外れる)
+// 時事モードを画面に出すか(問題が1つもないあいだは、モード一覧と成績画面から外れる)。期間が終わった過去の問題も、モードの中で遊べる
 const NEWS_PUBLIC = NEWS_QUESTIONS.length > 0;
-const NEWS_MAX_DAYS = 45; // 1問を出す期間の最長(古くなった問題を出し続けないため)
+const NEWS_MAX_DAYS = 45; // 1問を「新しい問題」として出す期間の最長
 const MODE_LABELS = {
   all: '全部まぜ',
   pattern: 'チャートの形状',
@@ -3394,6 +3394,16 @@ function activeNews(today = NEWS_TODAY, items = NEWS_QUESTIONS) {
   return items.filter((n) => isNewsActive(n, today));
 }
 
+// 公開ずみの問題(出す期間の始まり以降。期間が終わった過去の問題も含む)。モード「時事」は、これを出題する
+function publishedNews(today = NEWS_TODAY, items = NEWS_QUESTIONS) {
+  return today ? items.filter((n) => n.validFrom <= today) : [];
+}
+
+// 新しい問題として出す期間が終わった過去の問題か
+function isNewsPast(item, today = NEWS_TODAY) {
+  return Boolean(today) && item.validUntil < today;
+}
+
 function makeNewsQuestion(item, rng) {
   return {
     id: `news:${item.id}`,
@@ -3647,7 +3657,7 @@ function buildPool(mode, rng, difficulty = 'all') {
   }
   if (wants('news')) {
     // 乱数は、ほかのモードの出題を変えないよう、並びを決める shuffle のときだけ使う。「全部まぜ」には入れない
-    for (const n of byDifficulty(activeNews(), difficulty)) pool.push(makeNewsQuestion(n, rng));
+    for (const n of byDifficulty(publishedNews(), difficulty)) pool.push(makeNewsQuestion(n, rng));
   }
   return pool;
 }
@@ -4505,7 +4515,8 @@ function answer(q, picked) {
 // 時事問題の出典と、いつの出来事かの注記
 function newsNoteHtml(q) {
   const links = q.sources.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.label)}(別のタブで開く)</a>`).join(' ／ ');
-  return `<p class="note">${esc(formatDateJa(q.date))}ごろの出来事だよ。時間がたつと変わることがあるよ。出典: ${links}</p>`;
+  const past = isNewsPast(q) ? `<p class="note">これは過去の問題だよ(${esc(formatDateJa(q.validUntil))}まで新しい問題として出していたよ)。いまは状況が変わっているかもしれないよ。</p>` : '';
+  return `<p class="note">${esc(formatDateJa(q.date))}ごろの出来事だよ。時間がたつと変わることがあるよ。出典: ${links}</p>${past}`;
 }
 
 function showExplain(q, picked, correct, review = false) {

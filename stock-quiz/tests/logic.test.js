@@ -3706,6 +3706,19 @@ test('時事問題: 出す期間(validFrom〜validUntil、両端を含む)の内
   assert.deepEqual(L.activeNews(null, [NEWS_OK]), []);
 });
 
+test('時事問題: 公開ずみ(validFrom 以降)は、期間が終わった過去の問題も出る。始まる前は出ない', () => {
+  const later = { ...NEWS_OK, id: 'later', validFrom: '2026-10-20', validUntil: '2026-10-25' };
+  const items = [NEWS_OK, later];
+  assert.deepEqual(L.publishedNews('2026-10-15', items).map((n) => n.id), []);
+  assert.deepEqual(L.publishedNews('2026-10-17', items).map((n) => n.id), ['2026-10-16-sample']);
+  assert.deepEqual(L.publishedNews('2026-12-31', items).map((n) => n.id), ['2026-10-16-sample', 'later']); // 期間が終わっても残る
+  assert.deepEqual(L.publishedNews(null, items), []);
+  assert.equal(L.isNewsPast(NEWS_OK, '2026-11-14'), false);
+  assert.equal(L.isNewsPast(NEWS_OK, '2026-11-15'), true);
+  assert.equal(L.isNewsPast(NEWS_OK, null), false);
+  assert.deepEqual(L.activeNews('2026-12-31', items), []); // 「新しい問題」としては終わっている
+});
+
 test('時事問題: 問題の形(id は news:、選択肢は4つで正解を含む、出典がつく)。同じシードなら同じ並び', () => {
   const q1 = L.makeNewsQuestion(NEWS_OK, L.createRng(7));
   const q2 = L.makeNewsQuestion(NEWS_OK, L.createRng(7));

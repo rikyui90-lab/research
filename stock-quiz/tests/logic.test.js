@@ -3762,3 +3762,10 @@ test('categoryLabel: 問題の種類ごとにカテゴリ名を返す(画面の�
   // 実際に出る問題のカテゴリは、すべて名前がある
   for (const q of L.buildPool('all', L.createRng(1))) assert.ok(L.categoryLabel(q), q.id);
 });
+
+test('見返しの画面: 「さらに前へ」ではなく、「いまの問題に戻る」(結果の見返しは「結果に戻る」)を出す', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.ok(html.includes('id="back-now"'));
+  assert.ok(html.includes('いまの問題に戻る') && html.includes('結果に戻る'));
+  assert.ok(html.includes("getElementById('back-now')"));
+});

@@ -4346,7 +4346,11 @@ function progressSteps(shown) {
     const body = reachable ? `<button class="step-btn" data-step="${i}" aria-label="${label}(押すと移動)">${inner}</button>` : inner;
     return `<li class="step ${state}"${i === shown ? ' aria-current="step"' : ''}${reachable ? '' : ` aria-label="${label}"`}>${body}</li>`;
   }).join('');
-  const prev = shown > 0 ? `<div class="prev-row"><button class="link" id="prev-q">← 前の問題へ</button></div>` : '';
+  // 見返し中(いまの問題より前の問題を見ているとき)は、さらに前へは進まず、いまの問題に戻る
+  const reviewing = shown < game.index || game.index >= game.deck.length;
+  const prev = reviewing
+    ? `<div class="prev-row"><button class="link" id="back-now">← ${game.index >= game.deck.length ? '結果に戻る' : 'いまの問題に戻る'}</button></div>`
+    : shown > 0 ? `<div class="prev-row"><button class="link" id="prev-q">← 前の問題へ</button></div>` : '';
   return `<ol class="steps" aria-label="進み具合">${items}</ol>${prev}`;
 }
 
@@ -4355,6 +4359,8 @@ function bindStepNav() {
   app.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', guarded(() => gotoQuestion(Number(b.dataset.step)))));
   const prev = document.getElementById('prev-q');
   if (prev) prev.addEventListener('click', guarded(() => gotoQuestion(game.shown - 1)));
+  const back = document.getElementById('back-now');
+  if (back) back.addEventListener('click', guarded(() => (game.index >= game.deck.length ? showResult(summarizeRound(game.results)) : gotoQuestion(game.index))));
 }
 
 // ---- チャートの描画 ----

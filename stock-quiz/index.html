@@ -4364,7 +4364,7 @@ function progressSteps(shown, onAnswer = false) {
 function bindStepNav() {
   app.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', guarded(() => gotoQuestion(Number(b.dataset.step)))));
   const prev = document.getElementById('prev-q');
-  if (prev) prev.addEventListener('click', guarded(() => gotoQuestion(game.shown - 1)));
+  if (prev) prev.addEventListener('click', guarded(() => showQuestionReadonly(game.shown - 1))); // 問題の画面の「前の問題へ」は、前の問題の「問題の画面」へ
   const nowQ = document.getElementById('now-q');
   if (nowQ) nowQ.addEventListener('click', guarded(showQuestionReadonly));
   const back = document.getElementById('back-now');
@@ -4725,15 +4725,17 @@ function newsNoteHtml(q) {
 }
 
 // 答えたあとの「今の問題」の画面。選択肢は押せず、あなたの答えと正解に印をつける(答え直しや二重の採点は起きない)
-function showQuestionReadonly() {
-  if (!game || game.results.length <= game.index) { showQuestion(); return; }
+// i は見る問題の番号(省略すると、いまの問題)。まだ答えていない問題は、ふつうの問題の画面を出す
+function showQuestionReadonly(i = game.index) {
+  if (!game || !Number.isInteger(i) || i < 0 || i > game.index || !game.results[i]) { showQuestion(); return; }
   screen = 'question';
-  game.shown = game.index;
-  const q = game.deck[game.index];
-  const r = game.results[game.index];
+  game.shown = i;
+  const q = game.deck[i];
+  const r = game.results[i];
   const hasChart = q.type === 'pattern' || q.type === 'candle';
   const mark = (c) => (c === q.answer ? '<b class="mk">○ 正解</b>' : '') + (c === r.picked ? `<b class="mk">${c === q.answer ? '' : '× '}あなたの答え</b>` : '');
-  app.innerHTML = `${header()}
+  const past = i < game.index; // 前の問題を見ているとき
+  app.innerHTML = `${header(i)}
     <p class="q">${esc(q.question)}</p>
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
     ${q.type === 'candle' ? '<p class="note">赤の中空(白ぬき)が陽線(上昇)、青の塗りつぶしが陰線(下落)だよ。</p>' : ''}
@@ -4741,12 +4743,15 @@ function showQuestionReadonly() {
     ${maNote(q)}
     <p class="note">答えたあとの問題だよ。選びなおしはできないよ。</p>
     <div class="choices${q.choices.length === 4 ? ' grid2' : ''}">${q.choices.map((c) => `<button class="choice" disabled aria-disabled="true">${esc(c)}${mark(c) ? `<small>${mark(c)}</small>` : ''}</button>`).join('')}</div>
-    <button class="primary" id="to-explain">答え合わせへ</button>`;
+    <button class="primary" id="to-explain">答え合わせへ</button>
+    ${past ? '<p><button class="link" id="to-now">← 今の問題へ</button></p>' : ''}`;
   if (hasChart) drawQuestionChart(q, false);
   else redraw = null;
   bindLeave();
   bindStepNav();
-  document.getElementById('to-explain').addEventListener('click', guarded(() => gotoQuestion(game.index)));
+  document.getElementById('to-explain').addEventListener('click', guarded(() => (past ? showExplain(q, r.picked, r.correct, true) : gotoQuestion(game.index))));
+  const toNow = document.getElementById('to-now');
+  if (toNow) toNow.addEventListener('click', guarded(() => gotoQuestion(game.index)));
   shownAt = performance.now();
   publishState();
 }

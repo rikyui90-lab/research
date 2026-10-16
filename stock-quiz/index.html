@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>カブレベル</title>
+<title>株トレーダーへの道</title>
 <meta name="description" content="チャートの形・ローソク足・用語・株価予想を、クイズで学べる無料の株クイズ。登録なしで、スマホからすぐ遊べるよ。">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="カブレベル">
-<meta property="og:title" content="カブレベル ― 株クイズ">
+<meta property="og:site_name" content="株トレーダーへの道">
+<meta property="og:title" content="株トレーダーへの道 ― 株クイズ">
 <meta property="og:description" content="チャートの形・ローソク足・用語・株価予想を、クイズで学ぼう。無料・登録なし。">
 <meta property="og:url" content="https://rikyui90-lab.github.io/research/stock-quiz/">
 <meta property="og:image" content="https://rikyui90-lab.github.io/research/stock-quiz/images/og.jpg">
@@ -218,13 +218,13 @@ html[data-role="host"], html[data-role="host"] body { height: 100%; overflow: hi
 <div id="host" class="host">
   <header class="host-bar">
     <button id="menu-btn" aria-expanded="false" aria-controls="nav-frame"><span aria-hidden="true">☰</span> メニュー</button>
-    <span class="host-title">カブレベル</span>
+    <span class="host-title">株トレーダーへの道</span>
   </header>
   <iframe id="nav-frame" title="メニュー(難易度・モード・問題の一覧)"></iframe>
   <div id="host-scrim" aria-hidden="true"></div>
-  <iframe id="main-frame" title="カブレベル(クイズ本体)"></iframe>
+  <iframe id="main-frame" title="株トレーダーへの道(クイズ本体)"></iframe>
 </div>
-<nav id="navroot" class="navroot" aria-label="カブレベルのメニュー"></nav>
+<nav id="navroot" class="navroot" aria-label="株トレーダーへの道のメニュー"></nav>
 <main id="app"></main>
 <footer class="disclaimer">学習用のゲームです。実際の相場では必ずこの通りに動くとは限りません。投資の助言ではありません。</footer>
 <script>
@@ -3661,14 +3661,14 @@ const SHARE_URL = 'https://rikyui90-lab.github.io/research/stock-quiz/';
 function buildShareLinks(text, url = SHARE_URL) {
   const u = encodeURIComponent(url);
   return {
-    x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${text} #カブレベル`)}&url=${u}`,
+    x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${text} #株トレーダーへの道`)}&url=${u}`,
     line: `https://social-plugins.line.me/lineit/share?url=${u}&text=${encodeURIComponent(text)}`,
   };
 }
 
 function formatShareText(mode, correct, total, difficulty = 'all') {
   const label = difficulty === 'all' ? MODE_LABELS[mode] : `${MODE_LABELS[mode]}・${DIFFICULTY_LABELS[difficulty]}`;
-  return `カブレベル(${label})で ${total}問中${correct}問正解!`;
+  return `株トレーダーへの道(${label})で ${total}問中${correct}問正解!`;
 }
 
 // ---- 前回出た問題を避ける ----
@@ -4312,7 +4312,7 @@ function showStart() {
     <div class="choices">${rows}
       <button class="choice" data-action="stats">成績を見る<small>モード別の正答率と、最近のラウンド</small></button>
     </div>`;
-  app.innerHTML = `<h1 class="title"><img class="stamp" src="images/stamp.svg" width="68" height="68" alt=""><span>カブレベル</span></h1>
+  app.innerHTML = `<h1 class="title"><img class="stamp" src="images/stamp.svg" width="68" height="68" alt=""><span>株トレーダーへの道</span></h1>
     <p class="lead">チャートの形、ローソク足、用語${FORECAST_PUBLIC ? '、株価予想' : ''}をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <figure class="hero"><img src="images/salaryman.jpg" width="1120" height="747" alt="疲れ切った50歳くらいのサラリーマンを後ろから見た絵。モニターの下がっていく株価チャートを見つめている"></figure>
     ${controls}`;
@@ -4711,7 +4711,7 @@ function runNav() {
   app.remove();
   const root = document.getElementById('navroot');
   if (!inFrame) {
-    root.append(el('p', { class: 'note' }, 'これは、カブレベルの左のメニューだよ。カブレベルのトップページから開いてね。'));
+    root.append(el('p', { class: 'note' }, 'これは、株トレーダーへの道の左のメニューだよ。株トレーダーへの道のトップページから開いてね。'));
     return;
   }
   root.append(el('p', { class: 'note' }, '読み込み中…'));

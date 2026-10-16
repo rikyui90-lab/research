@@ -1550,7 +1550,7 @@ test('保存データ: 値動き予想(outlook)の古いキーが残っていて
 });
 
 test('formatShareText: 難易度つき', () => {
-  assert.equal(L.formatShareText('pattern', 7, 10), 'カブレベル(チャートの形状)で 10問中7問正解!');
+  assert.equal(L.formatShareText('pattern', 7, 10), '株トレーダーへの道(チャートの形状)で 10問中7問正解!');
   const t = L.formatShareText('pattern', 7, 10, 'normal');
   assert.ok(t.includes('チャートの形状') && t.includes('★★') && t.includes('7') && t.includes('10'));
   assert.ok(!L.formatShareText('pattern', 3, 6, 'hard').includes('すべて'));
@@ -1561,7 +1561,7 @@ test('buildShareLinks: XとLINEの共有リンクに、文とURLが入る(記号
   const links = L.buildShareLinks(text);
   const xu = new URL(links.x);
   assert.equal(xu.origin + xu.pathname, 'https://twitter.com/intent/tweet');
-  assert.equal(xu.searchParams.get('text'), `${text} #カブレベル`);
+  assert.equal(xu.searchParams.get('text'), `${text} #株トレーダーへの道`);
   assert.equal(xu.searchParams.get('url'), L.SHARE_URL);
   const lu = new URL(links.line);
   assert.equal(lu.origin, 'https://social-plugins.line.me');
@@ -3203,7 +3203,7 @@ test('株価予想: プール・出題・難易度の絞り込み・全部まぜ
     assert.deepEqual(LF.buildDeck(mode, 11), L.buildDeck(mode, 11), mode);
   }
   assert.equal(LF.statsKey('forecast', 'hard'), 'forecast:hard');
-  assert.equal(LF.formatShareText('forecast', 1, 1, 'normal'), 'カブレベル(株価予想・★★)で 1問中1問正解!');
+  assert.equal(LF.formatShareText('forecast', 1, 1, 'normal'), '株トレーダーへの道(株価予想・★★)で 1問中1問正解!');
   assert.deepEqual(LF.updateStats(LF.defaultStats(), 'forecast:normal', 1, 1).played['forecast:normal'], { correct: 1, total: 1 });
 });
 

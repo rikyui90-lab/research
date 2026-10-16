@@ -3634,13 +3634,13 @@ test('フレーム: モードの数字(全部まぜは出さない。難易度�
   let stats = L.defaultStats();
   stats = L.updateStats(stats, L.statsKey('term', 'easy'), 3, 4);
   const entries = L.modeEntries(stats, 'easy');
-  assert.deepEqual(entries.map((e) => e.mode), ['pattern', 'candle', 'term', 'forecast']);
+  assert.deepEqual(entries.map((e) => e.mode), ['pattern', 'candle', 'term', 'forecast', 'news']); // 時事は、問題が入っているあいだだけ出る(NEWS_PUBLIC)
   const term = entries.find((e) => e.mode === 'term');
   assert.equal(term.best, 3);
   assert.equal(term.rate, 75);
   assert.equal(term.size, L.roundSize('term', 'easy'));
   assert.equal(L.modeEntries(L.defaultStats(), 'all')[0].rate, null);
-  assert.deepEqual(loadLogic({ forecastPublic: false }).modeEntries(stats, 'easy').map((e) => e.mode), ['pattern', 'candle', 'term']);
+  assert.deepEqual(loadLogic({ forecastPublic: false }).modeEntries(stats, 'easy').map((e) => e.mode), ['pattern', 'candle', 'term', 'news']);
   assert.equal(L.modeSubText({ size: 0, best: 0, rate: null }), 'この難易度の問題は、まだないよ');
   assert.equal(L.modeSubText({ size: 10, best: 7, rate: 65 }), '最高 7 / 10　正答率 65%　10問');
   assert.match(L.modeSubText({ size: 10, best: 0, rate: null }), /正答率 -/);

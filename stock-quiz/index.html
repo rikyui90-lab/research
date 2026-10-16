@@ -4077,7 +4077,7 @@ function layoutIsWide(search) {
 
 const FRAME_APP = 'kabulevel';
 const FRAME_TYPES = ['ready', 'state', 'command', 'layout', 'close', 'focus'];
-const NAV_SCREENS = ['start', 'question', 'explain', 'result', 'stats'];
+const NAV_SCREENS = ['start', 'category', 'question', 'explain', 'result', 'stats'];
 const NAV_MAX_QUESTIONS = 20;
 
 function frameMessage(type, payload = {}) {
@@ -4092,10 +4092,8 @@ function isIntBetween(n, min, max) {
 function sanitizeNavCommand(raw) {
   if (!raw || typeof raw !== 'object') return null;
   switch (raw.cmd) {
-    case 'start':
-      return MODES.includes(raw.mode) && raw.mode !== 'all' ? { cmd: 'start', mode: raw.mode } : null;
-    case 'difficulty':
-      return DIFFICULTY_FILTERS.includes(raw.value) ? { cmd: 'difficulty', value: raw.value } : null;
+    case 'category':
+      return MODES.includes(raw.mode) && raw.mode !== 'all' ? { cmd: 'category', mode: raw.mode } : null;
     case 'goto':
       return isIntBetween(raw.index, 0, NAV_MAX_QUESTIONS - 1) ? { cmd: 'goto', index: raw.index } : null;
     case 'top':
@@ -4106,14 +4104,14 @@ function sanitizeNavCommand(raw) {
   }
 }
 
-// 画面を描いた直後(ダブルクリックの2回目など)に届いた命令を捨てるか。難易度は設定なので、捨てない
+// 画面を描いた直後(ダブルクリックの2回目など)に届いた命令を捨てるか
 function navCommandIgnored(cmd, elapsedMs, guardMs) {
-  return cmd.cmd !== 'difficulty' && elapsedMs < guardMs;
+  return elapsedMs < guardMs;
 }
 
-// 項目を選んだあと、狭い画面で左のメニューを閉じる命令か(難易度は設定なので、閉じない)
+// 項目を選んだあと、狭い画面で左のメニューを閉じる命令か
 function commandClosesMenu(cmd) {
-  return !!cmd && cmd.cmd !== 'difficulty';
+  return !!cmd;
 }
 
 // 本体が左の一覧へ渡す状態。正しい形でなければ null
@@ -4219,18 +4217,13 @@ function buildNavItems(state) {
       ],
     };
   }
-  const difficulties = DIFFICULTY_FILTERS.map((d) => ({
-    key: `d-${d}`, kind: 'difficulty', label: DIFFICULTY_LABELS[d], aria: d === 'all' ? 'すべて' : starsAria(d),
-    pressed: d === state.difficulty, command: { cmd: 'difficulty', value: d },
-  }));
   const modes = state.modes.map((m) => ({
     key: `m-${m.mode}`, kind: 'mode', label: MODE_LABELS[m.mode], sub: modeSubText(m), disabled: m.size === 0,
-    command: { cmd: 'start', mode: m.mode },
+    command: { cmd: 'category', mode: m.mode },
   }));
   return {
     groups: [
-      { id: 'difficulty', heading: '難易度', note: '', items: difficulties },
-      { id: 'modes', heading: 'モード', note: '', items: modes },
+      { id: 'modes', heading: 'カテゴリ', note: '難易度は、カテゴリを選んだあとに選ぶよ。', items: modes },
       { id: 'more', heading: '', note: '', items: [{
         key: 'stats', kind: 'stats', label: '成績を見る', sub: 'モード別の正答率と、最近のラウンド', current: state.screen === 'stats',
         command: { cmd: 'stats' },
@@ -4601,19 +4594,13 @@ function showStart() {
   redraw = null;
   game = null; // 途中のラウンドは捨てる(成績にも残さない)
   screen = 'start';
-  const rows = modeEntries(stats, difficulty).map((e) => {
-    if (e.size === 0) {
-      return `<button class="choice" data-mode="${e.mode}" aria-disabled="true">${MODE_LABELS[e.mode]}<small>${modeSubText(e)}</small></button>`;
-    }
+  const rows = modeEntries(stats).map((e) => {
     return `<button class="choice" data-mode="${e.mode}">${MODE_LABELS[e.mode]}<small>${modeSubText(e)}</small></button>`;
   }).join('');
-  const diffs = DIFFICULTY_FILTERS.map((d) =>
-    `<button data-diff="${d}" aria-pressed="${d === difficulty}" aria-label="${d === 'all' ? 'すべて' : starsAria(d)}">${DIFFICULTY_LABELS[d]}</button>`).join('');
-  // 広い画面では、難易度・モード・成績は左の一覧にある。狭い画面(左が閉じている)では、右にも出す
+  // 広い画面では、カテゴリと成績は左の一覧にある。狭い画面(左が閉じている)では、右にも出す
   const controls = wide
-    ? '<p class="note">左のメニューで、難易度とモードを選んでね。</p>'
-    : `<p class="sec">難易度</p>
-    <div class="diffs">${diffs}</div>
+    ? '<p class="note">左のメニューで、カテゴリを選んでね。難易度は、そのあとに選べるよ。</p>'
+    : `<p class="sec">カテゴリ</p>
     <div class="choices">${rows}
       <button class="choice" data-action="stats">成績を見る<small>モード別の正答率と、最近のラウンド</small></button>
     </div>`;
@@ -4621,16 +4608,34 @@ function showStart() {
     <p class="lead">チャートの形、ローソク足、用語${FORECAST_PUBLIC ? '、株価予想' : ''}をクイズで学ぼう。1回 ${ROUND_SIZE} 問だよ(難易度で絞ると、少なくなることがあるよ)。</p>
     <figure class="hero"><img src="images/salaryman.jpg" width="1120" height="747" alt="疲れ切った50歳くらいのサラリーマンを後ろから見た絵。モニターの下がっていく株価チャートを見つめている"></figure>
     ${controls}`;
-  const pickDifficulty = (attr) => (b) => b.addEventListener('click', () => {
-    difficulty = b.dataset[attr];
-    showStart();
-    const again = app.querySelector(`[data-${attr}="${b.dataset[attr]}"]`);
-    if (again) again.focus(); // 描き直したあとも、押したボタンにフォーカスを戻す
-  });
-  app.querySelectorAll('[data-diff]').forEach(pickDifficulty('diff'));
   app.querySelectorAll('[data-action="stats"]').forEach((b) => b.addEventListener('click', guarded(showStats)));
   // 結果画面の「トップへ戻る」のダブルクリックの2回目で、ラウンドが始まらないようにする
-  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => { if (b.getAttribute('aria-disabled') !== 'true') startGame(b.dataset.mode); })));
+  app.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', guarded(() => showCategory(b.dataset.mode))));
+  shownAt = performance.now();
+  publishState();
+}
+
+// カテゴリの画面。ここで難易度を選んで、ラウンドを始める
+function showCategory(mode) {
+  redraw = null;
+  game = null;
+  screen = 'category';
+  const rows = DIFFICULTY_FILTERS.map((d) => {
+    const e = modeEntries(stats, d).find((x) => x.mode === mode);
+    const name = d === 'all' ? 'すべて' : DIFFICULTY_LABELS[d];
+    const aria = d === 'all' ? 'すべて' : starsAria(d);
+    return `<button class="choice" data-start-diff="${d}" aria-label="${aria}"${e.size === 0 ? ' aria-disabled="true"' : ''}>${name}<small>${modeSubText(e)}</small></button>`;
+  }).join('');
+  app.innerHTML = `<h1 class="title">${MODE_LABELS[mode]}</h1>
+    <p class="lead">難易度を選んでね。1回 ${ROUND_SIZE} 問だよ(絞ると、少なくなることがあるよ)。</p>
+    <div class="choices">${rows}</div>
+    <p><button class="link" id="top-from-category">← カテゴリ選びに戻る</button></p>`;
+  app.querySelectorAll('[data-start-diff]').forEach((b) => b.addEventListener('click', guarded(() => {
+    if (b.getAttribute('aria-disabled') === 'true') return;
+    difficulty = b.dataset.startDiff;
+    startGame(mode);
+  })));
+  document.getElementById('top-from-category').addEventListener('click', guarded(showStart));
   shownAt = performance.now();
   publishState();
 }
@@ -4907,7 +4912,7 @@ function currentNavState() {
   if ((screen === 'question' || screen === 'explain') && game) {
     return { ...base, round: { retry: !!game.retry, total: game.deck.length, results: game.results.map((r) => r.correct), index: Math.min(game.index, game.deck.length - 1), shown: game.shown } };
   }
-  return { ...base, modes: modeEntries(stats, difficulty) };
+  return { ...base, modes: modeEntries(stats) };
 }
 
 // ボタンの処理で描き直したあと(同期の描画・次のフレームの描画)に、スクロールを一番上に戻す
@@ -4940,8 +4945,8 @@ function handleNavCommand(cmd) {
   const before = screen;
   runNavCommand(cmd);
   // 画面を切り替える命令のあと(広い画面でも)、右の本体へフォーカスを移す
-  if (cmd.cmd !== 'difficulty' && (screen !== before || cmd.cmd === 'goto')) focusMainHeading();
-  if (cmd.cmd !== 'difficulty') scrollTopAfterRender();
+  if (screen !== before || cmd.cmd === 'goto' || cmd.cmd === 'category') focusMainHeading();
+  scrollTopAfterRender();
 }
 
 // 画面の見出し(なければ問題文、答え合わせの結果)へフォーカスを移す。キーボードと読み上げの位置を、新しい画面の先頭にそろえる
@@ -4953,20 +4958,17 @@ function focusMainHeading() {
 }
 
 function runNavCommand(cmd) {
-  const idle = screen === 'start' || screen === 'result' || screen === 'stats';
+  const idle = screen === 'start' || screen === 'category' || screen === 'result' || screen === 'stats';
   if (cmd.cmd === 'top') {
     if (screen !== 'start') showStart();
   } else if (cmd.cmd === 'goto') {
     if (screen === 'question' || screen === 'explain') gotoQuestion(cmd.index);
   } else if (!idle) {
     return;
-  } else if (cmd.cmd === 'difficulty') {
-    difficulty = cmd.value;
-    showStart();
   } else if (cmd.cmd === 'stats') {
     showStats();
-  } else if (cmd.cmd === 'start') {
-    if (roundSize(cmd.mode, difficulty) > 0) startGame(cmd.mode);
+  } else if (cmd.cmd === 'category') {
+    showCategory(cmd.mode);
   }
 }
 
@@ -5009,8 +5011,6 @@ function navItemNode(item, onCommand) {
       el('span', { class: 'mark', 'aria-hidden': 'true' }, item.mark), el('span', {}, item.label),
       ...(item.sub ? [el('span', { class: 'here', 'aria-hidden': 'true' }, item.sub)] : []));
     if (item.current) node.setAttribute('aria-current', 'step');
-  } else if (item.kind === 'difficulty') {
-    node = el('button', { ...aria, 'aria-pressed': String(!!item.pressed) }, item.label);
   } else if (item.kind === 'top') {
     node = el('button', { ...aria, class: 'link' }, item.label);
   } else {
@@ -5034,8 +5034,7 @@ function renderNav(root, state, onCommand) {
     if (g.heading) section.append(el('h2', { class: 'sec' }, g.heading));
     if (g.note) section.append(el('p', { class: 'note' }, g.note));
     const nodes = g.items.map((item) => navItemNode(item, onCommand));
-    if (g.id === 'difficulty') section.append(el('div', { class: 'diffs' }, ...nodes));
-    else if (g.id === 'questions') section.append(el('ul', { class: 'nav-list' }, ...nodes.map((n) => el('li', {}, n))));
+    if (g.id === 'questions') section.append(el('ul', { class: 'nav-list' }, ...nodes.map((n) => el('li', {}, n))));
     else section.append(el('div', { class: 'choices' }, ...nodes));
     root.append(section);
   }

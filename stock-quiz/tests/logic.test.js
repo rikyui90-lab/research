@@ -3769,3 +3769,10 @@ test('見返しの画面: 「さらに前へ」ではなく、「いまの問題
   assert.ok(html.includes('いまの問題に戻る') && html.includes('結果に戻る'));
   assert.ok(html.includes("getElementById('back-now')"));
 });
+
+test('答え合わせの画面には「前の問題へ」を出さない(問題の画面だけに出す)', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.ok(html.includes('function progressSteps(shown, onAnswer = false)'));
+  assert.ok(html.includes('shown > 0 && !onAnswer'));
+  assert.ok(html.includes("`<button class=\"primary next-mini\" id=\"next-top\">${nextLabel}</button>`, true)"));
+});

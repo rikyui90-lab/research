@@ -4324,17 +4324,17 @@ function bindLeave() {
   document.getElementById('leave').addEventListener('click', showStart);
 }
 
-function header(shown = game.index, right = '') {
+function header(shown = game.index, right = '', onAnswer = false) {
   const done = game.results.length;
   const correct = game.results.filter((r) => r.correct).length;
   return `${leaveSlot(right)}<div class="head"><span>${game.retry ? 'やり直し ' : ''}問題 ${Math.min(shown + 1, game.deck.length)} / ${game.deck.length}</span>${starsBadge(game.deck[Math.min(shown, game.deck.length - 1)].difficulty)}<span>正解 ${correct}</span></div>
     <div class="bar"><div style="width:${(done / game.deck.length) * 100}%"></div></div>
     <p class="cat">カテゴリ: <b>${esc(categoryLabel(game.deck[Math.min(shown, game.deck.length - 1)]))}</b></p>
-    ${progressSteps(shown)}`;
+    ${progressSteps(shown, onAnswer)}`;
 }
 
 // 問題の上の「1〜10」の進捗(表示だけ)。解いた問題は ○ か ×、いまの問題は ▶、まだの問題は ・(色だけでなく記号でも伝える)
-function progressSteps(shown) {
+function progressSteps(shown, onAnswer = false) {
   const items = game.deck.map((_, i) => {
     const r = game.results[i];
     const state = i === shown ? 'now' : r ? (r.correct ? 'ok' : 'ng') : 'todo';
@@ -4350,7 +4350,7 @@ function progressSteps(shown) {
   const reviewing = shown < game.index || game.index >= game.deck.length;
   const prev = reviewing
     ? `<div class="prev-row"><button class="link" id="back-now">← ${game.index >= game.deck.length ? '結果に戻る' : 'いまの問題に戻る'}</button></div>`
-    : shown > 0 ? `<div class="prev-row"><button class="link" id="prev-q">← 前の問題へ</button></div>` : '';
+    : shown > 0 && !onAnswer ? `<div class="prev-row"><button class="link" id="prev-q">← 前の問題へ</button></div>` : ''; // 「前の問題へ」は問題の画面だけ。答え合わせの画面には出さない
   return `<ol class="steps" aria-label="進み具合">${items}</ol>${prev}`;
 }
 
@@ -4726,7 +4726,7 @@ function showExplain(q, picked, correct, review = false) {
   const tendency = q.type === 'pattern'
     ? `<p class="tendency">この後の値動き: ${esc(stat ? stat.line : OUTLOOK_LABELS[q.outlook])}</p>`
       + (stat ? `<p class="note">${esc(stat.note)}<a href="${esc(stat.url)}" target="_blank" rel="noopener">出典(別のタブで開く)</a></p>` : '') : '';
-  app.innerHTML = `${header(game.shown, `<button class="primary next-mini" id="next-top">${nextLabel}</button>`)}
+  app.innerHTML = `${header(game.shown, `<button class="primary next-mini" id="next-top">${nextLabel}</button>`, true)}
     ${review ? '<p class="note">見返し中だよ。成績には数えないよ。</p>' : ''}
     <div class="result ${correct ? 'good' : 'bad'}">
       <p class="label">${correct ? '正解!' : '不正解… 正しい答えは'}</p>

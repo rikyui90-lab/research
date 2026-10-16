@@ -3763,16 +3763,16 @@ test('categoryLabel: 問題の種類ごとにカテゴリ名を返す(画面の�
   for (const q of L.buildPool('all', L.createRng(1))) assert.ok(L.categoryLabel(q), q.id);
 });
 
-test('見返しの画面: 「さらに前へ」ではなく、「いまの問題に戻る」(結果の見返しは「結果に戻る」)を出す', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  assert.ok(html.includes('id="back-now"'));
-  assert.ok(html.includes('いまの問題に戻る') && html.includes('結果に戻る'));
-  assert.ok(html.includes("getElementById('back-now')"));
-});
-
-test('答え合わせの画面には「前の問題へ」を出さない(問題の画面だけに出す)', () => {
+test('答え合わせの画面は、必ず「今の問題へ」を出し、問題の画面だけ「前の問題へ」を出す', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   assert.ok(html.includes('function progressSteps(shown, onAnswer = false)'));
-  assert.ok(html.includes('shown > 0 && !onAnswer'));
   assert.ok(html.includes("`<button class=\"primary next-mini\" id=\"next-top\">${nextLabel}</button>`, true)"));
+  // 答え合わせの画面(onAnswer): 今の問題へ(見返しは back-now、答えた直後は now-q)。結果の見返しは「結果に戻る」
+  assert.ok(html.includes("'今の問題へ'") && html.includes("'結果に戻る'"));
+  assert.ok(html.includes("reviewing ? 'back-now' : 'now-q'"));
+  assert.ok(html.includes('} else if (shown > 0) {')); // 問題の画面だけ「前の問題へ」
+  // 答えたあとの今の問題の画面: 選択肢は押せない。答え直せないので、採点は増えない
+  assert.ok(html.includes('function showQuestionReadonly()'));
+  assert.ok(html.includes('class="choice" disabled aria-disabled="true"'));
+  assert.ok(html.includes("getElementById('now-q')"));
 });

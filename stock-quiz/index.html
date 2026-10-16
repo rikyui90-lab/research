@@ -134,6 +134,8 @@ button { font: inherit; color: var(--text); background: var(--card); border: 1px
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; -webkit-tap-highlight-color: transparent; }
 button:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
 button:active { transform: translateY(0) scale(.99); }
+button.choice:disabled { cursor: default; opacity: .85; transform: none; box-shadow: none; }
+.mk { display: inline-block; margin-right: 8px; color: var(--text); }
 button:focus-visible { outline: 3px solid #ffd43d; outline-offset: 2px; box-shadow: 0 0 0 2px #000; }
 button small { display: block; color: var(--muted); font-size: 14px; font-weight: 400; margin-top: 2px; }
 .choice { font-weight: 600; font-size: 16px; }
@@ -4346,11 +4348,15 @@ function progressSteps(shown, onAnswer = false) {
     const body = reachable ? `<button class="step-btn" data-step="${i}" aria-label="${label}(押すと移動)">${inner}</button>` : inner;
     return `<li class="step ${state}"${i === shown ? ' aria-current="step"' : ''}${reachable ? '' : ` aria-label="${label}"`}>${body}</li>`;
   }).join('');
-  // 見返し中(いまの問題より前の問題を見ているとき)は、さらに前へは進まず、いまの問題に戻る
+  // 答え合わせの画面(答えた直後・見返し)には、「前の問題へ」ではなく、必ず「今の問題へ」を出す。問題の画面だけ、「前の問題へ」を出す
   const reviewing = shown < game.index || game.index >= game.deck.length;
-  const prev = reviewing
-    ? `<div class="prev-row"><button class="link" id="back-now">← ${game.index >= game.deck.length ? '結果に戻る' : 'いまの問題に戻る'}</button></div>`
-    : shown > 0 && !onAnswer ? `<div class="prev-row"><button class="link" id="prev-q">← 前の問題へ</button></div>` : ''; // 「前の問題へ」は問題の画面だけ。答え合わせの画面には出さない
+  let prev = '';
+  if (onAnswer) {
+    const label = reviewing && game.index >= game.deck.length ? '結果に戻る' : '今の問題へ';
+    prev = `<div class="prev-row"><button class="link" id="${reviewing ? 'back-now' : 'now-q'}">← ${label}</button></div>`;
+  } else if (shown > 0) {
+    prev = `<div class="prev-row"><button class="link" id="prev-q">← 前の問題へ</button></div>`;
+  }
   return `<ol class="steps" aria-label="進み具合">${items}</ol>${prev}`;
 }
 
@@ -4359,6 +4365,8 @@ function bindStepNav() {
   app.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', guarded(() => gotoQuestion(Number(b.dataset.step)))));
   const prev = document.getElementById('prev-q');
   if (prev) prev.addEventListener('click', guarded(() => gotoQuestion(game.shown - 1)));
+  const nowQ = document.getElementById('now-q');
+  if (nowQ) nowQ.addEventListener('click', guarded(showQuestionReadonly));
   const back = document.getElementById('back-now');
   if (back) back.addEventListener('click', guarded(() => (game.index >= game.deck.length ? showResult(summarizeRound(game.results)) : gotoQuestion(game.index))));
 }
@@ -4714,6 +4722,33 @@ function newsNoteHtml(q) {
   const links = q.sources.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.label)}(別のタブで開く)</a>`).join(' ／ ');
   const past = isNewsPast(q) ? `<p class="note">これは過去の問題だよ(${esc(formatDateJa(q.validUntil))}まで新しい問題として出していたよ)。いまは状況が変わっているかもしれないよ。</p>` : '';
   return `<p class="note">${esc(formatDateJa(q.date))}ごろの出来事だよ。時間がたつと変わることがあるよ。出典: ${links}</p>${past}`;
+}
+
+// 答えたあとの「今の問題」の画面。選択肢は押せず、あなたの答えと正解に印をつける(答え直しや二重の採点は起きない)
+function showQuestionReadonly() {
+  if (!game || game.results.length <= game.index) { showQuestion(); return; }
+  screen = 'question';
+  game.shown = game.index;
+  const q = game.deck[game.index];
+  const r = game.results[game.index];
+  const hasChart = q.type === 'pattern' || q.type === 'candle';
+  const mark = (c) => (c === q.answer ? '<b class="mk">○ 正解</b>' : '') + (c === r.picked ? `<b class="mk">${c === q.answer ? '' : '× '}あなたの答え</b>` : '');
+  app.innerHTML = `${header()}
+    <p class="q">${esc(q.question)}</p>
+    ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
+    ${q.type === 'candle' ? '<p class="note">赤の中空(白ぬき)が陽線(上昇)、青の塗りつぶしが陰線(下落)だよ。</p>' : ''}
+    ${priceNote(q)}
+    ${maNote(q)}
+    <p class="note">答えたあとの問題だよ。選びなおしはできないよ。</p>
+    <div class="choices${q.choices.length === 4 ? ' grid2' : ''}">${q.choices.map((c) => `<button class="choice" disabled aria-disabled="true">${esc(c)}${mark(c) ? `<small>${mark(c)}</small>` : ''}</button>`).join('')}</div>
+    <button class="primary" id="to-explain">答え合わせへ</button>`;
+  if (hasChart) drawQuestionChart(q, false);
+  else redraw = null;
+  bindLeave();
+  bindStepNav();
+  document.getElementById('to-explain').addEventListener('click', guarded(() => gotoQuestion(game.index)));
+  shownAt = performance.now();
+  publishState();
 }
 
 function showExplain(q, picked, correct, review = false) {

@@ -626,15 +626,28 @@ const CONFUSABLE_PAIRS = [['symmetrical-triangle', 'pennant'], ['doji', 'hammer'
   ['williams-r', 'stochastics'], ['granville-buy-1', 'moving-average'], ['granville-buy-1', 'golden-cross-term'],
   ['stop-loss-rule', 'stop-loss'], ['stop-loss-rule', 'averaging-down'],
 ];
-const MODES = ['all', 'pattern', 'candle', 'term', 'forecast'];
+const MODES = ['all', 'pattern', 'candle', 'term', 'forecast', 'news'];
 // 株価予想モードを画面に出すか(false にすると、モード一覧と「全部まぜ」から外れる)
 const FORECAST_PUBLIC = true;
+// 時事問題(日替わり・週替わりで足していく問題)。「全部まぜ」には入れず、有効期限の内だけ、モード「時事」で出る。
+// 1問の形(すべて必須。守っているかは validateNewsItem が確かめる。書き方は設計書 §12):
+//   id:        英小文字・数字・ハイフンだけ(例: '2026-10-16-boj-rate')。重複しない
+//   question, answer, wrongs(誤りの選択肢3つ), explanation(短い解説), detail(くわしく)
+//   difficulty: 'easy' | 'normal' | 'hard' | 'expert' | 'master'
+//   date:      出来事の日(YYYY-MM-DD)
+//   validFrom, validUntil: 出す期間(YYYY-MM-DD。NEWS_MAX_DAYS 日以内)
+//   sources:   [{ label: '媒体名(日付)', url: 'https://…' }]。出典を読んだものだけ
+const NEWS_QUESTIONS = [];
+// 時事モードを画面に出すか(問題が1つもないあいだは、モード一覧と成績画面から外れる)
+const NEWS_PUBLIC = NEWS_QUESTIONS.length > 0;
+const NEWS_MAX_DAYS = 45; // 1問を出す期間の最長(古くなった問題を出し続けないため)
 const MODE_LABELS = {
   all: '全部まぜ',
   pattern: 'チャートの形状',
   candle: 'ローソク足',
   term: '用語',
   forecast: '株価予想',
+  news: '時事',
 };
 
 // 答え合わせで見せる、この後の値動き(教科書的な傾向)
@@ -3365,6 +3378,76 @@ function makeTermQuestion(term, rng) {
   };
 }
 
+// ---- 時事問題 ----
+// 「今日」(YYYY-MM-DD・日本時間)。画面側が起動時に setNewsToday で決める。決まっていないあいだは、時事問題は1つも出ない(テストを日付に左右させないため)
+let NEWS_TODAY = null;
+function setNewsToday(iso) {
+  NEWS_TODAY = /^\d{4}-\d{2}-\d{2}$/.test(String(iso)) ? iso : null;
+}
+
+// 出す期間の中か(validFrom と validUntil の日も含む。YYYY-MM-DD は文字の比較で、日付の順になる)
+function isNewsActive(item, today = NEWS_TODAY) {
+  return Boolean(today) && item.validFrom <= today && today <= item.validUntil;
+}
+
+function activeNews(today = NEWS_TODAY, items = NEWS_QUESTIONS) {
+  return items.filter((n) => isNewsActive(n, today));
+}
+
+function makeNewsQuestion(item, rng) {
+  return {
+    id: `news:${item.id}`,
+    type: 'news',
+    question: item.question,
+    choices: shuffle([item.answer, ...item.wrongs], rng),
+    answer: item.answer,
+    explanation: item.explanation,
+    detail: item.detail,
+    difficulty: item.difficulty,
+    date: item.date,
+    validUntil: item.validUntil,
+    sources: item.sources.map((x) => ({ label: x.label, url: x.url })),
+  };
+}
+
+function isoDayNumber(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+}
+
+const NEWS_ADVICE_WORDS = /買うべき|売るべき|買い時|売り時|おすすめ|オススメ|儲かる|必ず(?:上が|下が|値上が|値下が)|絶対に?(?:上が|下が)/;
+
+// 時事問題の1つぶん(NEWS_QUESTIONS の要素)に不備があればその説明を、なければ null を返す
+function validateNewsItem(item) {
+  const id = item && item.id;
+  if (!item || typeof item !== 'object') return '時事問題がオブジェクトではない';
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(id))) return `${id}: id は英小文字・数字・ハイフンだけにする`;
+  for (const k of ['question', 'answer', 'explanation', 'detail']) {
+    if (typeof item[k] !== 'string' || !item[k].trim()) return `${id}: ${k} がない`;
+  }
+  if (!Array.isArray(item.wrongs) || item.wrongs.length !== 3) return `${id}: wrongs が3つではない`;
+  if (new Set([item.answer, ...item.wrongs]).size !== 4) return `${id}: 選択肢が重複している`;
+  if (item.wrongs.some((w) => typeof w !== 'string' || !w.trim())) return `${id}: wrongs に空の選択肢がある`;
+  if (!DIFFICULTY_LEVELS.includes(item.difficulty)) return `${id}: difficulty が不正: ${item.difficulty}`;
+  for (const k of ['date', 'validFrom', 'validUntil']) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(item[k]))) return `${id}: ${k} が YYYY-MM-DD ではない`;
+    const [y, m, d] = item[k].split('-').map(Number);
+    const t = new Date(Date.UTC(y, m - 1, d));
+    if (t.getUTCFullYear() !== y || t.getUTCMonth() !== m - 1 || t.getUTCDate() !== d) return `${id}: ${k} が実在しない日付`;
+  }
+  if (item.date > item.validFrom) return `${id}: 出来事の日(date)が、出す期間の始まり(validFrom)より後`;
+  if (item.validFrom > item.validUntil) return `${id}: validFrom が validUntil より後`;
+  if (isoDayNumber(item.validUntil) - isoDayNumber(item.validFrom) + 1 > NEWS_MAX_DAYS) return `${id}: 出す期間が ${NEWS_MAX_DAYS} 日を超える`;
+  if (!Array.isArray(item.sources) || item.sources.length < 1) return `${id}: 出典(sources)がない`;
+  for (const src of item.sources) {
+    if (!src || typeof src.label !== 'string' || !src.label.trim()) return `${id}: 出典の label がない`;
+    if (typeof src.url !== 'string' || !/^https:\/\/[^\s"'<>]+$/.test(src.url)) return `${id}: 出典の url が https の URL ではない`;
+  }
+  const text = [item.question, item.answer, ...item.wrongs, item.explanation, item.detail].join('\n');
+  if (NEWS_ADVICE_WORDS.test(text)) return `${id}: 投資の助言に読める言葉が入っている`;
+  return null;
+}
+
 // ---- 株価予想 ----
 // 株価予想の問題。選択肢は FORECAST_CHOICES の順に固定(rng は、ほかの make*Question と呼び方をそろえるためだけの引数で、使わない)
 function makeForecastQuestion(item, rng) {
@@ -3498,7 +3581,7 @@ function outlookStatInfo(patternId) {
 
 // 問題に不備があればその説明を、なければ null を返す
 function validateQuestion(q) {
-  if (!['pattern', 'candle', 'term', 'forecast'].includes(q.type)) return `type が不正: ${q.type}`;
+  if (!['pattern', 'candle', 'term', 'forecast', 'news'].includes(q.type)) return `type が不正: ${q.type}`;
   if (!q.id || !q.question || !q.explanation || !q.detail) return `${q.id}: 必須項目がない`;
   if (q.type === 'forecast') return validateForecastQuestion(q);
   if (q.choices.length !== 4) return `${q.id}: 選択肢が4個ではない`;
@@ -3509,7 +3592,7 @@ function validateQuestion(q) {
 }
 
 function chartForQuestion(q) {
-  if (q.type === 'term' || q.type === 'forecast') return null;
+  if (q.type === 'term' || q.type === 'forecast' || q.type === 'news') return null;
   if (q.type === 'candle') return { kind: 'candles', candles: q.candles };
   const pattern = findPattern(q.patternId);
   const values = generateSeries(pattern, q.seed);
@@ -3543,7 +3626,7 @@ function byDifficulty(items, difficulty) {
 }
 
 function buildPool(mode, rng, difficulty = 'all') {
-  const wants = (type) => mode === type || (mode === 'all' && (type !== 'forecast' || FORECAST_PUBLIC));
+  const wants = (type) => mode === type || (mode === 'all' && type !== 'news' && (type !== 'forecast' || FORECAST_PUBLIC));
   const pool = [];
   if (wants('pattern')) {
     // 乱数は、絞り込みに関係なくパターンごとに同じ回数だけ引く(同じシードなら同じ結果にするため)
@@ -3561,6 +3644,10 @@ function buildPool(mode, rng, difficulty = 'all') {
   if (wants('forecast')) {
     // 乱数は引かない(ほかのモードの出題を変えないため)
     for (const f of byDifficulty(FORECAST_QUESTIONS, difficulty)) pool.push(makeForecastQuestion(f, rng));
+  }
+  if (wants('news')) {
+    // 乱数は、ほかのモードの出題を変えないよう、並びを決める shuffle のときだけ使う。「全部まぜ」には入れない
+    for (const n of byDifficulty(activeNews(), difficulty)) pool.push(makeNewsQuestion(n, rng));
   }
   return pool;
 }
@@ -3707,7 +3794,7 @@ function serializeSeen(seen) {
 const HISTORY_LIMIT = 30; // 保存する、ラウンドの記録の数
 const RECENT_SHOWN = 10; // 成績画面に出す、最近のラウンドの数
 const WEAK_MIN_TOTAL = 10; // 「苦手」を決めるのに必要な、そのモードの回答数
-const STATS_MODES = ['pattern', 'candle', 'term', 'forecast']; // 成績画面に出すモード(「全部まぜ」は画面から外した)
+const STATS_MODES = ['pattern', 'candle', 'term', 'forecast', 'news']; // 成績画面に出すモード(「全部まぜ」は画面から外した)
 
 // 正答率(%)。整数に丸める。問題が0問なら 0
 function accuracyPercent(correct, total) {
@@ -3879,7 +3966,7 @@ function parseFrameMessage(data) {
 
 // スタート画面と左の一覧の、モードごとの数字(全部まぜは出さない。株予想は公開設定にしたがう)
 function modeEntries(stats, difficulty = 'all') {
-  return MODES.filter((m) => m !== 'all' && (m !== 'forecast' || FORECAST_PUBLIC)).map((m) => {
+  return MODES.filter((m) => m !== 'all' && (m !== 'forecast' || FORECAST_PUBLIC) && (m !== 'news' || NEWS_PUBLIC)).map((m) => {
     const key = statsKey(m, difficulty);
     const p = stats.played[key];
     return { mode: m, size: roundSize(m, difficulty), best: stats.best[key], rate: p.total ? Math.round((p.correct / p.total) * 100) : null };
@@ -3954,6 +4041,8 @@ function buildNavItems(state) {
 
 // ==UI-START==
 const STORAGE_KEY = 'stockQuiz.stats.v1';
+// 時事問題の「今日」(日本時間)。左の一覧と本体のどちらも、起動時に決める
+setNewsToday(new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10));
 const app = document.getElementById('app');
 let stats = loadStats();
 let game = null;
@@ -4341,7 +4430,7 @@ function showStats() {
   const row = (label, valueText, rate) =>
     `<li class="stat-row"><div class="stat-head"><span>${esc(label)}</span><b>${esc(valueText)}</b></div>${meter(rate)}</li>`;
   const valueOf = (r) => (r.total > 0 ? `${r.rate}%(${r.correct}/${r.total}問)` : 'まだ記録なし');
-  const byMode = sum.byMode.filter((m) => m.mode !== 'forecast' || FORECAST_PUBLIC)
+  const byMode = sum.byMode.filter((m) => (m.mode !== 'forecast' || FORECAST_PUBLIC) && (m.mode !== 'news' || NEWS_PUBLIC))
     .map((m) => row(m.label, valueOf(m), m.rate)).join('');
   const byLevel = sum.byLevel.map((l) => row(l.label, valueOf(l), l.rate)).join('');
   const recent = sum.recent.map((r) => {
@@ -4413,6 +4502,12 @@ function answer(q, picked) {
 }
 
 // review が true のときは、回答済みの問題の見返し(成績は変えない。ボタンは「いまの問題に戻る」)
+// 時事問題の出典と、いつの出来事かの注記
+function newsNoteHtml(q) {
+  const links = q.sources.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.label)}(別のタブで開く)</a>`).join(' ／ ');
+  return `<p class="note">${esc(formatDateJa(q.date))}ごろの出来事だよ。時間がたつと変わることがあるよ。出典: ${links}</p>`;
+}
+
 function showExplain(q, picked, correct, review = false) {
   screen = 'explain';
   game.shown = review ? game.deck.indexOf(q) : game.index;
@@ -4436,6 +4531,7 @@ function showExplain(q, picked, correct, review = false) {
     </div>
     ${tendency}
     ${q.type === 'forecast' ? examplesHtml(q) : ''}
+    ${q.type === 'news' ? newsNoteHtml(q) : ''}
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
     ${priceNote(q)}
     ${maNote(q)}

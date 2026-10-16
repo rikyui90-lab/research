@@ -11,7 +11,7 @@ test('index.html のデータとロジックを読み込める', () => {
 const L = loadLogic();
 // 全モード(全部まぜ・チャートの形状・ローソク足・用語・株価予想)。「どのモードも10問が成立する」「1問以上ある」を見るテストで使う。
 // 株価予想の仕組みのテストは、本物のデータではなく見本(fixture)を入れた別の評価結果で見る
-const EVERY_MODE = L.MODES;
+const EVERY_MODE = L.MODES.filter((m) => m !== 'news'); // 時事は、問題が入っているときだけ出るので、10問そろう前提の検査からは外す
 
 // v6 で追加したチャートの形20種類: id -> [名前, outlook, 難易度](表の順。PATTERNS の末尾にこの順で並ぶ)
 const NEW_CHART20 = {
@@ -262,7 +262,7 @@ test('findPattern: 存在しない id は例外', () => {
 });
 
 test('MODES と MODE_LABELS が揃っている', () => {
-  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term', 'forecast']);
+  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term', 'forecast', 'news']);
   for (const m of L.MODES) assert.ok(L.MODE_LABELS[m], m);
   assert.equal(L.MODE_LABELS.outlook, undefined);
   assert.throws(() => L.makeOutlookQuestion, ReferenceError);
@@ -370,7 +370,7 @@ test('either の形は続きの点線が空(拡大三角形・エリオット推
 });
 
 test('outlook の問題・モードはどこにもない', () => {
-  for (const mode of L.MODES) {
+  for (const mode of EVERY_MODE) {
     for (let seed = 1; seed <= 10; seed++) {
       for (const q of L.buildDeck(mode, seed)) {
         assert.notEqual(q.type, 'outlook');
@@ -545,7 +545,7 @@ test('summarizeStats: モード別・難易度別の正答率、最近のラウ�
   assert.deepEqual([by('pattern').correct, by('pattern').total, by('pattern').rate], [8, 20, 40]);
   assert.deepEqual([by('term').correct, by('term').total, by('term').rate], [17, 20, 85]);
   assert.deepEqual([by('candle').total, by('candle').rate], [0, null]);
-  assert.deepEqual(s.byMode.map((m) => m.mode), ['pattern', 'candle', 'term', 'forecast']);
+  assert.deepEqual(s.byMode.map((m) => m.mode), ['pattern', 'candle', 'term', 'forecast', 'news']);
   assert.ok(!s.byMode.some((m) => m.mode === 'all'));
   const lv = (d) => s.byLevel.find((x) => x.level === d);
   assert.deepEqual([lv('easy').correct, lv('easy').total, lv('easy').rate], [5, 10, 50]);
@@ -1464,7 +1464,7 @@ test('roundSize: all は、どの難易度でも10(expert/master の候補は 20
 });
 
 test('buildDeck: 難易度の絞り込みで、問題数・重複・難易度・有効性・決定性が合う', () => {
-  for (const mode of L.MODES) {
+  for (const mode of EVERY_MODE) {
     for (const level of L.DIFFICULTY_FILTERS) {
       const size = L.roundSize(mode, level);
       assert.equal(size, Math.min(L.ROUND_SIZE, L.buildPool(mode, L.createRng(1), level).length), `${mode}/${level}`);
@@ -1500,7 +1500,7 @@ test('全部まぜ+難易度: 同じ形の問題が重ならず、outlook の問
 });
 
 test('buildDeck: 難易度を省略すると、これまでと同じ(all)', () => {
-  for (const mode of L.MODES) {
+  for (const mode of EVERY_MODE) {
     assert.deepEqual(L.buildDeck(mode, 5), L.buildDeck(mode, 5, 'all'));
   }
 });
@@ -1544,8 +1544,8 @@ test('保存データ: 値動き予想(outlook)の古いキーが残っていて
   assert.deepEqual(parsed.played.pattern, { correct: 5, total: 10 });
   assert.equal(parsed.best.outlook, undefined);
   assert.equal(parsed.played['outlook:hard'], undefined);
-  assert.equal(Object.keys(parsed.best).length, 30);
-  assert.equal(L.STATS_KEYS.length, 30);
+  assert.equal(Object.keys(parsed.best).length, 36);
+  assert.equal(L.STATS_KEYS.length, 36);
   assert.ok(L.STATS_KEYS.every((k) => !k.startsWith('outlook')));
 });
 
@@ -3240,9 +3240,9 @@ test('株価予想: 選択肢はやり直しでも並べ替えない(reshuffleCh
   assert.deepEqual(LF.buildRetryDeck(deck, [{ id: deck[0].id, correct: true }, { id: deck[1].id, correct: false }], 1).map((q) => q.id), [deck[1].id]);
 });
 
-test('株価予想: 成績のキー(5モード × 6)と、古い保存データの読み込み', () => {
-  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term', 'forecast']);
-  assert.equal(L.STATS_KEYS.length, 30);
+test('株価予想: 成績のキー(6モード × 6)と、古い保存データの読み込み', () => {
+  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term', 'forecast', 'news']);
+  assert.equal(L.STATS_KEYS.length, 36);
   assert.ok(L.STATS_KEYS.includes('forecast') && L.STATS_KEYS.includes('forecast:master'));
   const s0 = L.defaultStats();
   assert.deepEqual(s0.played.forecast, { correct: 0, total: 0 });
@@ -3662,4 +3662,80 @@ test('フレーム: 描画直後の命令は捨てる(難易度だけは捨て�
     assert.equal(L.navCommandIgnored(c, 400, 400), false, c.cmd);
   }
   assert.equal(L.navCommandIgnored({ cmd: 'difficulty', value: 'easy' }, 0, 400), false);
+});
+
+// ---- 時事問題の枠 ----
+const NEWS_OK = {
+  id: '2026-10-16-sample', question: 'サンプルの問いだよ', answer: '答え', wrongs: ['誤り1', '誤り2', '誤り3'],
+  explanation: '短い解説だよ', detail: 'くわしくだよ', difficulty: 'easy',
+  date: '2026-10-16', validFrom: '2026-10-16', validUntil: '2026-11-14',
+  sources: [{ label: 'サンプル(10/16)', url: 'https://example.com/a' }],
+};
+
+test('時事問題: 正しい形は不備なし。必須項目・選択肢・日付・出典・期間の不備を見つける', () => {
+  assert.equal(L.validateNewsItem(NEWS_OK), null);
+  const bad = (patch) => L.validateNewsItem({ ...NEWS_OK, ...patch });
+  assert.match(bad({ id: 'Bad_ID' }), /id/);
+  assert.match(bad({ question: '' }), /question/);
+  assert.match(bad({ wrongs: ['a', 'b'] }), /wrongs/);
+  assert.match(bad({ wrongs: ['答え', 'b', 'c'] }), /重複/);
+  assert.match(bad({ difficulty: 'x' }), /difficulty/);
+  assert.match(bad({ validFrom: '2026/10/16' }), /validFrom/);
+  assert.match(bad({ validFrom: '2026-02-30' }), /実在/);
+  assert.match(bad({ date: '2026-10-17' }), /date/);
+  assert.match(bad({ validUntil: '2026-10-15' }), /validFrom/);
+  assert.match(bad({ validUntil: '2026-11-30' }), /日を超える/);
+  assert.equal(bad({ validUntil: '2026-11-29' }), null); // ちょうど45日
+  assert.match(bad({ sources: [] }), /出典/);
+  assert.match(bad({ sources: [{ label: 'a', url: 'http://example.com' }] }), /https/);
+  assert.match(bad({ sources: [{ label: 'a', url: 'javascript:alert(1)' }] }), /https/);
+  assert.match(bad({ sources: [{ label: '', url: 'https://example.com' }] }), /label/);
+  assert.match(bad({ explanation: 'この株は買うべきだよ' }), /助言/);
+  assert.match(bad({ detail: '必ず上がるよ' }), /助言/);
+});
+
+test('時事問題: 出す期間(validFrom〜validUntil、両端を含む)の内だけ出て、「今日」が決まっていなければ出ない', () => {
+  assert.equal(L.isNewsActive(NEWS_OK, '2026-10-15'), false);
+  assert.equal(L.isNewsActive(NEWS_OK, '2026-10-16'), true);
+  assert.equal(L.isNewsActive(NEWS_OK, '2026-11-14'), true);
+  assert.equal(L.isNewsActive(NEWS_OK, '2026-11-15'), false);
+  assert.equal(L.isNewsActive(NEWS_OK, null), false);
+  const later = { ...NEWS_OK, id: 'later', validFrom: '2026-10-20', validUntil: '2026-10-25' };
+  assert.deepEqual(L.activeNews('2026-10-17', [NEWS_OK, later]).map((n) => n.id), ['2026-10-16-sample']);
+  assert.deepEqual(L.activeNews('2026-10-22', [NEWS_OK, later]).map((n) => n.id), ['2026-10-16-sample', 'later']);
+  assert.deepEqual(L.activeNews(null, [NEWS_OK]), []);
+});
+
+test('時事問題: 問題の形(id は news:、選択肢は4つで正解を含む、出典がつく)。同じシードなら同じ並び', () => {
+  const q1 = L.makeNewsQuestion(NEWS_OK, L.createRng(7));
+  const q2 = L.makeNewsQuestion(NEWS_OK, L.createRng(7));
+  assert.deepEqual(q1, q2);
+  assert.equal(q1.id, 'news:2026-10-16-sample');
+  assert.equal(q1.type, 'news');
+  assert.equal(L.validateQuestion(q1), null);
+  assert.deepEqual([...q1.choices].sort(), ['答え', '誤り1', '誤り2', '誤り3'].sort());
+  assert.equal(q1.sources[0].url, 'https://example.com/a');
+  assert.equal(q1.validUntil, '2026-11-14');
+  q1.sources[0].url = 'x';
+  assert.equal(NEWS_OK.sources[0].url, 'https://example.com/a'); // 元のデータを書き換えない
+});
+
+test('時事問題: 今は問題が空で、モード一覧には出ず、「全部まぜ」にも入らない。問題が入ったあとも、データは検査を通る', () => {
+  assert.ok(L.MODES.includes('news') && L.MODE_LABELS.news === '時事');
+  assert.equal(L.NEWS_PUBLIC, L.NEWS_QUESTIONS.length > 0);
+  const ids = new Set(L.NEWS_QUESTIONS.map((n) => n.id));
+  assert.equal(ids.size, L.NEWS_QUESTIONS.length, 'id の重複');
+  for (const n of L.NEWS_QUESTIONS) assert.equal(L.validateNewsItem(n), null);
+  assert.equal(L.buildPool('news', L.createRng(1)).length, 0); // 「今日」が決まっていないあいだは出ない
+  assert.ok(L.buildPool('all', L.createRng(1)).every((q) => q.type !== 'news'));
+  assert.deepEqual(L.DIFFICULTY_FILTERS.includes('all'), true);
+});
+
+test('時事問題: 「今日」を決めると、期間の内の問題だけがモード「時事」の出題に入る(終わったら元に戻す)', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.ok(html.includes('setNewsToday('), '画面の起動時に「今日」を決める');
+  // 差し替えた問題で、buildPool が使う activeNews の経路を確かめる
+  const pool = L.activeNews('2026-10-20', [NEWS_OK]).map((n) => L.makeNewsQuestion(n, L.createRng(1)));
+  assert.equal(pool.length, 1);
+  assert.equal(L.validateQuestion(pool[0]), null);
 });

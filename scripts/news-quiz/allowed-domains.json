@@ -1,5 +1,5 @@
 {
-  "_説明": "出典に使ってよいドメイン。サブドメインも許可する(例: www.nikkei.com は nikkei.com で許可)。手で足してよい。primary は一次情報(取引所・官公庁など)。会社のIRは、URL に /ir を含む、または ir. で始まるサブドメインのものを、一次情報として扱う(check-news.mjs)",
+  "_説明": "出典に使ってよいドメイン。サブドメインも許可する(例: www.nikkei.com は nikkei.com で許可)。手で足してよい。primary は一次情報(取引所・官公庁など)。会社のIRは、URL に /ir を含む、または ir. で始まるサブドメインのものを、一次情報として扱う(check-news.mjs)。wire は会社のリリース配信サービス。出典の条件: 異なるドメインで2件以上、かつ「報道機関2社以上」「配信サービス+報道機関」「一次情報+ほかのドメイン」のどれか(同じドメインの複数ページは1件)",
   "primary": [
     "jpx.co.jp",
     "release.tdnet.info",
@@ -19,6 +19,19 @@
     "kantei.go.jp",
     "edinet-fsa.go.jp",
     "disclosure2.edinet-fsa.go.jp"
+  ],
+  "wire": [
+    "prtimes.jp",
+    "kyodonewsprwire.jp",
+    "businesswire.com",
+    "businesswire.jp",
+    "atpress.ne.jp",
+    "value-press.com",
+    "dreamnews.jp",
+    "presswalker.jp",
+    "jiji-prwire.jp",
+    "prnewswire.com",
+    "globenewswire.com"
   ],
   "news": [
     "nikkei.com",
@@ -53,7 +66,6 @@
     "nikkansports.com",
     "newspicks.com",
     "kanaloco.jp",
-    "prtimes.jp",
     "kabuyoho.jp",
     "traders.co.jp",
     "monex.co.jp",

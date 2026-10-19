@@ -289,22 +289,47 @@ test('check: 長さの上限を超えた項目は落ちる', () => {
   assert.match(res.rejected.find((x) => x.id === cands[1].id).reasons.join(), /長すぎる/);
 });
 
-test('check: 出典のドメインの許可リストと、一次情報の条件', () => {
+test('check: 出典のドメインの許可リストと、新しい出典の条件', () => {
   const cands = tenGood();
   const src = (u1, u2) => [{ label: 'a', url: u1 }, { label: 'b', url: u2 }];
-  cands[0] = { ...cands[0], sources: src('https://evil.example.net/a', 'https://www.jpx.co.jp/b') }; // 許可リスト外
-  cands[1] = { ...cands[1], sources: src('https://www.nikkei.com/a', 'https://www.asahi.com/b') }; // 一次情報なし
-  cands[2] = { ...cands[2], sources: src('https://www.nikkei.com/a', 'https://example.co.jp/ir/news/1') }; // 会社の IR(/ir)
-  cands[3] = { ...cands[3], sources: src('https://www.nikkei.com/a', 'https://ir.example.co.jp/news') }; // ir. サブドメイン
-  cands[4] = { ...cands[4], sources: src('https://www.nikkei.com/a', 'https://example.co.jp/company/news') }; // 会社のサイトだが /ir でない
-  cands[5] = { ...cands[5], sources: src('https://www.nikkei.com/a', 'https://www.fsa.go.jp/news/x') }; // 官公庁
-  cands[6] = { ...cands[6], sources: src('https://notnikkei.com/a', 'https://www.jpx.co.jp/b') }; // 似たドメイン
-  cands[7] = { ...cands[7], sources: src('https://www.nikkei.com/a', 'https://192.168.0.1/ir/x') }; // IP
-  const res = runCheck(cands, verdicts(cands));
-  const bad = (i) => res.rejected.some((x) => x.id === cands[i].id);
-  assert.ok(bad(0) && bad(1) && bad(4) && bad(6) && bad(7));
-  assert.ok(!bad(2) && !bad(3) && !bad(5));
-  assert.match(res.rejected.find((x) => x.id === cands[1].id).reasons.join(), /一次情報/);
+  // [出典1, 出典2, 合格するか, 理由に含まれる語]
+  const cases = [
+    ['https://evil.example.net/a', 'https://www.jpx.co.jp/b', false, /許可リストにないドメイン/], // 許可リスト外を含む
+    ['https://www.nikkei.com/a', 'https://www.asahi.com/b', true], // (a) 報道2社
+    ['https://www.nikkei.com/a', 'https://www.nikkei.com/b', false, /2件未満/], // 同じドメインの2ページ
+    ['https://www.nikkei.com/a', 'https://s.nikkei.com/b', false, /2件未満/], // サブドメイン違いも同じドメイン
+    ['https://prtimes.jp/main/html/rd/p/1.html', 'https://www.nikkei.com/b', true], // (b) 配信サービス+報道
+    ['https://prtimes.jp/a', 'https://www.atpress.ne.jp/b', false, /組み合わせ/], // 配信サービスだけ2件
+    ['https://www.jpx.co.jp/a', 'https://www.nikkei.com/b', true], // (c) 取引所+報道
+    ['https://www.nikkei.com/a', 'https://example.co.jp/ir/news/1', true], // 会社 IR(/ir)+報道
+    ['https://ir.example.co.jp/news', 'https://prtimes.jp/a', true], // ir. サブドメイン+配信サービス
+    ['https://www.jpx.co.jp/a', 'https://www.jpx.co.jp/b', false, /2件未満/], // 一次情報でも同じドメインは1件
+    ['https://www.nikkei.com/a', 'https://example.co.jp/company/news', false, /許可リストにないドメイン/], // 会社のサイトだが /ir でない
+    ['https://www.nikkei.com/a', 'https://www.fsa.go.jp/news/x', true], // 官公庁+報道
+    ['https://notnikkei.com/a', 'https://www.jpx.co.jp/b', false, /許可リストにないドメイン/], // 似たドメイン
+    ['https://www.nikkei.com/a', 'https://192.168.0.1/ir/x', false, /ホスト名/], // IP
+    ['http://www.nikkei.com/a', 'https://www.asahi.com/b', false, /形式/], // http
+  ];
+  const list = cases.map((c, i) => ({ ...cand(i + 1, { id: `2026-10-13-src-${i}` }), sources: src(c[0], c[1]) }));
+  // 偏り(正解が最長)で落ちないよう、全問を同じ形にして、出典だけを変える
+  // 1回の最大(12問)を超えないよう、2回に分けて検査する
+  const part = (xs) => runCheck(xs, verdicts(xs), ['--min', '1']).rejected;
+  const res = { rejected: [...part(list.slice(0, 8)), ...part(list.slice(8))] };
+  cases.forEach((c, i) => {
+    const rj = res.rejected.find((x) => x.id === list[i].id);
+    if (c[2]) assert.ok(!rj || !rj.reasons.some((r) => /出典/.test(r)), `${i} は出典で落ちない: ${rj && rj.reasons}`);
+    else {
+      assert.ok(rj, `${i} は落ちる`);
+      assert.match(rj.reasons.join(), c[3], `${i}`);
+    }
+  });
+});
+
+test('check: 配信サービスのドメインは別の区分(wire)で許可される', () => {
+  const d = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts', 'news-quiz', 'allowed-domains.json'), 'utf8'));
+  for (const host of ['prtimes.jp', 'kyodonewsprwire.jp', 'businesswire.com', 'atpress.ne.jp']) assert.ok(d.wire.includes(host), host);
+  assert.ok(!d.news.includes('prtimes.jp'));
+  assert.ok(d.primary.includes('jpx.co.jp') && d.news.includes('nikkei.com')); // 既存の区分はそのまま
 });
 
 test('check: 不祥事・係争・人事の話題は落ちる', () => {

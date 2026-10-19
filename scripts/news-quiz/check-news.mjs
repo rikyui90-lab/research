@@ -19,14 +19,22 @@ const sentences = (s) => (String(s).match(/。/g) || []).length;
 
 function loadDomains() {
   const d = readJson(path.join(HERE, 'allowed-domains.json'));
-  return { primary: d.primary || [], news: d.news || [] };
+  return { primary: d.primary || [], wire: d.wire || [], news: d.news || [] };
 }
 
 function hostMatches(host, list) {
   return list.some((d) => host === d || host.endsWith('.' + d));
 }
 
-// 出典の URL の検査。{ ok, primary, reason }
+// 同じ会社・媒体のドメインを1つと数えるための名前(サブドメイン違いは同じ。co.jp などの2階層も考える)
+export function registrable(host) {
+  const parts = host.split('.');
+  const second = ['co', 'or', 'ne', 'go', 'ac', 'ad', 'ed', 'gr', 'lg'];
+  const n = parts.length >= 3 && parts[parts.length - 1] === 'jp' && second.includes(parts[parts.length - 2]) ? 3 : 2;
+  return parts.slice(-n).join('.');
+}
+
+// 出典の URL の検査。{ ok, kind: 'primary'|'wire'|'news', domain, reason }
 export function classifyUrl(url, domains) {
   let u;
   try { u = new URL(url); } catch { return { ok: false, reason: 'URL が読めない' }; }
@@ -35,10 +43,30 @@ export function classifyUrl(url, domains) {
   if (!host.includes('.') || /^\d+(\.\d+){3}$/.test(host) || host.includes(':')) return { ok: false, reason: 'ホスト名が不正' };
   if (u.username || u.password) return { ok: false, reason: 'URL に認証情報が含まれる' };
   const isIr = host.startsWith('ir.') || /\/ir(\/|\.|-|_|$)/i.test(u.pathname);
-  if (hostMatches(host, domains.primary)) return { ok: true, primary: true };
-  if (isIr) return { ok: true, primary: true };
-  if (hostMatches(host, domains.news)) return { ok: true, primary: false };
+  const domain = registrable(host);
+  if (hostMatches(host, domains.primary)) return { ok: true, kind: 'primary', domain };
+  if (isIr) return { ok: true, kind: 'primary', domain };
+  if (hostMatches(host, domains.wire)) return { ok: true, kind: 'wire', domain };
+  if (hostMatches(host, domains.news)) return { ok: true, kind: 'news', domain };
   return { ok: false, reason: `許可リストにないドメイン: ${host}` };
+}
+
+// 出典の組み合わせの条件(異なるドメインで数える。同じドメインの複数ページは1件)。満たしていれば null、満たさなければ理由
+// (a) 報道機関の別々のドメイン2件以上 / (b) リリース配信サービス1件 + 報道機関1件以上 / (c) 一次情報(取引所・官公庁・会社IR)1件 + ほかのドメイン1件以上
+export function sourceCombinationError(cls) {
+  const byDomain = new Map();
+  const rank = { primary: 3, wire: 2, news: 1 };
+  for (const c of cls) {
+    const old = byDomain.get(c.domain);
+    if (!old || rank[c.kind] > rank[old]) byDomain.set(c.domain, c.kind);
+  }
+  const kinds = [...byDomain.values()];
+  const count = (k) => kinds.filter((x) => x === k).length;
+  if (kinds.length < 2) return '出典が異なるドメインで2件未満(同じドメインの複数ページは1件と数える)';
+  if (count('primary') >= 1) return null;
+  if (count('news') >= 2) return null;
+  if (count('wire') >= 1 && count('news') >= 1) return null;
+  return '出典の組み合わせが条件に合わない(報道機関2社以上、配信サービス+報道機関、または一次情報+ほかのドメイン)';
 }
 
 function isLongestUnique(item) {
@@ -100,7 +128,10 @@ export function checkAll({ candidates, verdicts, today, html = DEFAULT_HTML, min
       if (new Set(item.sources.map((s) => s.url)).size < item.sources.length) reasons.push('出典の URL が重複');
       const cls = item.sources.map((s) => classifyUrl(s.url, domains));
       for (const c of cls) if (!c.ok) reasons.push(`出典: ${c.reason}`);
-      if (cls.every((c) => c.ok) && !cls.some((c) => c.primary)) reasons.push('一次情報(取引所・官公庁・会社のIR)の出典がない');
+      if (cls.every((c) => c.ok)) {
+        const comb = sourceCombinationError(cls);
+        if (comb) reasons.push(`出典: ${comb}`);
+      }
       // 日付
       if (item.date < from || item.date > to) reasons.push(`出来事の日(${item.date})が ${from}〜${to} の外`);
       if (item.validFrom !== today) reasons.push(`validFrom が実行日(${today})ではない`);

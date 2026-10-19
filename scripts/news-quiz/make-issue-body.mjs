@@ -10,7 +10,10 @@ if (rejectedFile && fs.existsSync(rejectedFile)) {
   try {
     const rej = JSON.parse(fs.readFileSync(rejectedFile, 'utf8'));
     lines.push(`落ちた問題: ${rej.length}問`, '');
-    for (const r of rej.slice(0, 20)) lines.push(`- ${r.id ?? '(id なし)'}: ${r.reasons.join(' / ').slice(0, 200)}`);
+    // 機械チェックの理由と id だけ。AI の文章(aiReasons)は載せない。id は決まった形のものだけ載せ、@ やリンクが入らないようにする
+    const safeId = (id) => (typeof id === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) && id.length <= 80 ? id : '(id なし)');
+    const safeReason = (t) => String(t).replace(/[@<>`\[\]]|https?:\/\/\S+/g, '').slice(0, 120);
+    for (const r of rej.slice(0, 20)) lines.push(`- ${safeId(r.id)}: ${(Array.isArray(r.reasons) ? r.reasons : []).map(safeReason).join(' / ').slice(0, 300)}`);
     lines.push('');
   } catch { lines.push('(rejected.json を読めなかったよ)', ''); }
 }

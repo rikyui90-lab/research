@@ -1,5 +1,10 @@
 name: 時事問題の毎週の自動追加
 
+# 流れ: precheck(日付とシークレットの確認)
+#   → generate(承認待ち → Claude が問題を書き、別の呼び出しの Claude が確認する。contents: read だけ)
+#   → publish(機械チェック・テスト・追加・main へ push。Claude は動かさない)
+# 「今週の問題を作るか」は、Environment「weekly-news」の Required reviewers で聞く(docs/weekly-news-setup.md)
+
 on:
   schedule:
     # 毎週月曜の7:00(日本時間)。cron は UTC なので、日曜の22:00
@@ -20,28 +25,30 @@ concurrency:
   group: weekly-news
   cancel-in-progress: false
 
+# 既定は最小の権限。job ごとに必要なぶんだけ足す
 permissions:
-  contents: write
-  issues: write
+  contents: read
 
 env:
-  NEWS_DIR: .superpowers/news
   MODEL_WRITER: claude-sonnet-5-5
   MODEL_VERIFIER: claude-opus-5-5
-  # Claude Code(npm)のバージョン。上げるときは、ここだけ変える
-  CLAUDE_CODE_PKG: "@anthropic-ai/claude-code@latest"
+  # Claude Code(npm)の版。上げるときは、ここだけ変える(確認: npm view @anthropic-ai/claude-code version)
+  CLAUDE_CODE_VERSION: "2.1.303"
+  # Claude が暴走したときの止め役(1回の呼び出しの上限・ドル。クライアント側の概算)
+  BUDGET_WRITER_USD: "5"
+  BUDGET_VERIFIER_USD: "5"
 
 jobs:
-  weekly-news:
+  precheck:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    outputs:
+      ready: ${{ steps.init.outputs.ready }}
+      today: ${{ steps.init.outputs.today }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
       - name: シークレットと日付を確かめる
         id: init
         env:
@@ -49,34 +56,61 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           INPUT_TODAY: ${{ inputs.today }}
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -eu
           today="${INPUT_TODAY:-}"
           if [ -z "$today" ]; then today="$(TZ=Asia/Tokyo date +%F)"; fi
+          if ! printf '%s' "$today" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "::error::today は YYYY-MM-DD の形で指定してください"
+            exit 1
+          fi
+          date -u -d "$today" +%F > /dev/null
           echo "today=$today" >> "$GITHUB_OUTPUT"
           if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-            echo "::warning::シークレットが未設定です。ANTHROPIC_API_KEY を登録してください(docs/weekly-news-setup.md)"
+            echo "::warning::シークレットが未設定です。CLAUDE_CODE_OAUTH_TOKEN を登録してください(docs/weekly-news-setup.md)"
             echo "ready=false" >> "$GITHUB_OUTPUT"
             printf '%s\n' \
               "時事問題の毎週の自動追加は、シークレットが未設定のため動かなかったよ。" \
               "" \
-              "Settings → Secrets and variables → Actions → New repository secret で、ANTHROPIC_API_KEY を登録してね。手順は docs/weekly-news-setup.md にあるよ。" \
+              "Settings → Secrets and variables → Actions → New repository secret で、CLAUDE_CODE_OAUTH_TOKEN を登録してね。手順は docs/weekly-news-setup.md にあるよ。" \
               "" \
               "実行ログ: ${RUN_URL}" > "$RUNNER_TEMP/issue-body.md"
-            gh issue create --title "時事問題の自動更新を始められない(シークレットが未設定) $today" --body-file "$RUNNER_TEMP/issue-body.md" || echo "::warning::Issue を作れませんでした(権限を確かめてください)"
+            gh issue create --repo "$REPO" --title "時事問題の自動更新を始められない(シークレットが未設定) $today" --body-file "$RUNNER_TEMP/issue-body.md" || echo "::warning::Issue を作れませんでした(権限を確かめてください)"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: 作業用フォルダと、writer に渡す値を用意する
-        if: steps.init.outputs.ready == 'true'
+  generate:
+    needs: precheck
+    if: needs.precheck.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # 承認待ち: Environment の Required reviewers が承認するまで、この job(Claude を呼ぶ job)は始まらない
+    environment: weekly-news
+    # Claude を動かす job は、リポジトリを読むだけ。書き込みの権限もトークンも持たせない
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: リポジトリの外に、空の作業フォルダを用意する
         env:
-          TODAY: ${{ steps.init.outputs.today }}
+          TODAY: ${{ needs.precheck.outputs.today }}
         run: |
           set -eu
-          mkdir -p "$NEWS_DIR"
-          node scripts/news-quiz/list-existing.mjs "$NEWS_DIR/existing.json"
+          WORK="$RUNNER_TEMP/claude-work"
+          mkdir -p "$WORK"
+          echo "WORK=$WORK" >> "$GITHUB_ENV"
+          node scripts/news-quiz/list-existing.mjs "$WORK/existing.json"
+          cp scripts/news-quiz/allowed-domains.json "$WORK/allowed-domains.json"
           from="$(date -u -d "$TODAY -7 days" +%F)"
           to="$(date -u -d "$TODAY -1 day" +%F)"
           until="$(date -u -d "$TODAY +27 days" +%F)"
@@ -84,59 +118,124 @@ jobs:
             cat scripts/news-quiz/prompts/writer.md
             printf '\n# 今回の値\n\n'
             printf -- '- today(実行日): %s\n- 集める期間(出来事の日): %s 〜 %s\n- validFrom: %s\n- validUntil: %s\n' "$TODAY" "$from" "$to" "$TODAY" "$until"
-            printf -- '- 既存の問題の一覧: %s/existing.json\n- 出力先: %s/candidates.json\n' "$NEWS_DIR" "$NEWS_DIR"
-          } > "$NEWS_DIR/writer-prompt.md"
+            printf -- '- 既存の問題の一覧: existing.json\n- 出典に使ってよいドメイン: allowed-domains.json\n- 出力先: candidates.json\n'
+          } > "$WORK/writer-prompt.md"
+          cp scripts/news-quiz/prompts/verifier.md "$WORK/verifier-prompt.md"
 
       - name: writer(問題を書く)
-        if: steps.init.outputs.ready == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           set -eu
-          # 空のシークレットは、環境変数ごと外す
-          [ -n "${ANTHROPIC_API_KEY:-}" ] || unset ANTHROPIC_API_KEY
-          [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] || unset CLAUDE_CODE_OAUTH_TOKEN
-          # ツールは Read・Write・WebSearch・WebFetch だけ。Bash・Edit は与えない
-          npx -y "$CLAUDE_CODE_PKG" -p \
+          # 認証は OAuth トークンを優先する。両方あるときは API キーを外す(API キーのほうが優先されてしまうため)
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then unset ANTHROPIC_API_KEY; else unset CLAUDE_CODE_OAUTH_TOKEN; fi
+          # リポジトリの外の空のフォルダで動かす(CLAUDE.md や .claude を読ませない。--bare は OAuth を読まないので付けない)
+          cd "$WORK"
+          # --tools: 使える道具を絞る / dontAsk: 許可に書いていない操作は聞かずに拒否 / Write は candidates.json だけ
+          npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" -p \
             --model "$MODEL_WRITER" \
-            --allowedTools "Read,Write,WebSearch,WebFetch" \
-            --disallowedTools "Bash,Edit" \
+            --tools "Read,Write,WebSearch,WebFetch" \
+            --allowedTools "Read,WebSearch,WebFetch,Write(candidates.json)" \
+            --permission-mode dontAsk \
+            --no-session-persistence \
             --max-turns 120 \
-            < "$NEWS_DIR/writer-prompt.md"
-          test -s "$NEWS_DIR/candidates.json"
+            --max-budget-usd "$BUDGET_WRITER_USD" \
+            < writer-prompt.md
+          test -s candidates.json
+
+      - name: verifier の入力を作る(候補の内容のハッシュを付ける)
+        run: |
+          set -eu
+          cd "$GITHUB_WORKSPACE"
+          node scripts/news-quiz/prepare-verify.mjs "$WORK/candidates.json" "$WORK/verify-input.json"
+          rm -f "$WORK/verdicts.json"
+          sha256sum "$WORK/candidates.json" | cut -d' ' -f1 > "$WORK/candidates.sha256"
 
       - name: verifier(別の呼び出しで事実を確認する)
-        if: steps.init.outputs.ready == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           set -eu
-          # 空のシークレットは、環境変数ごと外す
-          [ -n "${ANTHROPIC_API_KEY:-}" ] || unset ANTHROPIC_API_KEY
-          [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] || unset CLAUDE_CODE_OAUTH_TOKEN
-          npx -y "$CLAUDE_CODE_PKG" -p \
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then unset ANTHROPIC_API_KEY; else unset CLAUDE_CODE_OAUTH_TOKEN; fi
+          cd "$WORK"
+          npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" -p \
             --model "$MODEL_VERIFIER" \
-            --allowedTools "Read,Write,WebSearch,WebFetch" \
-            --disallowedTools "Bash,Edit" \
+            --tools "Read,Write,WebSearch,WebFetch" \
+            --allowedTools "Read,WebSearch,WebFetch,Write(verdicts.json)" \
+            --permission-mode dontAsk \
+            --no-session-persistence \
             --max-turns 150 \
-            < scripts/news-quiz/prompts/verifier.md
-          test -s "$NEWS_DIR/verdicts.json"
+            --max-budget-usd "$BUDGET_VERIFIER_USD" \
+            < verifier-prompt.md
+          test -s verdicts.json
+
+      - name: Claude の手順のあとの確認(候補が書き換わっていない・リポジトリに変更がない)
+        run: |
+          set -eu
+          after="$(sha256sum "$WORK/candidates.json" | cut -d' ' -f1)"
+          if [ "$after" != "$(cat "$WORK/candidates.sha256")" ]; then
+            echo "::error::verifier の前後で candidates.json が変わりました"
+            exit 1
+          fi
+          cd "$GITHUB_WORKSPACE"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::リポジトリに予期しない変更があります"
+            git status --porcelain
+            exit 1
+          fi
+          # 受け渡すのは、2つの JSON だけ
+          mkdir -p "$RUNNER_TEMP/handoff"
+          cp "$WORK/candidates.json" "$WORK/verdicts.json" "$RUNNER_TEMP/handoff/"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: news-handoff
+          path: |
+            ${{ runner.temp }}/handoff/candidates.json
+            ${{ runner.temp }}/handoff/verdicts.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [precheck, generate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: news-handoff
+          path: ${{ runner.temp }}/news
 
       - name: 機械チェック
         id: check
-        if: steps.init.outputs.ready == 'true'
         env:
-          TODAY: ${{ steps.init.outputs.today }}
+          TODAY: ${{ needs.precheck.outputs.today }}
+        shell: bash
         run: |
           set -u
+          NEWS="$RUNNER_TEMP/news"
+          echo "NEWS=$NEWS" >> "$GITHUB_ENV"
           set +e
-          node scripts/news-quiz/check-news.mjs "$NEWS_DIR/candidates.json" "$NEWS_DIR/verdicts.json" --today "$TODAY" | tee "$NEWS_DIR/check-summary.json"
+          node scripts/news-quiz/check-news.mjs "$NEWS/candidates.json" "$NEWS/verdicts.json" --today "$TODAY" | tee "$NEWS/check-summary.json"
           code="${PIPESTATUS[0]}"
           set -e
-          n="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8').trim().split('\n').pop()).accepted)" "$NEWS_DIR/check-summary.json" 2>/dev/null || echo 0)"
+          n="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8').trim().split('\n').pop()).accepted)" "$NEWS/check-summary.json" 2>/dev/null || echo 0)"
+          stop="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8').trim().split('\n').pop()).stop || '')" "$NEWS/check-summary.json" 2>/dev/null || echo '')"
           echo "accepted=$n" >> "$GITHUB_OUTPUT"
+          echo "stop=$stop" >> "$GITHUB_OUTPUT"
           if [ "$code" = "0" ]; then
             echo "enough=true" >> "$GITHUB_OUTPUT"
           elif [ "$code" = "2" ]; then
@@ -145,7 +244,6 @@ jobs:
             echo "::error::機械チェックが失敗しました(終了コード $code)"
             exit "$code"
           fi
-        shell: bash
 
       - name: テスト(追加の前)
         if: steps.check.outputs.enough == 'true'
@@ -155,7 +253,7 @@ jobs:
 
       - name: 問題を index.html に足す
         if: steps.check.outputs.enough == 'true'
-        run: node scripts/news-quiz/apply-news.mjs "$NEWS_DIR/accepted.json"
+        run: node scripts/news-quiz/apply-news.mjs "$NEWS/accepted.json"
 
       - name: テスト(追加のあと)
         if: steps.check.outputs.enough == 'true'
@@ -164,44 +262,92 @@ jobs:
       - name: コミットして main に push する
         if: steps.check.outputs.enough == 'true' && inputs.dry_run != true
         env:
-          TODAY: ${{ steps.init.outputs.today }}
+          TODAY: ${{ needs.precheck.outputs.today }}
           COUNT: ${{ steps.check.outputs.accepted }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 変更してよいのは index.html だけ
+          if [ "$(git status --porcelain | grep -vc ' stock-quiz/index.html$' || true)" != "0" ]; then
+            echo "::error::index.html 以外に変更があります"
+            git status --porcelain
+            exit 1
+          fi
           git add stock-quiz/index.html
           if git diff --cached --quiet; then
             echo "変更なし"
-          else
-            git commit -m "時事問題を自動で追加 ${TODAY}(${COUNT}問)"
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+            exit 0
           fi
+          git commit -m "時事問題を自動で追加 ${TODAY}(${COUNT}問)"
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          BRANCH="${GITHUB_REF_NAME}"
+          # main が先に進んでいたら、取り込んでテストをやり直してから push する(最大2回やり直す)
+          attempt=0
+          while true; do
+            git pull --rebase "$REMOTE" "$BRANCH"
+            node --test stock-quiz/tests/logic.test.js
+            if git push "$REMOTE" "HEAD:${BRANCH}"; then break; fi
+            attempt=$((attempt + 1))
+            if [ "$attempt" -ge 3 ]; then
+              echo "::error::push に3回失敗しました"
+              exit 1
+            fi
+          done
 
       - name: dry_run の結果を表示する
         if: steps.check.outputs.enough == 'true' && inputs.dry_run == true
+        env:
+          COUNT: ${{ steps.check.outputs.accepted }}
         run: |
-          echo "dry_run のため、コミットしませんでした。追加される予定の問題: ${{ steps.check.outputs.accepted }}問" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "dry_run のため、コミットしませんでした。追加される予定の問題: ${COUNT}問" | tee -a "$GITHUB_STEP_SUMMARY"
           git diff --stat
 
       - name: 通った問題が足りなかったときの Issue
         if: steps.check.outputs.enough == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
-          TODAY: ${{ steps.init.outputs.today }}
+          TODAY: ${{ needs.precheck.outputs.today }}
           COUNT: ${{ steps.check.outputs.accepted }}
+          STOP: ${{ steps.check.outputs.stop }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          node scripts/news-quiz/make-issue-body.mjs "機械チェックと事実確認を通った問題が ${COUNT} 問で、5問に足りなかったよ" "$NEWS_DIR/rejected.json" --run-url "$RUN_URL" > "$RUNNER_TEMP/issue-body.md"
+          if [ "$STOP" = "too-many" ]; then reason="候補が多すぎるため、全部止めたよ(1回の追加は最大12問)"; else reason="機械チェックと事実確認を通った問題が ${COUNT} 問で、5問に足りなかったよ"; fi
+          node scripts/news-quiz/make-issue-body.mjs "$reason" "$NEWS/rejected.json" --run-url "$RUN_URL" > "$RUNNER_TEMP/issue-body.md"
           gh issue create --title "時事問題の自動更新に失敗 ${TODAY}" --body-file "$RUNNER_TEMP/issue-body.md"
 
       - name: 失敗したときの Issue
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-          TODAY: ${{ steps.init.outputs.today }}
+          TODAY: ${{ needs.precheck.outputs.today }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          node scripts/news-quiz/make-issue-body.mjs "いずれかの手順が失敗したよ(実行ログを見てね)" "$NEWS_DIR/rejected.json" --run-url "$RUN_URL" > "$RUNNER_TEMP/issue-body.md"
-          gh issue create --title "時事問題の自動更新に失敗 ${TODAY:-不明}" --body-file "$RUNNER_TEMP/issue-body.md"
+          node scripts/news-quiz/make-issue-body.mjs "いずれかの手順が失敗したよ(実行ログを見てね)" "${NEWS:-/nonexistent}/rejected.json" --run-url "$RUN_URL" > "$RUNNER_TEMP/issue-body.md"
+          gh issue create --title "時事問題の自動更新に失敗 ${TODAY}" --body-file "$RUNNER_TEMP/issue-body.md"
+
+  notify-generate-failure:
+    # Claude の job(generate)が失敗したときの Issue。承認が見送られたときは、作らない
+    needs: [precheck, generate]
+    if: always() && needs.generate.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Issue を作る
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TODAY: ${{ needs.precheck.outputs.today }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          printf '%s\n' \
+            "理由: 問題を作る手順(generate)が失敗したよ。実行ログを見てね。" \
+            "" \
+            "実行ログ: ${RUN_URL}" \
+            "" \
+            "公開(main への反映)はしていないよ。次の月曜に、また自動で試すよ。" > "$RUNNER_TEMP/issue-body.md"
+          gh issue create --repo "$REPO" --title "時事問題の自動更新に失敗 ${TODAY}" --body-file "$RUNNER_TEMP/issue-body.md"

@@ -14,6 +14,7 @@
 - ランキングなし。スコアはブラウザの `localStorage` に保存するだけで、サーバーは使わない
 - 作り方は単一 HTML(HTML + CSS + JavaScript + Canvas/SVG の1ファイル)
 - 公開は GitHub Pages を想定するが、公開作業は本設計の範囲外(ユーザーが明示的に許可するまで行わない)
+- 時事モードの問題だけは、毎週月曜に GitHub Actions が自動で追加して `main` に反映する(ユーザーが決めた。月曜に Environment の承認待ちで「今週の問題を作るか」を聞く。§12)
 
 ### 範囲外(作らないもの)
 
@@ -519,14 +520,17 @@ DATA ブロックに `FORECAST_CHOICES`(`['上がりやすい', '下がりやす
 
 ### 毎週の自動更新
 
-毎週月曜 7:00(日本時間)に、GitHub Actions(`.github/workflows/weekly-news.yml`)が、過去1週間の上場企業のニュースから時事問題を作り、`NEWS_QUESTIONS` の末尾に足して `main` へ直接コミットする。新しいモードやデータ形式は作らず、上の「1問の形」のまま足す。スクリプトとプロンプトは `scripts/news-quiz/`、設定の手順は `docs/weekly-news-setup.md`。
+毎週月曜 7:00(日本時間)に、GitHub Actions(`.github/workflows/weekly-news.yml`)が、過去1週間の上場企業のニュースから時事問題を作り、`NEWS_QUESTIONS` の末尾に足して `main` へ直接コミットする。新しいモードやデータ形式は作らず、上の「1問の形」のまま足す。スクリプトとプロンプトは `scripts/news-quiz/`、設定の手順は `docs/weekly-news-setup.md`。自動で公開すること、月曜に「今週の問題を作るか」を聞くこと(下の「承認待ち」)は、ユーザーが決めた。
 
-- **流れ**: writer(Claude・Sonnet。Read / Write / WebSearch / WebFetch だけ。Web 検索でニュースを集めて10問作る)→ verifier(別の呼び出しの Claude・Opus。前の文脈なし。出典を開いて事実を確認する)→ 機械チェック(`check-news.mjs`)→ テスト → 追加(`apply-news.mjs`)→ テスト → コミット・push。
-- **機械チェック**: `validateNewsItem` を通る / 出典が2件以上で https / 出来事の日が実行日の前日までの7日間 / `validFrom` が実行日 / 断定語・助言語がない / 「くわしく」120〜250字・2〜4文、解説1〜2文 / id が既存と重ならない / 事実確認が pass / 正解が最長の問題が通った問題の半分以下(超えたら差が大きいものから外す)。
-- **事実確認**: 書いた呼び出しとは別の呼び出しが、出典を開いて、答え・誤りの選択肢・数字・日付・社名・解説を確かめる。確かめられないものは不合格。機械チェックと事実確認の両方を通った問題だけを公開する。
-- **公開**: 通った問題が5問以上のときだけ、`github-actions[bot]` が `stock-quiz/index.html` だけを「時事問題を自動で追加 YYYY-MM-DD(N問)」でコミットして `main` に push する(人の確認は挟まない)。追加の前後で `logic.test.js` を通す。`apply-news.mjs` は、同じ id を二重に足さず、改行コード(CRLF / LF)を保ち、足した後に全問が検査を通ることを確かめてから書き込む。
-- **失敗時**: 通った問題が5問未満、またはどこかの手順が失敗したときは、何も更新せず、Issue「時事問題の自動更新に失敗 YYYY-MM-DD」を作る(id と理由だけ。ニュースの本文は貼らない)。シークレットが未設定のときも、Issue で案内する。
-- **注意**: 人の確認なしで公開されるので、誤りがあれば、その問題を `NEWS_QUESTIONS` から消す(または `git revert`)。`.superpowers/` は Actions の作業用で、コミットしない。`dry_run` で手動実行すると、検査までで止まる。
+- **承認待ち**: 問題を作る job(`generate`)に Environment `weekly-news`(Required reviewers)を付ける。承認が出るまで、Claude は呼ばれない。設定しないと確認なしで動く。手動実行(`dry_run`)も同じ環境を使う。
+- **job の分離**: `precheck`(日付・シークレットの確認)→ `generate`(Claude を動かす。`contents: read` だけ。トークンを持たず、リポジトリの外の空の作業フォルダで動く。道具は `--tools "Read,Write,WebSearch,WebFetch"`、`--permission-mode dontAsk`、Write は `candidates.json` / `verdicts.json` だけに許可を絞る。`--max-budget-usd` で上限を付ける)→ `publish`(検査・追加・テスト・push。Claude は動かさない。`contents: write`)。結果は artifact(`candidates.json` と `verdicts.json` だけ)で渡す。認証は `CLAUDE_CODE_OAUTH_TOKEN`(月額プラン)を優先し、なければ `ANTHROPIC_API_KEY`。
+- **流れ**: writer(Sonnet。Web 検索でニュースを集めて10問作る)→ prepare-verify(候補ごとの内容のハッシュを付ける)→ verifier(別の呼び出しの Opus。前の文脈なし。すべての出典を開いて確認し、ハッシュと確かめた出典を結果に書く)→ 機械チェック(`check-news.mjs`)→ テスト → 追加(`apply-news.mjs`)→ テスト → コミット・push。verifier の前に `verdicts.json` を消し、前後で `candidates.json` のハッシュが変わっていないこと、リポジトリに変更がないことを確かめる。
+- **扱う出来事**: 会社自身の発表(一次情報)で確認できるもの(決算・業績予想の修正・配当・M&A・提携・新製品・IPO・制度や指数の変更)。不祥事・係争・人事・個人名は扱わない。
+- **機械チェック**: `validateNewsItem` を通る / 全文字列に `< >`・制御文字・双方向制御文字・ゼロ幅文字がない / 長さの上限(question 200・選択肢 80・label 60・url 300 字など) / 出典が2件以上で、許可リスト(`scripts/news-quiz/allowed-domains.json`)のドメインか会社の IR(URL に `/ir`、または `ir.` のサブドメイン)で、1件は一次情報 / 出来事の日が実行日の前日までの7日間 / `validFrom` が実行日 / 断定語・助言語・扱わない話題がない / 「くわしく」120〜250字・2〜4文、解説1〜2文 / id が既存・候補内で重ならない(候補内で重複した id はすべて落とす) / verdict が pass で、同じ id の verdict が1つだけ、内容のハッシュと一致し、すべての出典を確かめている / 正解が最長の問題が通った問題の半分以下。1回の追加は最大12問で、候補が超えたら全部止める。
+- **事実確認**: 書いた呼び出しとは別の呼び出しが、出典を開いて、答え・誤りの選択肢・数字・日付・社名・解説・出典の文を写していないかを確かめる。確かめられないものは不合格。
+- **公開**: 通った問題が5問以上のときだけ、`github-actions[bot]` が `stock-quiz/index.html` だけを「時事問題を自動で追加 YYYY-MM-DD(N問)」でコミットして `main` に push する(承認のあとは、人の確認を挟まない)。`apply-news.mjs` は、文字列の `< > &` と行区切りを \u 形式にして書き、同じ id を二重に足さず、改行コード(CRLF / LF)を保ち、足した後に全問が検査を通ること・`</script` や `<!--` が増えていないことを確かめてから書き込む。push の前に `main` を取り込んでテストをやり直し、失敗したら最大2回やり直す。
+- **失敗時**: 通った問題が5問未満、多すぎる、またはどこかの手順が失敗したときは、何も更新せず、Issue「時事問題の自動更新に失敗 YYYY-MM-DD」を作る(id と機械チェックの理由だけ。AI の文章・ニュースの本文は貼らない)。シークレットが未設定のときも、Issue で案内する。
+- **注意**: 誤りがあれば、その問題を `NEWS_QUESTIONS` から消す(または `git revert`)。作業ファイルは Actions の一時フォルダに置き、リポジトリにコミットしない。
 
 ## 13. 「前の問題へ」と「今の問題へ」(2026-10-16)
 

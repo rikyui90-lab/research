@@ -1,6 +1,7 @@
 // 時事問題の自動更新で使う共通の関数(標準ライブラリだけ)
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -52,4 +53,9 @@ export function jstToday(now = new Date()) {
 export function addDays(iso, n) {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+// 候補の内容(question + answer + wrongs)の SHA-256。verifier が、確かめた内容を結果に写す
+export function contentHash(item) {
+  return createHash('sha256').update(JSON.stringify([item.question, item.answer, ...item.wrongs])).digest('hex');
 }

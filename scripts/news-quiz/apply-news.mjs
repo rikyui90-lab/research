@@ -7,7 +7,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadLogicFrom, parseArgs, readJson, DEFAULT_HTML } from './lib.mjs';
 
-const J = (s) => JSON.stringify(s);
+// 文字列を JS の文字列リテラルにする。< > & と行区切り(U+2028/2029)は \u 形式にして、HTML の script を閉じたり壊したりできないようにする
+export const J = (s) => JSON.stringify(s)
+  .replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
+  .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 export function formatItem(n, eol) {
   const lines = [
@@ -34,11 +37,18 @@ export function applyToHtml(html, items) {
   const startMark = 'const NEWS_QUESTIONS = [';
   const start = html.indexOf(startMark);
   if (start < 0) throw new Error('NEWS_QUESTIONS が見つからない');
-  const endRe = /\r?\n\];/g;
-  endRe.lastIndex = start;
-  const em = endRe.exec(html);
-  if (!em) throw new Error('NEWS_QUESTIONS の終わり(];)が見つからない');
-  const bodyEnd = em.index; // 最後の要素の直後(改行の前)
+  const oneLineEmpty = html.startsWith('];', start + startMark.length); // const NEWS_QUESTIONS = [];
+  let bodyEnd;
+  if (oneLineEmpty) {
+    bodyEnd = start + startMark.length;
+  } else {
+    const endRe = /\r?\n\];/g;
+    endRe.lastIndex = start;
+    const em = endRe.exec(html);
+    if (!em) throw new Error('NEWS_QUESTIONS の終わり(];)が見つからない');
+    bodyEnd = em.index; // 最後の要素の直後(改行の前)
+    if (html.slice(start, bodyEnd).includes('const NEWS_PUBLIC')) throw new Error('NEWS_QUESTIONS の終わりを取り違えた');
+  }
   const body = html.slice(start, bodyEnd);
   const fresh = [];
   for (const n of items) {
@@ -48,8 +58,14 @@ export function applyToHtml(html, items) {
   if (!fresh.length) return { html, added: [] };
   let head = html.slice(0, bodyEnd);
   if (/\}\s*$/.test(head.slice(startMark.length + start))) head += ','; // 最後の要素の末尾にカンマがない場合
-  const insert = fresh.map((n) => eol + formatItem(n, eol)).join('');
-  return { html: head + insert + html.slice(bodyEnd), added: fresh.map((n) => n.id) };
+  const insert = fresh.map((n) => eol + formatItem(n, eol)).join('') + (oneLineEmpty ? eol : '');
+  const out = head + insert + html.slice(bodyEnd);
+  // script を閉じる記号・HTML のコメントが増えていないこと
+  const count = (t, re) => (t.match(re) || []).length;
+  for (const re of [/<\/script/gi, /<!--/g]) {
+    if (count(out, re) !== count(html, re)) throw new Error('挿入で script の終了タグや HTML コメントが増えた');
+  }
+  return { html: out, added: fresh.map((n) => n.id) };
 }
 
 export function applyFile(file, items) {

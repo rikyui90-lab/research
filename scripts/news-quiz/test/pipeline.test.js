@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { createHash } = require('node:crypto');
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 const REAL_HTML = path.join(ROOT, 'stock-quiz', 'index.html');
@@ -14,6 +15,8 @@ const CHECK = path.join(ROOT, 'scripts', 'news-quiz', 'check-news.mjs');
 const APPLY = path.join(ROOT, 'scripts', 'news-quiz', 'apply-news.mjs');
 
 const TODAY = '2026-10-19';
+
+const hashOf = (c) => createHash('sha256').update(JSON.stringify([c.question, c.answer, ...c.wrongs])).digest('hex');
 
 function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'news-test-'));
@@ -36,15 +39,15 @@ function cand(n, patch = {}) {
     validFrom: TODAY,
     validUntil: '2026-11-15',
     sources: [
-      { label: '会社IR(2026/10/14)', url: `https://example.com/ir/${n}` },
-      { label: 'テスト新聞(2026/10/14)', url: `https://example.com/news/${n}` },
+      { label: '取引所(2026/10/14)', url: `https://www.jpx.co.jp/news/${n}` },
+      { label: 'テスト新聞(2026/10/14)', url: `https://www.nikkei.com/article/${n}` },
     ],
     ...patch,
   };
 }
 
 function verdicts(cands, overrides = {}) {
-  return cands.map((c) => ({ id: c.id, pass: true, reasons: [], ...(overrides[c.id] || {}) }));
+  return cands.map((c) => ({ id: c.id, hash: Array.isArray(c.wrongs) && typeof c.question === 'string' ? hashOf(c) : null, pass: true, checkedSources: (c.sources || []).map((x) => x.url), reasons: [], ...(overrides[c.id] || {}) }));
 }
 
 function runCheck(cands, verds, extra = []) {
@@ -67,7 +70,7 @@ test('フィクスチャ: 10問すべて合格する', () => {
   assert.deepEqual(res.rejected, []);
   assert.equal(res.accepted.length, 10);
   assert.equal(res.r.status, 0);
-  assert.deepEqual(res.summary, { today: TODAY, candidates: 10, accepted: 10, rejected: 0, min: 5, ok: true });
+  assert.deepEqual(res.summary, { today: TODAY, candidates: 10, accepted: 10, rejected: 0, min: 5, ok: true, stop: '' });
 });
 
 test('check: 各不合格の理由が rejected.json に出る', () => {
@@ -102,7 +105,9 @@ test('check: 事実確認が不合格・結果なしの問題は落ちる', () =
   const cands = tenGood();
   const verds = verdicts(cands, { [cands[0].id]: { pass: false, reasons: ['金額が出典と違う'] } }).filter((v) => v.id !== cands[1].id);
   const res = runCheck(cands, verds);
-  assert.match(res.rejected.find((x) => x.id === cands[0].id).reasons.join(), /事実確認で不合格: 金額が出典と違う/);
+  const r0 = res.rejected.find((x) => x.id === cands[0].id);
+  assert.match(r0.reasons.join(), /事実確認で不合格/);
+  assert.deepEqual(r0.aiReasons, ['金額が出典と違う']); // AI の文章は reasons ではなく aiReasons に分ける
   assert.match(res.rejected.find((x) => x.id === cands[1].id).reasons.join(), /結果がない/);
   assert.equal(res.accepted.length, 8);
 });
@@ -113,10 +118,12 @@ test('check: 既存の id・候補内の重複 id は落ちる', () => {
   const cands = tenGood();
   cands[0] = { ...cands[0], id: existingId };
   cands[2] = { ...cands[2], id: cands[1].id };
-  const res = runCheck(cands, cands.map((c) => ({ id: c.id, pass: true, reasons: [] })));
+  const res = runCheck(cands, verdicts(cands));
   const reasons = res.rejected.map((x) => x.reasons.join());
   assert.ok(reasons.some((r) => /既存の問題と重複/.test(r)));
-  assert.ok(reasons.some((r) => /候補の中で重複/.test(r)));
+  // 候補の中で id が重複したら、重複した id はすべて落ちる(2つとも)
+  assert.equal(reasons.filter((r) => /候補の中で重複/.test(r)).length, 2);
+  assert.equal(res.accepted.length, 7);
 });
 
 test('check: 正解が最長の問題が半分より多いと、差が大きいものから外す', () => {
@@ -220,4 +227,168 @@ test('本物の index.html は、このテストで書き換わらない', () =>
   runApply(file, [cand(1)]);
   assert.equal(fs.readFileSync(REAL_HTML, 'utf8'), before);
   assert.ok(Array.isArray(loadLogic().NEWS_QUESTIONS));
+});
+
+// ---- 追加: セキュリティと verdict の検査 ----
+const XSS_POCS = {
+  'script を閉じる': '</script><script>alert(1)</script>',
+  'HTML コメント': '<!-- x -->',
+  '制御文字': 'abc\u0000def',
+  '改行': '行1\n行2',
+  '双方向制御文字': '‮evil',
+  '行区切り': 'a b',
+  'ゼロ幅文字': 'a​b',
+};
+
+for (const [name, bad] of Object.entries(XSS_POCS)) {
+  test(`check: ${name} を含む問題は、どの項目でも落ちる`, () => {
+    const cands = tenGood();
+    // 問い・誤答・label・解説のどれかに入れる
+    const patches = [
+      { question: `テスト社が2026年10月13日に公表した内容${bad}は?` },
+      { wrongs: ['減益', bad + '赤字', '延期'] },
+      { sources: [{ label: bad, url: 'https://www.jpx.co.jp/a' }, { label: 'b', url: 'https://www.nikkei.com/b' }] },
+      { explanation: `増益と公表したよ${bad}。` },
+    ];
+    patches.forEach((p, i) => { cands[i] = { ...cands[i], ...p }; });
+    const res = runCheck(cands, verdicts(cands));
+    for (let i = 0; i < patches.length; i++) {
+      assert.ok(res.rejected.find((x) => x.id === cands[i].id), `${name}: ${i} が落ちていない`);
+    }
+    assert.equal(res.accepted.length, 6, name);
+  });
+
+  test(`apply: ${name} が直接来ても、HTML の script を閉じず、値はそのまま読める`, () => {
+    const file = htmlCopy('crlf');
+    const item = cand(1, { wrongs: [bad + '赤字', '減益', '延期'] });
+    const before = fs.readFileSync(file, 'utf8');
+    const { r } = runApply(file, [item]);
+    const text = fs.readFileSync(file, 'utf8');
+    const count = (t, re) => (t.match(re) || []).length;
+    if (r.status === 0) {
+      assert.equal(count(text, /<\/script/gi), count(before, /<\/script/gi));
+      assert.equal(count(text, /<!--/g), count(before, /<!--/g));
+      const inserted = text.slice(before.length > text.length ? 0 : text.indexOf(item.id));
+      assert.ok(!/<|>/.test(inserted.slice(0, inserted.indexOf('sources:'))), '生の < > が入った');
+      const got = loadCopy(file).NEWS_QUESTIONS.find((n) => n.id === item.id);
+      assert.deepEqual(got.wrongs, item.wrongs); // 値はそのまま読み戻せる
+    } else {
+      assert.equal(text, before); // 失敗したら書き換えない
+    }
+    // 少なくとも、script を閉じる記号は通らない
+    assert.equal(count(text, /<\/script/gi), count(before, /<\/script/gi));
+  });
+}
+
+test('check: 長さの上限を超えた項目は落ちる', () => {
+  const cands = tenGood();
+  cands[0] = { ...cands[0], question: 'あ'.repeat(201) + '?' };
+  cands[1] = { ...cands[1], sources: [{ label: 'あ'.repeat(61), url: 'https://www.jpx.co.jp/a' }, cands[1].sources[1]] };
+  const res = runCheck(cands, verdicts(cands));
+  assert.match(res.rejected.find((x) => x.id === cands[0].id).reasons.join(), /長すぎる/);
+  assert.match(res.rejected.find((x) => x.id === cands[1].id).reasons.join(), /長すぎる/);
+});
+
+test('check: 出典のドメインの許可リストと、一次情報の条件', () => {
+  const cands = tenGood();
+  const src = (u1, u2) => [{ label: 'a', url: u1 }, { label: 'b', url: u2 }];
+  cands[0] = { ...cands[0], sources: src('https://evil.example.net/a', 'https://www.jpx.co.jp/b') }; // 許可リスト外
+  cands[1] = { ...cands[1], sources: src('https://www.nikkei.com/a', 'https://www.asahi.com/b') }; // 一次情報なし
+  cands[2] = { ...cands[2], sources: src('https://www.nikkei.com/a', 'https://example.co.jp/ir/news/1') }; // 会社の IR(/ir)
+  cands[3] = { ...cands[3], sources: src('https://www.nikkei.com/a', 'https://ir.example.co.jp/news') }; // ir. サブドメイン
+  cands[4] = { ...cands[4], sources: src('https://www.nikkei.com/a', 'https://example.co.jp/company/news') }; // 会社のサイトだが /ir でない
+  cands[5] = { ...cands[5], sources: src('https://www.nikkei.com/a', 'https://www.fsa.go.jp/news/x') }; // 官公庁
+  cands[6] = { ...cands[6], sources: src('https://notnikkei.com/a', 'https://www.jpx.co.jp/b') }; // 似たドメイン
+  cands[7] = { ...cands[7], sources: src('https://www.nikkei.com/a', 'https://192.168.0.1/ir/x') }; // IP
+  const res = runCheck(cands, verdicts(cands));
+  const bad = (i) => res.rejected.some((x) => x.id === cands[i].id);
+  assert.ok(bad(0) && bad(1) && bad(4) && bad(6) && bad(7));
+  assert.ok(!bad(2) && !bad(3) && !bad(5));
+  assert.match(res.rejected.find((x) => x.id === cands[1].id).reasons.join(), /一次情報/);
+});
+
+test('check: 不祥事・係争・人事の話題は落ちる', () => {
+  const cands = tenGood();
+  cands[0] = { ...cands[0], explanation: '社長が辞任したと公表したよ。' };
+  cands[1] = { ...cands[1], question: 'テスト社が2026年10月13日に発表した、情報漏えいの件数は?' };
+  const res = runCheck(cands, verdicts(cands));
+  assert.match(res.rejected.find((x) => x.id === cands[0].id).reasons.join(), /扱わない話題/);
+  assert.match(res.rejected.find((x) => x.id === cands[1].id).reasons.join(), /扱わない話題/);
+});
+
+test('check: verdict の hash・checkedSources・重複の検査', () => {
+  const cands = tenGood();
+  const v = verdicts(cands, {
+    [cands[0].id]: { hash: 'deadbeef' }, // 内容と合わない
+    [cands[1].id]: { checkedSources: [cands[1].sources[0].url] }, // 出典を1件しか確かめていない
+    [cands[2].id]: { checkedSources: undefined },
+  });
+  v.push({ ...v[3] }); // cands[3] の verdict が2つ
+  const res = runCheck(cands, v);
+  const reason = (i) => ((res.rejected.find((x) => x.id === cands[i].id) || {}).reasons || []).join();
+  assert.match(reason(0), /hash/);
+  assert.match(reason(1), /すべての出典を確かめていない/);
+  assert.match(reason(2), /すべての出典を確かめていない/);
+  assert.match(reason(3), /複数/);
+  assert.equal(res.accepted.length, 6);
+});
+
+test('check: 内容が変わった問題は、hash が合わず落ちる(verifier のあとの書き換え)', () => {
+  const cands = tenGood();
+  const v = verdicts(cands);
+  cands[0] = { ...cands[0], answer: '書き換えられた答え' };
+  const res = runCheck(cands, v);
+  assert.match(res.rejected.find((x) => x.id === cands[0].id).reasons.join(), /hash/);
+});
+
+test('check: 候補が12問を超えたら、全部止める(終了コード 2)', () => {
+  const cands = Array.from({ length: 13 }, (_, i) => cand(i + 1, { id: `2026-10-13-many-${i}` }));
+  const res = runCheck(cands, verdicts(cands));
+  assert.equal(res.r.status, 2);
+  assert.equal(res.accepted.length, 0);
+  assert.equal(res.summary.stop, 'too-many');
+});
+
+test('check: rejected.json の reasons に AI の文章は入らない', () => {
+  const cands = tenGood();
+  const v = verdicts(cands, { [cands[0].id]: { pass: false, reasons: ['@someone https://evil.example/x を見て'] } });
+  const res = runCheck(cands, v);
+  const rj = res.rejected.find((x) => x.id === cands[0].id);
+  assert.ok(!/evil|@/.test(rj.reasons.join()));
+});
+
+test('prepare-verify: 各候補に、内容のハッシュを付ける', () => {
+  const dir = tmpDir();
+  const cands = tenGood().slice(0, 3);
+  fs.writeFileSync(path.join(dir, 'c.json'), JSON.stringify(cands));
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'news-quiz', 'prepare-verify.mjs'), path.join(dir, 'c.json'), path.join(dir, 'v.json')], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(fs.readFileSync(path.join(dir, 'v.json'), 'utf8'));
+  assert.deepEqual(out.map((x) => x.hash), cands.map(hashOf));
+});
+
+test('apply: NEWS_QUESTIONS = []; (1行で空)でも足せる', () => {
+  const file = htmlCopy('lf');
+  let text = fs.readFileSync(file, 'utf8');
+  const start = text.indexOf('const NEWS_QUESTIONS = [');
+  const end = text.indexOf('\n];', start) + 3;
+  text = text.slice(0, start) + 'const NEWS_QUESTIONS = [];' + text.slice(end);
+  fs.writeFileSync(file, text, 'utf8');
+  assert.equal(loadCopy(file).NEWS_QUESTIONS.length, 0);
+  const { r } = runApply(file, [cand(1), cand(2)]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(loadCopy(file).NEWS_QUESTIONS.map((n) => n.id), [cand(1).id, cand(2).id]);
+});
+
+test('make-issue-body: id と機械チェックの理由だけで、@ やリンクは載せない', () => {
+  const dir = tmpDir();
+  const rej = path.join(dir, 'rejected.json');
+  fs.writeFileSync(rej, JSON.stringify([
+    { id: 'ok-id-1', reasons: ['事実確認で不合格'], aiReasons: ['@foo https://evil.example/ 悪い文'] },
+    { id: '@evil <b>', reasons: ['形式: 見て https://evil.example/x @bar'] },
+  ]));
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'news-quiz', 'make-issue-body.mjs'), '理由', rej], { encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!/evil|@|aiReasons|悪い文/.test(r.stdout), r.stdout);
+  assert.match(r.stdout, /ok-id-1: 事実確認で不合格/);
 });

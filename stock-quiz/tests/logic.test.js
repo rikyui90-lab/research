@@ -3473,7 +3473,9 @@ test('株価予想のデータ: 文章の質(解説1〜2文・くわしく120〜
 
 test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、画面の注記に、選び方の偏りを書く(取得元の表示は出さない)', () => {
   assert.equal(L.buildPool('all', L.createRng(1)).filter((q) => q.type === 'forecast').length, 20);
-  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  // 時事問題(NEWS_QUESTIONS)の出典名に「Yahoo!ファイナンス」などが入ることがあるので、時事の配列は除いて調べる
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+    .replace(/const NEWS_QUESTIONS = \[[\s\S]*?\n\];/, '');
   assert.ok(!html.includes('株価データ: Yahoo Finance')); // 画面には取得元の表示を出さない(2026-10-16に消した)
   assert.ok(!html.includes('Yahoo!ファイナンス'));
   assert.ok(!html.includes('調整後終値'));

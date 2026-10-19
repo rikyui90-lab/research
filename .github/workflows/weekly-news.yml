@@ -132,11 +132,11 @@ jobs:
           if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then unset ANTHROPIC_API_KEY; else unset CLAUDE_CODE_OAUTH_TOKEN; fi
           # リポジトリの外の空のフォルダで動かす(CLAUDE.md や .claude を読ませない。--bare は OAuth を読まないので付けない)
           cd "$WORK"
-          # --tools: 使える道具を絞る / dontAsk: 許可に書いていない操作は聞かずに拒否 / Write は candidates.json だけ
+          # --tools: 使える道具を絞る / dontAsk: 許可に書いていない操作は聞かずに拒否 / 書き込みは Edit(candidates.json) の許可だけ(Write は Edit のルールで許可される)
           npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" -p \
             --model "$MODEL_WRITER" \
             --tools "Read,Write,WebSearch,WebFetch" \
-            --allowedTools "Read,WebSearch,WebFetch,Write(candidates.json)" \
+            --allowedTools "Read,WebSearch,WebFetch,Edit(candidates.json)" \
             --permission-mode dontAsk \
             --no-session-persistence \
             --max-turns 120 \
@@ -163,7 +163,7 @@ jobs:
           npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" -p \
             --model "$MODEL_VERIFIER" \
             --tools "Read,Write,WebSearch,WebFetch" \
-            --allowedTools "Read,WebSearch,WebFetch,Write(verdicts.json)" \
+            --allowedTools "Read,WebSearch,WebFetch,Edit(verdicts.json)" \
             --permission-mode dontAsk \
             --no-session-persistence \
             --max-turns 150 \

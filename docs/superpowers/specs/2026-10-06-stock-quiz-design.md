@@ -522,7 +522,7 @@ DATA ブロックに `FORECAST_CHOICES`(`['上がりやすい', '下がりやす
 
 毎週月曜 7:00(日本時間)に、GitHub Actions(`.github/workflows/weekly-news.yml`)が、過去1週間の上場企業のニュースから時事問題を作り、`NEWS_QUESTIONS` の末尾に足して `main` へ直接コミットする。新しいモードやデータ形式は作らず、上の「1問の形」のまま足す。スクリプトとプロンプトは `scripts/news-quiz/`、設定の手順は `docs/weekly-news-setup.md`。自動で公開すること、月曜に「今週の問題を作るか」を聞くこと(下の「承認待ち」)は、ユーザーが決めた。
 
-- **承認待ち**: 問題を作る job(`generate`)に Environment `weekly-news`(Required reviewers)を付ける。承認が出るまで、Claude は呼ばれない。設定しないと確認なしで動く。手動実行(`dry_run`)も同じ環境を使う。
+- **承認待ち**: 問題を作る job(`generate`)に Environment `weekly-stock-news`(Required reviewers)を付ける。承認が出るまで、Claude は呼ばれない。設定しないと確認なしで動く。手動実行(`dry_run`)も同じ環境を使う。
 - **job の分離**: `precheck`(日付・シークレットの確認)→ `generate`(Claude を動かす。`contents: read` だけ。トークンを持たず、リポジトリの外の空の作業フォルダで動く。道具は `--tools "Read,Write,WebSearch,WebFetch"`、`--permission-mode dontAsk`、Write は `candidates.json` / `verdicts.json` だけに許可を絞る。`--max-budget-usd` で上限を付ける)→ `publish`(検査・追加・テスト・push。Claude は動かさない。`contents: write`)。結果は artifact(`candidates.json` と `verdicts.json` だけ)で渡す。認証は `CLAUDE_CODE_OAUTH_TOKEN`(月額プラン)を優先し、なければ `ANTHROPIC_API_KEY`。
 - **流れ**: writer(Sonnet。Web 検索でニュースを集めて10問作る)→ prepare-verify(候補ごとの内容のハッシュを付ける)→ verifier(別の呼び出しの Opus。前の文脈なし。すべての出典を開いて確認し、ハッシュと確かめた出典を結果に書く)→ 機械チェック(`check-news.mjs`)→ テスト → 追加(`apply-news.mjs`)→ テスト → コミット・push。verifier の前に `verdicts.json` を消し、前後で `candidates.json` のハッシュが変わっていないこと、リポジトリに変更がないことを確かめる。
 - **扱う出来事**: 会社自身の発表(一次情報)で確認できるもの(決算・業績予想の修正・配当・M&A・提携・新製品・IPO・制度や指数の変更)。不祥事・係争・人事・個人名は扱わない。

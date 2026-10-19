@@ -71,6 +71,10 @@ python .claude/skills/fushoji-page/scripts/build_pages.py fushoji/companies.json
 
 Web ページを作る・直すときは、`docs/design-guidelines.md` の指針に従う(ユーザーの指示)。文字は 16px 以上、コントラスト比は文字 4.5:1・枠線 3:1 以上、フォーカスの印は黄と黒の二重、押せる部品は高さ 44px 以上、色だけで伝えない。作ったら、ブラウザで開いて、スマホ幅(375px)でも確かめる。詳しい数値とチェックは、その文書を読む。
 
+## 時事問題の毎週の自動追加
+
+毎週月曜に GitHub Actions(`.github/workflows/weekly-news.yml`)が、`stock-quiz/index.html` の `NEWS_QUESTIONS` の末尾へ問題を足し、`main` へ直接コミットする(「時事問題を自動で追加 YYYY-MM-DD(N問)」)。自動公開はユーザーが決めたことで、月曜に Environment `weekly-news` の承認待ちで「今週の問題を作るか」を聞く。そのため、`stock-quiz/index.html` の作業前に `main` を取り込む(fushoji と同様)。スクリプトは `scripts/news-quiz/`、テストは `node --test scripts/news-quiz/test/pipeline.test.js`、設定の手順は `docs/weekly-news-setup.md`、仕様は設計書 §12。
+
 ## 運用
 
 - `main` に直接コミットしない。ブランチ → PR → マージ。マージ済みのブランチは `main` から作り直す。

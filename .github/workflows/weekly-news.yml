@@ -3,7 +3,7 @@ name: 時事問題の毎週の自動追加
 # 流れ: precheck(日付とシークレットの確認)
 #   → generate(承認待ち → Claude が問題を書き、別の呼び出しの Claude が確認する。contents: read だけ)
 #   → publish(機械チェック・テスト・追加・main へ push。Claude は動かさない)
-# 「今週の問題を作るか」は、Environment「weekly-news」の Required reviewers で聞く(docs/weekly-news-setup.md)
+# 「今週の問題を作るか」は、Environment「weekly-stock-news」の Required reviewers で聞く(docs/weekly-news-setup.md)
 
 on:
   schedule:
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # 承認待ち: Environment の Required reviewers が承認するまで、この job(Claude を呼ぶ job)は始まらない
-    environment: weekly-news
+    environment: weekly-stock-news
     # Claude を動かす job は、リポジトリを読むだけ。書き込みの権限もトークンも持たせない
     permissions:
       contents: read

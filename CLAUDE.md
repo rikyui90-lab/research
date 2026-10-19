@@ -73,7 +73,7 @@ Web ページを作る・直すときは、`docs/design-guidelines.md` の指針
 
 ## 時事問題の毎週の自動追加
 
-毎週月曜に GitHub Actions(`.github/workflows/weekly-news.yml`)が、`stock-quiz/index.html` の `NEWS_QUESTIONS` の末尾へ問題を足し、`main` へ直接コミットする(「時事問題を自動で追加 YYYY-MM-DD(N問)」)。自動公開はユーザーが決めたことで、月曜に Environment `weekly-news` の承認待ちで「今週の問題を作るか」を聞く。そのため、`stock-quiz/index.html` の作業前に `main` を取り込む(fushoji と同様)。スクリプトは `scripts/news-quiz/`、テストは `node --test scripts/news-quiz/test/pipeline.test.js`、設定の手順は `docs/weekly-news-setup.md`、仕様は設計書 §12。
+毎週月曜に GitHub Actions(`.github/workflows/weekly-news.yml`)が、`stock-quiz/index.html` の `NEWS_QUESTIONS` の末尾へ問題を足し、`main` へ直接コミットする(「時事問題を自動で追加 YYYY-MM-DD(N問)」)。自動公開はユーザーが決めたことで、月曜に Environment `weekly-stock-news` の承認待ちで「今週の問題を作るか」を聞く。そのため、`stock-quiz/index.html` の作業前に `main` を取り込む(fushoji と同様)。スクリプトは `scripts/news-quiz/`、テストは `node --test scripts/news-quiz/test/pipeline.test.js`、設定の手順は `docs/weekly-news-setup.md`、仕様は設計書 §12。
 
 ## 運用
 

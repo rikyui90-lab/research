@@ -16,7 +16,7 @@
 「今週の問題を作成するか」を聞くための設定だよ。
 
 1. GitHub のこのリポジトリで、Settings → Environments → New environment を開く
-2. 名前を **`weekly-news`** にして、Configure environment を押す
+2. 名前を **`weekly-stock-news`** にして、Configure environment を押す
 3. 「Required reviewers」にチェックを入れて、自分(あなたのアカウント)を選び、Save protection rules を押す
 
 設定しないと、確認なしで(月曜の朝に自動で)動くよ。必ず設定してね。
@@ -25,7 +25,7 @@
 
 1. Actions タブ → 「時事問題の毎週の自動追加」の実行を開く
 2. 黄色い「Review pending deployments」を押す
-3. `weekly-news` にチェックを入れて、**Approve and deploy** を押す(今週は作らないときは Reject)
+3. `weekly-stock-news` にチェックを入れて、**Approve and deploy** を押す(今週は作らないときは Reject)
 
 手動実行(Run workflow、`dry_run`)のときも、同じ環境を使うから、同じ承認が要るよ。
 

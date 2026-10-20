@@ -2,7 +2,7 @@ name: 時事問題の毎週の自動追加
 
 # 流れ: precheck(日付とシークレットの確認)
 #   → generate(承認待ち → Claude が問題を書き、別の呼び出しの Claude が確認する。contents: read だけ)
-#   → publish(機械チェック・テスト・追加・main へ push。Claude は動かさない)
+#   → publish(月初なら4週より古い問題を過去へ移す → 機械チェック・テスト・追加・main へ push。Claude は動かさない)
 # 「今週の問題を作るか」は、Environment「weekly-stock-news」の Required reviewers で聞く(docs/weekly-news-setup.md)
 
 on:
@@ -16,9 +16,17 @@ on:
         type: boolean
         default: true
       today:
-        description: "実行日を決める(YYYY-MM-DD。空なら今日・日本時間)"
+        description: "実行日を決める(YYYY-MM-DD。空なら今日・日本時間)。月初の移動の判定にも使う"
         type: string
         default: ""
+      archive:
+        description: "4週より古い問題を「時事(過去)」へ移すか。auto=月の最初の月曜(日付が1〜7日)だけ / force=月初でなくても移す / skip=移さない"
+        type: choice
+        options:
+          - auto
+          - force
+          - skip
+        default: auto
 
 # 二重起動を防ぐ
 concurrency:
@@ -113,11 +121,10 @@ jobs:
           cp scripts/news-quiz/allowed-domains.json "$WORK/allowed-domains.json"
           from="$(date -u -d "$TODAY -7 days" +%F)"
           to="$(date -u -d "$TODAY -1 day" +%F)"
-          until="$(date -u -d "$TODAY +27 days" +%F)"
           {
             cat scripts/news-quiz/prompts/writer.md
             printf '\n# 今回の値\n\n'
-            printf -- '- today(実行日): %s\n- 集める期間(出来事の日): %s 〜 %s\n- validFrom: %s\n- validUntil: %s\n' "$TODAY" "$from" "$to" "$TODAY" "$until"
+            printf -- '- today(実行日): %s\n- 集める期間(出来事の日): %s 〜 %s\n' "$TODAY" "$from" "$to"
             printf -- '- 既存の問題の一覧: existing.json\n- 出典に使ってよいドメイン: allowed-domains.json\n- 出力先: candidates.json\n'
           } > "$WORK/writer-prompt.md"
           cp scripts/news-quiz/prompts/verifier.md "$WORK/verifier-prompt.md"
@@ -219,6 +226,39 @@ jobs:
           name: news-handoff
           path: ${{ runner.temp }}/news
 
+      - name: 4週より古い問題を「時事(過去)」へ移す(月の最初の月曜だけ)
+        id: archive
+        env:
+          TODAY: ${{ needs.precheck.outputs.today }}
+          INPUT_ARCHIVE: ${{ inputs.archive }}
+        shell: bash
+        run: |
+          set -eu
+          mode="${INPUT_ARCHIVE:-auto}"
+          # TODAY は日本時間の日付(手動実行の today 入力で変えられる)。月の最初の月曜 = 曜日が月曜で、日が1〜7
+          dow="$(date -u -d "$TODAY" +%u)"
+          dom="$(date -u -d "$TODAY" +%-d)"
+          run=false
+          case "$mode" in
+            force) run=true ;;
+            skip) run=false ;;
+            *) if [ "$dow" = "1" ] && [ "$dom" -le 7 ]; then run=true; fi ;;
+          esac
+          if [ "$run" != "true" ]; then
+            echo "moved=0" >> "$GITHUB_OUTPUT"
+            echo "過去への移動はしません(archive=${mode}。${TODAY} は月の最初の月曜ではないか、skip です)"
+            exit 0
+          fi
+          node scripts/news-quiz/archive-news.mjs --today "$TODAY" | tee "$RUNNER_TEMP/archive-summary.json"
+          moved="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8').trim().split('\n').pop()).moved)" "$RUNNER_TEMP/archive-summary.json")"
+          echo "moved=$moved" >> "$GITHUB_OUTPUT"
+
+      - name: テスト(移動のあと)
+        if: steps.archive.outputs.moved != '0'
+        run: |
+          node --test stock-quiz/tests/logic.test.js
+          node --test scripts/news-quiz/test/pipeline.test.js
+
       - name: 機械チェック
         id: check
         env:
@@ -260,10 +300,12 @@ jobs:
         run: node --test stock-quiz/tests/logic.test.js
 
       - name: コミットして main に push する
-        if: steps.check.outputs.enough == 'true' && inputs.dry_run != true
+        if: (steps.check.outputs.enough == 'true' || steps.archive.outputs.moved != '0') && inputs.dry_run != true
         env:
           TODAY: ${{ needs.precheck.outputs.today }}
           COUNT: ${{ steps.check.outputs.accepted }}
+          ENOUGH: ${{ steps.check.outputs.enough }}
+          MOVED: ${{ steps.archive.outputs.moved }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
@@ -280,7 +322,14 @@ jobs:
             echo "変更なし"
             exit 0
           fi
-          git commit -m "時事問題を自動で追加 ${TODAY}(${COUNT}問)"
+          # 追加があれば「追加(N問)」に、過去への移動があれば「、過去へ M問を移動」を足す。追加が足りなくて移動だけのときは、移動だけのコミットにする
+          if [ "$ENOUGH" = "true" ]; then
+            msg="時事問題を自動で追加 ${TODAY}(${COUNT}問)"
+            if [ "$MOVED" != "0" ]; then msg="${msg}、過去へ ${MOVED}問を移動"; fi
+          else
+            msg="時事問題を過去へ自動で移動 ${TODAY}(${MOVED}問)"
+          fi
+          git commit -m "$msg"
           REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           BRANCH="${GITHUB_REF_NAME}"
           # main が先に進んでいたら、取り込んでテストをやり直してから push する(最大2回やり直す)
@@ -297,11 +346,14 @@ jobs:
           done
 
       - name: dry_run の結果を表示する
-        if: steps.check.outputs.enough == 'true' && inputs.dry_run == true
+        if: (steps.check.outputs.enough == 'true' || steps.archive.outputs.moved != '0') && inputs.dry_run == true
         env:
           COUNT: ${{ steps.check.outputs.accepted }}
+          ENOUGH: ${{ steps.check.outputs.enough }}
+          MOVED: ${{ steps.archive.outputs.moved }}
         run: |
-          echo "dry_run のため、コミットしませんでした。追加される予定の問題: ${COUNT}問" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$ENOUGH" = "true" ]; then add="${COUNT}問"; else add="なし"; fi
+          echo "dry_run のため、コミットしませんでした。追加される予定の問題: ${add}、過去へ移される予定の問題: ${MOVED}問" | tee -a "$GITHUB_STEP_SUMMARY"
           git diff --stat
 
       - name: 通った問題が足りなかったときの Issue

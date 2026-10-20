@@ -34,10 +34,7 @@ function cand(n, patch = {}) {
     explanation: `テスト${n}社は増益と公表したよ。数字は出典のとおりだよ。`,
     detail: `これはテスト用の「くわしく」だよ。テスト${n}社は、決算の発表で営業利益が前の年より増えたと公表したよ。` +
       '増えた理由として、主力の商品の販売が伸びたことなどを挙げたとされるよ。一方で、原材料の価格の上昇が重しになる点にも触れていて、来期の見通しについては慎重な見方を示したとされるよ。',
-    difficulty: 'normal',
     date: `2026-10-${day}`,
-    validFrom: TODAY,
-    validUntil: '2026-11-15',
     sources: [
       { label: '取引所(2026/10/14)', url: `https://www.jpx.co.jp/news/${n}` },
       { label: 'テスト新聞(2026/10/14)', url: `https://www.nikkei.com/article/${n}` },
@@ -83,7 +80,7 @@ test('check: 各不合格の理由が rejected.json に出る', () => {
     [cands[4].id]: { sources: [{ label: 'a', url: 'http://example.com/a' }, { label: 'b', url: 'https://example.com/b' }] }, // http
     [cands[5].id]: { detail: '短いよ。' }, // detail の長さ
     [cands[6].id]: { wrongs: ['a', 'b'] }, // wrongs
-    [cands[7].id]: { validFrom: '2026-10-01' }, // validFrom が実行日でない
+    [cands[7].id]: { difficulty: 'impossible', validFrom: '2026-10-01', validUntil: 'x' }, // 以前の書き方の項目は、あっても無視される(落ちない)
   };
   const patched = cands.map((c) => ({ ...c, ...(bad[c.id] || {}) }));
   const res = runCheck(patched, verdicts(patched));
@@ -95,8 +92,8 @@ test('check: 各不合格の理由が rejected.json に出る', () => {
   assert.match(reasonOf(cands[4].id), /形式/);
   assert.match(reasonOf(cands[5].id), /detail の長さ/);
   assert.match(reasonOf(cands[6].id), /形式/);
-  assert.match(reasonOf(cands[7].id), /validFrom/);
-  assert.equal(res.accepted.length, 2);
+  assert.equal(reasonOf(cands[7].id), '');
+  assert.equal(res.accepted.length, 3);
   assert.equal(res.r.status, 2); // 5未満
   assert.equal(res.summary.ok, false);
 });
@@ -205,7 +202,7 @@ test('apply: 冪等(同じ id は二重に足さない)', () => {
 test('apply: 検査に通らない問題が混ざると、書き込まずに失敗する', () => {
   const file = htmlCopy('lf');
   const before = fs.readFileSync(file, 'utf8');
-  const { r } = runApply(file, [cand(1), cand(2, { difficulty: 'impossible' })]);
+  const { r } = runApply(file, [cand(1), cand(2, { wrongs: ['a', 'b'] })]);
   assert.equal(r.status, 1);
   assert.equal(fs.readFileSync(file, 'utf8'), before);
 });
@@ -213,7 +210,7 @@ test('apply: 検査に通らない問題が混ざると、書き込まずに失�
 test('apply: 最後の要素の末尾にカンマがなくても足せる', () => {
   const file = htmlCopy('lf');
   const text = fs.readFileSync(file, 'utf8');
-  const stripped = text.replace(/\},\n\];\n\/\/ 時事モードを画面に出すか/, '}\n];\n// 時事モードを画面に出すか');
+  const stripped = text.replace(/\},\n\];\n\/\/ 過去の時事問題/, '}\n];\n// 過去の時事問題');
   assert.notEqual(stripped, text, '前提: カンマを外せた');
   fs.writeFileSync(file, stripped, 'utf8');
   const { r } = runApply(file, [cand(1)]);
@@ -416,4 +413,188 @@ test('make-issue-body: id と機械チェックの理由だけで、@ やリン�
   assert.equal(r.status, 0);
   assert.ok(!/evil|@|aiReasons|悪い文/.test(r.stdout), r.stdout);
   assert.match(r.stdout, /ok-id-1: 事実確認で不合格/);
+});
+
+// ---- 過去の問題への移動(archive-news) と、難易度・期間なしの新しい書き方 ----
+const ARCHIVE = path.join(ROOT, 'scripts', 'news-quiz', 'archive-news.mjs');
+
+test('apply: 難易度・validFrom・validUntil を書かずに足す(あっても書かない)', () => {
+  const file = htmlCopy('lf');
+  const { r } = runApply(file, [cand(1, { difficulty: 'hard', validFrom: '2026-10-19', validUntil: '2026-11-15' })]);
+  assert.equal(r.status, 0, r.stderr);
+  const text = fs.readFileSync(file, 'utf8');
+  const from = text.indexOf(`id: "${cand(1).id}"`);
+  const block = text.slice(from, text.indexOf('  },', from));
+  assert.ok(!/difficulty|validFrom|validUntil/.test(block), block);
+  assert.ok(/date: "2026-10-/.test(block));
+  assert.ok(loadCopy(file).NEWS_QUESTIONS.some((n) => n.id === cand(1).id));
+});
+
+test('apply: 過去の問題(NEWS_ARCHIVE)にある id は足さない', () => {
+  const file = htmlCopy('lf');
+  runApply(file, [cand(1)]);
+  assert.equal(runArchive(file, '2026-12-28').out.moved >= 1, true);
+  const { out } = runApply(file, [cand(1), cand(2)]);
+  assert.deepEqual(out.ids, [cand(2).id]);
+});
+
+test('check: 過去の問題(NEWS_ARCHIVE)にある id も重複で落ちる', () => {
+  const file = htmlCopy('lf');
+  runArchive(file, '2026-12-28'); // 全部過去へ
+  const L = loadCopy(file);
+  assert.ok(L.NEWS_ARCHIVE.length > 0);
+  const cands = tenGood();
+  cands[0] = { ...cands[0], id: L.NEWS_ARCHIVE[0].id };
+  const res = runCheck(cands, verdicts(cands), ['--html', file]);
+  assert.ok(res.rejected.some((x) => /既存の問題と重複/.test(x.reasons.join())));
+  assert.equal(res.accepted.length, 9);
+});
+
+function runArchive(file, today, extra = []) {
+  const r = spawnSync(process.execPath, [ARCHIVE, '--today', today, '--file', file, ...extra], { encoding: 'utf8' });
+  const last = r.stdout.trim().split('\n').pop();
+  return { r, out: last ? JSON.parse(last) : null };
+}
+
+for (const eol of ['lf', 'crlf']) {
+  test(`archive(${eol}): 4週より古い週の問題だけを、元の書き方のまま NEWS_ARCHIVE の末尾へ移す`, () => {
+    const file = htmlCopy(eol);
+    const L0 = loadCopy(file);
+    const byWeek = (w) => L0.NEWS_QUESTIONS.filter((n) => L0.weekStartOf(n.date) === w).map((n) => n.id);
+    assert.ok(byWeek('2026-09-14').length >= 1 && byWeek('2026-10-05').length >= 1, '前提: 週ごとの問題がある');
+    // 2026-11-02(月)は、その週の月曜から28日前が 10/5。9/14 の週は移り、10/5 の週は残る
+    const { r, out } = runArchive(file, '2026-11-02');
+    assert.equal(r.status, 0, r.stderr);
+    assert.deepEqual(out.ids.slice().sort(), byWeek('2026-09-14').slice().sort());
+    assert.equal(out.moved, out.ids.length);
+    const L = loadCopy(file);
+    assert.deepEqual(L.NEWS_ARCHIVE.map((n) => n.id), out.ids);
+    assert.equal(L.NEWS_QUESTIONS.length + L.NEWS_ARCHIVE.length, L0.NEWS_QUESTIONS.length);
+    assert.ok(L.NEWS_QUESTIONS.every((n) => !out.ids.includes(n.id)));
+    for (const n of [...L.NEWS_QUESTIONS, ...L.NEWS_ARCHIVE]) assert.equal(L.validateNewsItem(n), null);
+    // 元の書き方(difficulty などの行もそのまま)で移る
+    const text = fs.readFileSync(file, 'utf8');
+    const orig = fs.readFileSync(REAL_HTML, 'utf8').replace(/\r\n/g, '\n');
+    const a = text.replace(/\r\n/g, '\n');
+    const blockOf = (src, id) => { const i = src.indexOf(`    id: "${id}",`); return src.slice(src.lastIndexOf('  {\n', i), src.indexOf('  },\n', i) + 5); };
+    for (const id of out.ids) {
+      const archiveStart = a.indexOf('const NEWS_ARCHIVE = [');
+      assert.equal(blockOf(a.slice(archiveStart), id), blockOf(orig, id), id);
+    }
+    // 改行コードと目印コメントが保たれる
+    if (eol === 'crlf') assert.ok(!/(?<!\r)\n/.test(text), 'CRLF のファイルに LF だけの行ができた');
+    else assert.ok(!text.includes('\r'), 'LF のファイルに CR が入った');
+    for (const m of ['DATA-START', 'DATA-END', 'LOGIC-START', 'LOGIC-END', 'UI-START', 'UI-END']) assert.ok(text.includes(`// ==${m}==`), m);
+    // 冪等: もう一度動かしても、何も変わらない
+    const once = fs.readFileSync(file, 'utf8');
+    const again = runArchive(file, '2026-11-02');
+    assert.equal(again.out.moved, 0);
+    assert.equal(fs.readFileSync(file, 'utf8'), once);
+  });
+}
+
+test('archive: 週の境界(同じ週の中では分けない・前の週の日曜までは移る)', () => {
+  const file = htmlCopy('lf');
+  // 10/5 の週は、2026-11-08(日)の実行ではまだ残り、11-09(月)の実行で移る
+  const L0 = loadCopy(file);
+  const wk = (w) => L0.NEWS_QUESTIONS.filter((n) => L0.weekStartOf(n.date) === w).length;
+  const a = runArchive(file, '2026-11-08');
+  assert.equal(a.out.moved, wk('2026-09-14'));
+  const b = runArchive(file, '2026-11-09');
+  assert.equal(b.out.moved, wk('2026-10-05'));
+  assert.equal(loadCopy(file).NEWS_QUESTIONS.every((n) => L0.weekStartOf(n.date) === '2026-10-12'), true);
+  // 実行日が古ければ何も移さない
+  const file2 = htmlCopy('lf');
+  const before = fs.readFileSync(file2, 'utf8');
+  assert.equal(runArchive(file2, '2026-10-12').out.moved, 0);
+  assert.equal(fs.readFileSync(file2, 'utf8'), before);
+  // --weeks で週の数を変えられる
+  assert.equal(runArchive(file2, '2026-10-20', ['--weeks', '1']).out.moved, wk('2026-09-14') + wk('2026-10-05'));
+});
+
+test('archive: NEWS_ARCHIVE が複数行で空([ と ];)・1行で空([];)・すでに問題があるときも動き、末尾に足す', () => {
+  // 複数行で空
+  const f1 = htmlCopy('lf');
+  fs.writeFileSync(f1, fs.readFileSync(f1, 'utf8').replace('const NEWS_ARCHIVE = [];', 'const NEWS_ARCHIVE = [\n];'), 'utf8');
+  const r1 = runArchive(f1, '2026-11-09');
+  assert.equal(r1.r.status, 0, r1.r.stderr);
+  assert.ok(r1.out.moved > 0);
+  assert.equal(loadCopy(f1).NEWS_ARCHIVE.length, r1.out.moved);
+  // すでに問題があるときは、その後ろに足す(先の問題の順は変わらない)
+  const f2 = htmlCopy('crlf');
+  const s1 = runArchive(f2, '2026-11-02');
+  const first = loadCopy(f2).NEWS_ARCHIVE.map((n) => n.id);
+  const s2 = runArchive(f2, '2026-11-09');
+  assert.ok(s1.out.moved > 0 && s2.out.moved > 0);
+  assert.deepEqual(loadCopy(f2).NEWS_ARCHIVE.map((n) => n.id).slice(0, first.length), first);
+  assert.equal(loadCopy(f2).NEWS_ARCHIVE.length, s1.out.moved + s2.out.moved);
+  // 全部移して、NEWS_QUESTIONS が空になっても読める。その後、追加(apply)もできる
+  const f3 = htmlCopy('lf');
+  runArchive(f3, '2027-03-01');
+  const L3 = loadCopy(f3);
+  assert.equal(L3.NEWS_QUESTIONS.length, 0);
+  assert.equal(L3.NEWS_PUBLIC, false);
+  const ap = runApply(f3, [cand(1)]);
+  assert.equal(ap.r.status, 0, ap.r.stderr);
+  assert.deepEqual(loadCopy(f3).NEWS_QUESTIONS.map((n) => n.id), [cand(1).id]);
+  // NEWS_QUESTIONS が1行で空([];)でも、何も移さず成功する
+  const f4 = htmlCopy('lf');
+  let t = fs.readFileSync(f4, 'utf8');
+  const st = t.indexOf('const NEWS_QUESTIONS = [');
+  t = t.slice(0, st) + 'const NEWS_QUESTIONS = [];' + t.slice(t.indexOf('\n];', st) + 3);
+  fs.writeFileSync(f4, t, 'utf8');
+  const r4 = runArchive(f4, '2026-11-09');
+  assert.equal(r4.r.status, 0, r4.r.stderr);
+  assert.equal(r4.out.moved, 0);
+});
+
+test('archive: すでに過去にある id は二重に移さず、元から消すだけ(問題は消えない)', () => {
+  const file = htmlCopy('lf');
+  const L0 = loadCopy(file);
+  const old = L0.NEWS_QUESTIONS.filter((n) => L0.weekStartOf(n.date) === '2026-09-14');
+  // 先に1問だけ、過去へ手で複製しておく
+  let t = fs.readFileSync(file, 'utf8');
+  const i = t.indexOf(`    id: "${old[0].id}",`);
+  const block = t.slice(t.lastIndexOf('  {\n', i), t.indexOf('  },\n', i) + 5);
+  t = t.replace('const NEWS_ARCHIVE = [];', `const NEWS_ARCHIVE = [\n${block.replace(/\n$/, '')}\n];`);
+  fs.writeFileSync(file, t, 'utf8');
+  const { r, out } = runArchive(file, '2026-11-02');
+  assert.equal(r.status, 0, r.stderr);
+  const L = loadCopy(file);
+  assert.equal(L.NEWS_ARCHIVE.filter((n) => n.id === old[0].id).length, 1);
+  assert.equal(L.NEWS_ARCHIVE.length, old.length);
+  assert.ok(L.NEWS_QUESTIONS.every((n) => !old.some((o) => o.id === n.id)));
+  assert.equal(out.moved, old.length);
+});
+
+test('archive: 失敗したら何も書かない(想定外の行・今日が不正・NEWS_ARCHIVE がない)', () => {
+  const file = htmlCopy('lf');
+  const before = fs.readFileSync(file, 'utf8');
+  assert.equal(runArchive(file, 'あした').r.status, 1);
+  assert.equal(spawnSync(process.execPath, [ARCHIVE, '--file', file], { encoding: 'utf8' }).status, 1); // --today がない
+  // 要素の外に、想定外の行がある
+  const broken = before.replace('const NEWS_QUESTIONS = [\n', 'const NEWS_QUESTIONS = [\n  foo(),\n');
+  assert.notEqual(broken, before);
+  fs.writeFileSync(file, broken, 'utf8');
+  const r = runArchive(file, '2026-11-09');
+  assert.notEqual(r.r.status, 0);
+  assert.equal(fs.readFileSync(file, 'utf8'), broken);
+  // 検査に通らない問題が混ざっていると、書かずに失敗する(移す問題の日付が壊れている)
+  const file2 = htmlCopy('lf');
+  const t = fs.readFileSync(file2, 'utf8');
+  const bad = t.replace('wrongs: [', 'wrongs: [""," ", ', 1);
+  fs.writeFileSync(file2, bad, 'utf8');
+  const r2 = runArchive(file2, '2027-03-01');
+  assert.notEqual(r2.r.status, 0);
+  assert.equal(fs.readFileSync(file2, 'utf8'), bad);
+});
+
+test('本物の index.html: 移動の前提(NEWS_ARCHIVE があり、要素は archive-news が読める形)', () => {
+  const file = htmlCopy('crlf');
+  const before = fs.readFileSync(file, 'utf8');
+  const r = runArchive(file, '2027-03-01'); // 全部移せる(読めない形の要素がない)
+  assert.equal(r.r.status, 0, r.r.stderr);
+  assert.equal(loadCopy(file).NEWS_QUESTIONS.length, 0);
+  assert.notEqual(fs.readFileSync(file, 'utf8'), before);
+  assert.equal(loadLogic().NEWS_ARCHIVE.length >= 0, true);
 });

@@ -75,14 +75,14 @@ function isLongestUnique(item) {
 }
 
 function stringsOf(item) {
-  const out = [item.id, item.question, item.answer, ...item.wrongs, item.explanation, item.detail, item.difficulty, item.date, item.validFrom, item.validUntil];
+  const out = [item.id, item.question, item.answer, ...item.wrongs, item.explanation, item.detail, item.date];
   for (const s of item.sources) out.push(s.label, s.url);
   return out;
 }
 
 export function checkAll({ candidates, verdicts, today, html = DEFAULT_HTML, min = 5, domains = loadDomains() }) {
   const L = loadLogicFrom(html);
-  const existing = new Set(L.NEWS_QUESTIONS.map((n) => n.id));
+  const existing = new Set([...L.NEWS_QUESTIONS, ...L.NEWS_ARCHIVE].map((n) => n.id)); // 過去の問題にある id も重複
   const from = addDays(today, -7);
   const to = addDays(today, -1);
 
@@ -134,7 +134,6 @@ export function checkAll({ candidates, verdicts, today, html = DEFAULT_HTML, min
       }
       // 日付
       if (item.date < from || item.date > to) reasons.push(`出来事の日(${item.date})が ${from}〜${to} の外`);
-      if (item.validFrom !== today) reasons.push(`validFrom が実行日(${today})ではない`);
       // 言葉
       const text = [item.question, item.answer, ...item.wrongs, item.explanation, item.detail].join('\n');
       const hit = text.match(ASSERT_WORDS);

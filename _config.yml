@@ -1,0 +1,6 @@
+# GitHub Pages(Jekyll)の設定。
+# 不祥事銘柄のページ(fushoji/ と旧版の fushoji-stock-trend.html)を、一時的に公開から外す(2026-10-20)。
+# ファイルはリポジトリに残る(公開リポジトリなので、GitHub では見える)。公開に戻すときは、下の exclude の2行を消す。
+exclude:
+  - fushoji
+  - fushoji-stock-trend.html

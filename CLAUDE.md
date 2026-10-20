@@ -53,6 +53,8 @@ node --test --test-name-pattern="<名前の一部>" stock-quiz/tests/logic.test.
 
 ## 不祥事銘柄の株価ページ(`fushoji/`)
 
+**2026-10-20 から、一時的に公開から外している**(法的リスクの見直しのため。ユーザーの指示)。`_config.yml` の `exclude` で GitHub Pages から外し(ファイルはリポジトリに残る)、`update-pages.yml` の毎日の自動更新(cron)を止めている。公開に戻すときは、`_config.yml` の `exclude` を消し、cron のコメントを外す。再開する前に、株価データの利用条件・出典の確認・「このサイトについて」と同様の説明と連絡先を整える。
+
 `fushoji/*.html` は**生成物**。手で編集しない。元データは `fushoji/companies.json`、株価キャッシュは `fushoji/prices.json`。
 
 ```

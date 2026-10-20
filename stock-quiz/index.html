@@ -172,6 +172,7 @@ ul.wrong { padding: 0; margin: 0 0 8px; list-style: none; font-size: 16px; displ
 ul.wrong li { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--bad-edge); border-radius: 12px;
   padding: 8px 12px; box-shadow: var(--shadow); }
 .actions { display: grid; gap: 10px; margin-top: 14px; }
+.disclaimer a.about-link { display: inline-block; min-height: 44px; line-height: 44px; color: var(--accent); }
 .disclaimer { max-width: 560px; margin: 0 auto; padding: 12px 16px 28px; font-size: 13px; color: var(--muted); text-align: center; }
 
 /* ---- フレーム構造: 同じ index.html を3つの役(外側・左の一覧・右の本体)で使う。?pane= で切り替える ---- */
@@ -237,7 +238,7 @@ html[data-role="host"], html[data-role="host"] body { height: 100%; overflow: hi
 </div>
 <nav id="navroot" class="navroot" aria-label="株トレーダーへの道のメニュー"></nav>
 <main id="app"></main>
-<footer class="disclaimer">学習用のゲームです。実際の相場では必ずこの通りに動くとは限りません。投資の助言ではありません。</footer>
+<footer class="disclaimer">学習用のゲームです。実際の相場では必ずこの通りに動くとは限りません。投資の助言ではありません。<br><a class="about-link" href="about.html" target="_blank" rel="noopener">このサイトについて(運営者・プライバシー・データの出典)</a></footer>
 <script>
 // ==DATA-START==
 const PATTERNS = [
@@ -4724,6 +4725,7 @@ function examplesHtml(q) {
     <p class="note">過去の例で、将来を保証するものではないよ。特定の銘柄をすすめるものではないよ。</p>
     <p class="note">騰落率は、配当を含まない株価の変化だよ。市場全体との比較ではなく、その期間の市場全体の動きにも左右されるよ。</p>
     <p class="note">このモードは「一概には言えない」が答えの問いが多いよ。株価は指標だけでは決まらないからだよ。</p>
+    <p class="note">株価データ: Yahoo Finance(非公式の方法で取得)。株式分割を調整した、週ごとの終値だよ。配当は含まないよ。くわしくは、<a href="about.html" target="_blank" rel="noopener">「このサイトについて」</a>を見てね。</p>
     <p class="note">例は、あらかじめ決めた順に選んだ約20社の、2019〜2026年の1年間の動きだよ。九州・沖縄の会社が多く、同じ会社が何回か出るよ。上場廃止の会社は株価が取れず入っていないよ。期間は日本株が上がりやすい時期に偏るよ。</p></div>`;
 }
 

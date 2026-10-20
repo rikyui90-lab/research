@@ -1,11 +1,11 @@
-// 通った問題を、stock-quiz/index.html の NEWS_QUESTIONS の末尾に足す
+// 通った問題を、stock-quiz/index.html の NEWS_QUESTIONS の末尾に足す(難易度・validFrom・validUntil は書かない)
 // 使い方: node scripts/news-quiz/apply-news.mjs [accepted.json] [--file stock-quiz/index.html]
-// 同じ id は二重に足さない。足したあとに DATA / LOGIC が読めて、全問が validateNewsItem を通ることを確かめてから書き込む。
+// 同じ id は二重に足さない(NEWS_QUESTIONS にも NEWS_ARCHIVE にもあれば足さない)。足したあとに DATA / LOGIC が読めて、全問が validateNewsItem を通ることを確かめてから書き込む。
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadLogicFrom, parseArgs, readJson, DEFAULT_HTML } from './lib.mjs';
+import { loadLogicFrom, parseArgs, readJson, findArray, eolOf, DEFAULT_HTML } from './lib.mjs';
 
 // 文字列を JS の文字列リテラルにする。< > & と行区切り(U+2028/2029)は \u 形式にして、HTML の script を閉じたり壊したりできないようにする
 export const J = (s) => JSON.stringify(s)
@@ -21,10 +21,7 @@ export function formatItem(n, eol) {
     `    wrongs: [${n.wrongs.map(J).join(', ')}],`,
     `    explanation: ${J(n.explanation)},`,
     `    detail: ${J(n.detail)},`,
-    `    difficulty: ${J(n.difficulty)},`,
     `    date: ${J(n.date)},`,
-    `    validFrom: ${J(n.validFrom)},`,
-    `    validUntil: ${J(n.validUntil)},`,
     `    sources: [${n.sources.map((s) => `{"label": ${J(s.label)}, "url": ${J(s.url)}}`).join(', ')}],`,
     '  },',
   ];
@@ -33,26 +30,19 @@ export function formatItem(n, eol) {
 
 // html の文字列と足す問題から、新しい html の文字列と足した id を返す(書き込みはしない)
 export function applyToHtml(html, items) {
-  const eol = html.includes('\r\n') ? '\r\n' : '\n';
+  const eol = eolOf(html);
   const startMark = 'const NEWS_QUESTIONS = [';
-  const start = html.indexOf(startMark);
-  if (start < 0) throw new Error('NEWS_QUESTIONS が見つからない');
-  const oneLineEmpty = html.startsWith('];', start + startMark.length); // const NEWS_QUESTIONS = [];
-  let bodyEnd;
-  if (oneLineEmpty) {
-    bodyEnd = start + startMark.length;
-  } else {
-    const endRe = /\r?\n\];/g;
-    endRe.lastIndex = start;
-    const em = endRe.exec(html);
-    if (!em) throw new Error('NEWS_QUESTIONS の終わり(];)が見つからない');
-    bodyEnd = em.index; // 最後の要素の直後(改行の前)
-    if (html.slice(start, bodyEnd).includes('const NEWS_PUBLIC')) throw new Error('NEWS_QUESTIONS の終わりを取り違えた');
-  }
+  const arr = findArray(html, 'NEWS_QUESTIONS');
+  if (!arr) throw new Error('NEWS_QUESTIONS が見つからない');
+  const { start, oneLineEmpty, end: bodyEnd } = arr; // bodyEnd は最後の要素の直後(改行の前)
   const body = html.slice(start, bodyEnd);
+  // 過去の問題(NEWS_ARCHIVE)にある id も、足さない
+  const arch = findArray(html, 'NEWS_ARCHIVE');
+  const archBody = arch ? html.slice(arch.start, arch.end) : '';
+  const has = (text, id) => text.includes(`id: ${J(id)},`) || text.includes(`id: '${id}',`);
   const fresh = [];
   for (const n of items) {
-    if (body.includes(`id: ${J(n.id)},`) || body.includes(`id: '${n.id}',`) || fresh.some((f) => f.id === n.id)) continue;
+    if (has(body, n.id) || has(archBody, n.id) || fresh.some((f) => f.id === n.id)) continue;
     fresh.push(n);
   }
   if (!fresh.length) return { html, added: [] };
@@ -76,7 +66,7 @@ export function applyFile(file, items) {
   const tmp = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'news-apply-')), 'index.html');
   fs.writeFileSync(tmp, res.html, 'utf8');
   const L = loadLogicFrom(tmp);
-  const all = L.NEWS_QUESTIONS;
+  const all = [...L.NEWS_QUESTIONS, ...L.NEWS_ARCHIVE];
   for (const n of all) {
     const err = L.validateNewsItem(n);
     if (err) throw new Error(`挿入後の検査に失敗: ${err}`);

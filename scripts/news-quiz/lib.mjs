@@ -22,6 +22,26 @@ export function loadLogicFrom(htmlPath = DEFAULT_HTML) {
   return new Proxy({}, { get: (_, name) => lookup(String(name)) });
 }
 
+// index.html の中の `const NAME = [` 〜 `];` の配列の位置を返す。なければ null
+//   open: `[` の直後 / end: 最後の要素の直後(`];` の行の改行の前。1行の空の配列 `[];` なら open と同じ)
+export function findArray(html, name) {
+  const mark = `const ${name} = [`;
+  const start = html.indexOf(mark);
+  if (start < 0) return null;
+  const open = start + mark.length;
+  if (html.startsWith('];', open)) return { start, open, end: open, oneLineEmpty: true };
+  const endRe = /\r?\n\];/g;
+  endRe.lastIndex = open;
+  const em = endRe.exec(html);
+  if (!em) throw new Error(`${name} の終わり(];)が見つからない`);
+  if (/\n\s*const /.test(html.slice(open, em.index))) throw new Error(`${name} の終わりを取り違えた`);
+  return { start, open, end: em.index, oneLineEmpty: false };
+}
+
+export function eolOf(html) {
+  return html.includes('\r\n') ? '\r\n' : '\n';
+}
+
 export function parseArgs(argv) {
   const positional = [];
   const flags = {};

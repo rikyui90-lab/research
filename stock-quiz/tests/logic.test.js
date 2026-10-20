@@ -11,7 +11,7 @@ test('index.html のデータとロジックを読み込める', () => {
 const L = loadLogic();
 // 全モード(全部まぜ・チャートの形状・ローソク足・用語・株価予想)。「どのモードも10問が成立する」「1問以上ある」を見るテストで使う。
 // 株価予想の仕組みのテストは、本物のデータではなく見本(fixture)を入れた別の評価結果で見る
-const EVERY_MODE = L.MODES.filter((m) => m !== 'news'); // 時事は、問題が入っているときだけ出るので、10問そろう前提の検査からは外す
+const EVERY_MODE = L.MODES.filter((m) => !L.WEEK_MODES.includes(m)); // 時事系(時事・時事(過去))は、難易度がなく、問題が入っているときだけ出るので、10問そろう前提の検査からは外す
 
 // v6 で追加したチャートの形20種類: id -> [名前, outlook, 難易度](表の順。PATTERNS の末尾にこの順で並ぶ)
 const NEW_CHART20 = {
@@ -262,7 +262,7 @@ test('findPattern: 存在しない id は例外', () => {
 });
 
 test('MODES と MODE_LABELS が揃っている', () => {
-  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term', 'forecast', 'news']);
+  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term', 'forecast', 'news', 'newsArchive']);
   for (const m of L.MODES) assert.ok(L.MODE_LABELS[m], m);
   assert.equal(L.MODE_LABELS.outlook, undefined);
   assert.throws(() => L.makeOutlookQuestion, ReferenceError);
@@ -545,7 +545,7 @@ test('summarizeStats: モード別・難易度別の正答率、最近のラウ�
   assert.deepEqual([by('pattern').correct, by('pattern').total, by('pattern').rate], [8, 20, 40]);
   assert.deepEqual([by('term').correct, by('term').total, by('term').rate], [17, 20, 85]);
   assert.deepEqual([by('candle').total, by('candle').rate], [0, null]);
-  assert.deepEqual(s.byMode.map((m) => m.mode), ['pattern', 'candle', 'term', 'forecast', 'news']);
+  assert.deepEqual(s.byMode.map((m) => m.mode), ['pattern', 'candle', 'term', 'forecast', 'news', 'newsArchive']);
   assert.ok(!s.byMode.some((m) => m.mode === 'all'));
   const lv = (d) => s.byLevel.find((x) => x.level === d);
   assert.deepEqual([lv('easy').correct, lv('easy').total, lv('easy').rate], [5, 10, 50]);
@@ -1509,7 +1509,9 @@ test('statsKey と STATS_KEYS', () => {
   assert.equal(L.statsKey('term'), 'term');
   assert.equal(L.statsKey('term', 'all'), 'term');
   assert.equal(L.statsKey('pattern', 'hard'), 'pattern:hard');
-  assert.equal(L.STATS_KEYS.length, L.MODES.length * L.DIFFICULTY_FILTERS.length);
+  assert.equal(L.statsKey('news', 'hard'), 'news'); // 時事系は難易度で分けない
+  assert.equal(L.statsKey('newsArchive', 'all'), 'newsArchive');
+  assert.equal(L.STATS_KEYS.length, (L.MODES.length - L.WEEK_MODES.length) * L.DIFFICULTY_FILTERS.length + L.WEEK_MODES.length);
   assert.deepEqual(L.STATS_KEYS.slice(0, L.MODES.length), L.MODES);
   assert.equal(new Set(L.STATS_KEYS).size, L.STATS_KEYS.length);
 });
@@ -1544,8 +1546,8 @@ test('保存データ: 値動き予想(outlook)の古いキーが残っていて
   assert.deepEqual(parsed.played.pattern, { correct: 5, total: 10 });
   assert.equal(parsed.best.outlook, undefined);
   assert.equal(parsed.played['outlook:hard'], undefined);
-  assert.equal(Object.keys(parsed.best).length, 36);
-  assert.equal(L.STATS_KEYS.length, 36);
+  assert.equal(Object.keys(parsed.best).length, 32);
+  assert.equal(L.STATS_KEYS.length, 32);
   assert.ok(L.STATS_KEYS.every((k) => !k.startsWith('outlook')));
 });
 
@@ -3240,9 +3242,9 @@ test('株価予想: 選択肢はやり直しでも並べ替えない(reshuffleCh
   assert.deepEqual(LF.buildRetryDeck(deck, [{ id: deck[0].id, correct: true }, { id: deck[1].id, correct: false }], 1).map((q) => q.id), [deck[1].id]);
 });
 
-test('株価予想: 成績のキー(6モード × 6)と、古い保存データの読み込み', () => {
-  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term', 'forecast', 'news']);
-  assert.equal(L.STATS_KEYS.length, 36);
+test('株価予想: 成績のキー(5モード × 6 + 時事系2)と、古い保存データの読み込み', () => {
+  assert.deepEqual(L.MODES, ['all', 'pattern', 'candle', 'term', 'forecast', 'news', 'newsArchive']);
+  assert.equal(L.STATS_KEYS.length, 32);
   assert.ok(L.STATS_KEYS.includes('forecast') && L.STATS_KEYS.includes('forecast:master'));
   const s0 = L.defaultStats();
   assert.deepEqual(s0.played.forecast, { correct: 0, total: 0 });
@@ -3475,7 +3477,7 @@ test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、�
   assert.equal(L.buildPool('all', L.createRng(1)).filter((q) => q.type === 'forecast').length, 20);
   // 時事問題(NEWS_QUESTIONS)の出典名に「Yahoo!ファイナンス」などが入ることがあるので、時事の配列は除いて調べる
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
-    .replace(/const NEWS_QUESTIONS = \[[\s\S]*?\n\];/, '');
+    .replace(/const NEWS_(?:QUESTIONS|ARCHIVE) = \[[\s\S]*?\];/g, ''); // 過去の問題(NEWS_ARCHIVE)へ移ったあとも同じ
   assert.ok(!html.includes('株価データ: Yahoo Finance')); // 画面には取得元の表示を出さない(2026-10-16に消した)
   assert.ok(!html.includes('Yahoo!ファイナンス'));
   assert.ok(!html.includes('調整後終値'));
@@ -3514,7 +3516,7 @@ test('フレーム: ?pane= で役を選ぶ(なければ外側)', () => {
 
 const navStart = () => ({
   screen: 'start', difficulty: 'all',
-  modes: [{ mode: 'pattern', size: 10, best: 7, rate: 65 }, { mode: 'term', size: 0, best: 0, rate: null }],
+  modes: [{ mode: 'pattern', size: 10, best: 7, rate: 65, period: '' }, { mode: 'term', size: 0, best: 0, rate: null, period: '' }],
 });
 const navRound = (over = {}) => ({
   screen: 'question', difficulty: 'easy',
@@ -3632,16 +3634,20 @@ test('フレーム: モードの数字(全部まぜは出さない。難易度�
   let stats = L.defaultStats();
   stats = L.updateStats(stats, L.statsKey('term', 'easy'), 3, 4);
   const entries = L.modeEntries(stats, 'easy');
-  assert.deepEqual(entries.map((e) => e.mode), ['pattern', 'candle', 'term', 'forecast', 'news']); // 時事は、問題が入っているあいだだけ出る(NEWS_PUBLIC)
+  const newsModes = [...(L.NEWS_PUBLIC ? ['news'] : []), ...(L.NEWS_ARCHIVE_PUBLIC ? ['newsArchive'] : [])]; // 時事は問題が入っているあいだだけ、時事(過去)は過去の問題が入っているあいだだけ出る(NEWS_PUBLIC・NEWS_ARCHIVE_PUBLIC)
+  assert.deepEqual(entries.map((e) => e.mode), ['pattern', 'candle', 'term', 'forecast', ...newsModes]);
   const term = entries.find((e) => e.mode === 'term');
   assert.equal(term.best, 3);
   assert.equal(term.rate, 75);
   assert.equal(term.size, L.roundSize('term', 'easy'));
   assert.equal(L.modeEntries(L.defaultStats(), 'all')[0].rate, null);
-  assert.deepEqual(loadLogic({ forecastPublic: false }).modeEntries(stats, 'easy').map((e) => e.mode), ['pattern', 'candle', 'term', 'news']);
+  assert.deepEqual(loadLogic({ forecastPublic: false }).modeEntries(stats, 'easy').map((e) => e.mode), ['pattern', 'candle', 'term', ...newsModes]);
   assert.equal(L.modeSubText({ size: 0, best: 0, rate: null }), 'この難易度の問題は、まだないよ');
   assert.equal(L.modeSubText({ size: 10, best: 7, rate: 65 }), '最高 7 / 10　正答率 65%　10問');
   assert.match(L.modeSubText({ size: 10, best: 0, rate: null }), /正答率 -/);
+  // 時事系は、最高点を出さない(分母が選んだ週と合わないため)
+  assert.equal(L.modeSubText({ mode: 'news', size: 4, best: 1, rate: 50, period: '9/18〜10/16' }), '正答率 50%　4問　期間 9/18〜10/16');
+  assert.ok(!L.modeSubText({ mode: 'newsArchive', size: 2, best: 1, rate: null, period: '' }).includes('最高'));
   // 状態の検査を通る(本体が実際に送る形)
   assert.ok(L.sanitizeNavState({ screen: 'start', difficulty: 'easy', modes: entries }));
 });
@@ -3664,90 +3670,246 @@ test('フレーム: 描画直後の命令は捨てる', () => {
 // ---- 時事問題の枠 ----
 const NEWS_OK = {
   id: '2026-10-16-sample', question: 'サンプルの問いだよ', answer: '答え', wrongs: ['誤り1', '誤り2', '誤り3'],
-  explanation: '短い解説だよ', detail: 'くわしくだよ', difficulty: 'easy',
-  date: '2026-10-16', validFrom: '2026-10-16', validUntil: '2026-11-14',
+  explanation: '短い解説だよ', detail: 'くわしくだよ',
+  date: '2026-10-16',
   sources: [{ label: 'サンプル(10/16)', url: 'https://example.com/a' }],
 };
+const newsAt = (id, date) => ({ ...NEWS_OK, id, date });
 
-test('時事問題: 正しい形は不備なし。必須項目・選択肢・日付・出典・期間の不備を見つける', () => {
+test('時事問題: 正しい形は不備なし。必須項目・選択肢・日付・出典の不備を見つける。難易度・validFrom・validUntil はなくてよい', () => {
   assert.equal(L.validateNewsItem(NEWS_OK), null);
   const bad = (patch) => L.validateNewsItem({ ...NEWS_OK, ...patch });
   assert.match(bad({ id: 'Bad_ID' }), /id/);
   assert.match(bad({ question: '' }), /question/);
   assert.match(bad({ wrongs: ['a', 'b'] }), /wrongs/);
   assert.match(bad({ wrongs: ['答え', 'b', 'c'] }), /重複/);
-  assert.match(bad({ difficulty: 'x' }), /difficulty/);
-  assert.match(bad({ validFrom: '2026/10/16' }), /validFrom/);
-  assert.match(bad({ validFrom: '2026-02-30' }), /実在/);
-  assert.match(bad({ date: '2026-10-17' }), /date/);
-  assert.match(bad({ validUntil: '2026-10-15' }), /validFrom/);
-  assert.match(bad({ validUntil: '2026-11-30' }), /日を超える/);
-  assert.equal(bad({ validUntil: '2026-11-29' }), null); // ちょうど45日
+  assert.match(bad({ date: '2026/10/16' }), /date/);
+  assert.match(bad({ date: '2026-02-30' }), /date/);
+  assert.match(bad({ date: undefined }), /date/);
   assert.match(bad({ sources: [] }), /出典/);
   assert.match(bad({ sources: [{ label: 'a', url: 'http://example.com' }] }), /https/);
   assert.match(bad({ sources: [{ label: 'a', url: 'javascript:alert(1)' }] }), /https/);
   assert.match(bad({ sources: [{ label: '', url: 'https://example.com' }] }), /label/);
   assert.match(bad({ explanation: 'この株は買うべきだよ' }), /助言/);
   assert.match(bad({ detail: '必ず上がるよ' }), /助言/);
+  // 以前の書き方(難易度・期間つき)も通る。値は使わない
+  assert.equal(bad({ difficulty: 'easy', validFrom: '2026-10-16', validUntil: '2026-11-29' }), null);
+  assert.equal(bad({ difficulty: 'x', validFrom: 'あ', validUntil: 1 }), null);
 });
 
-test('時事問題: 出す期間(validFrom〜validUntil、両端を含む)の内だけ出て、「今日」が決まっていなければ出ない', () => {
-  assert.equal(L.isNewsActive(NEWS_OK, '2026-10-15'), false);
-  assert.equal(L.isNewsActive(NEWS_OK, '2026-10-16'), true);
-  assert.equal(L.isNewsActive(NEWS_OK, '2026-11-14'), true);
-  assert.equal(L.isNewsActive(NEWS_OK, '2026-11-15'), false);
-  assert.equal(L.isNewsActive(NEWS_OK, null), false);
-  const later = { ...NEWS_OK, id: 'later', validFrom: '2026-10-20', validUntil: '2026-10-25' };
-  assert.deepEqual(L.activeNews('2026-10-17', [NEWS_OK, later]).map((n) => n.id), ['2026-10-16-sample']);
-  assert.deepEqual(L.activeNews('2026-10-22', [NEWS_OK, later]).map((n) => n.id), ['2026-10-16-sample', 'later']);
-  assert.deepEqual(L.activeNews(null, [NEWS_OK]), []);
+test('週の計算: weekStartOf は月曜の日付を返す(月曜〜日曜、境界の日・月またぎ・年またぎ・うるう日)', () => {
+  assert.equal(L.weekStartOf('2026-10-19'), '2026-10-19'); // 月曜
+  assert.equal(L.weekStartOf('2026-10-20'), '2026-10-19'); // 火曜
+  assert.equal(L.weekStartOf('2026-10-25'), '2026-10-19'); // 日曜は、その週の最後
+  assert.equal(L.weekStartOf('2026-10-26'), '2026-10-26'); // 次の月曜から次の週
+  assert.equal(L.weekStartOf('2026-10-18'), '2026-10-12'); // 日曜
+  assert.equal(L.weekStartOf('2026-01-01'), '2025-12-29'); // 年またぎ
+  assert.equal(L.weekStartOf('2026-03-01'), '2026-02-23'); // 月またぎ
+  assert.equal(L.weekStartOf('2024-02-29'), '2024-02-26'); // うるう日
+  for (let i = 0; i < 28; i++) {
+    const d = L.addDaysIso('2026-09-28', i); // 9/28 は月曜
+    assert.equal(L.weekStartOf(d), L.addDaysIso('2026-09-28', Math.floor(i / 7) * 7), d);
+  }
+  assert.equal(L.weekStartOf('2026-13-01'), null);
+  assert.equal(L.weekStartOf('2026-02-30'), null);
+  assert.equal(L.weekStartOf('あ'), null);
+  assert.equal(L.weekStartOf(undefined), null);
 });
 
-test('時事問題: 公開ずみ(validFrom 以降)は、期間が終わった過去の問題も出る。始まる前は出ない', () => {
-  const later = { ...NEWS_OK, id: 'later', validFrom: '2026-10-20', validUntil: '2026-10-25' };
-  const items = [NEWS_OK, later];
-  assert.deepEqual(L.publishedNews('2026-10-15', items).map((n) => n.id), []);
-  assert.deepEqual(L.publishedNews('2026-10-17', items).map((n) => n.id), ['2026-10-16-sample']);
-  assert.deepEqual(L.publishedNews('2026-12-31', items).map((n) => n.id), ['2026-10-16-sample', 'later']); // 期間が終わっても残る
-  assert.deepEqual(L.publishedNews(null, items), []);
-  assert.equal(L.isNewsPast(NEWS_OK, '2026-11-14'), false);
-  assert.equal(L.isNewsPast(NEWS_OK, '2026-11-15'), true);
-  assert.equal(L.isNewsPast(NEWS_OK, null), false);
-  assert.deepEqual(L.activeNews('2026-12-31', items), []); // 「新しい問題」としては終わっている
+test('週の計算: 期間ラベルと、週の一覧(新しい週から。問題のない週は出ない)', () => {
+  assert.equal(L.weekLabel('2026-10-12'), '10/12〜10/18');
+  assert.equal(L.weekLabel('2026-09-28'), '9/28〜10/4'); // 月またぎ
+  assert.equal(L.weekLabel('2025-12-29'), '12/29〜1/4'); // 年またぎ
+  const items = [newsAt('a', '2026-10-13'), newsAt('b', '2026-10-18'), newsAt('c', '2026-10-05'), newsAt('d', '2026-09-18')];
+  const weeks = L.newsWeeks(items);
+  assert.deepEqual(weeks.map((w) => [w.start, w.end, w.label, w.count]), [
+    ['2026-10-12', '2026-10-18', '10/12〜10/18', 2],
+    ['2026-10-05', '2026-10-11', '10/5〜10/11', 1],
+    ['2026-09-14', '2026-09-20', '9/14〜9/20', 1],
+  ]);
+  assert.deepEqual(L.newsWeeks([]), []);
+  assert.deepEqual(L.byWeek(items, '2026-10-12').map((n) => n.id), ['a', 'b']);
+  assert.deepEqual(L.byWeek(items, 'all').map((n) => n.id), ['a', 'b', 'c', 'd']);
+  assert.deepEqual(L.byWeek(items, '2026-01-05'), []);
 });
 
-test('時事問題: 問題の形(id は news:、選択肢は4つで正解を含む、出典がつく)。同じシードなら同じ並び', () => {
+test('週の計算: いま出している期間(出来事の日の最小〜最大と、週の数)', () => {
+  assert.equal(L.newsPeriod([]), null);
+  assert.deepEqual(L.newsPeriod([newsAt('a', '2026-10-13')]), { from: '2026-10-13', to: '2026-10-13', weeks: 1, label: '10/13' }); // 始まりと終わりが同じ日なら1日だけ
+  const p = L.newsPeriod([newsAt('a', '2026-09-22'), newsAt('b', '2026-10-18'), newsAt('c', '2026-10-01')]);
+  assert.equal(p.label, '9/22〜10/18'); // 括弧で週の数は付けない(暦の幅だけ)
+  assert.equal(p.weeks, 4);
+  assert.equal(L.newsPeriod([newsAt('a', '2026-10-18'), newsAt('b', '2026-10-19')]).weeks, 2); // 日曜と月曜で週が変わる
+});
+
+test('週の計算: isOlderThanWeeks は、実行日の属する週から4週より前の週だけ true(週単位)', () => {
+  const today = '2026-11-02'; // 月曜。その週の月曜から28日前は 10/5
+  const old = (date) => L.isOlderThanWeeks(newsAt('x', date), today, 4);
+  assert.equal(old('2026-10-05'), false); // 28日前の月曜の週は、残す
+  assert.equal(old('2026-10-11'), false); // その週の日曜
+  assert.equal(old('2026-10-04'), true); // その前の週の日曜
+  assert.equal(old('2026-09-28'), true);
+  assert.equal(old('2026-11-02'), false);
+  assert.equal(old('2026-12-31'), false); // 未来は古くない
+  // 実行日が火曜でも、同じ週なら同じ結果
+  assert.equal(L.isOlderThanWeeks(newsAt('x', '2026-10-04'), '2026-11-03', 4), true);
+  assert.equal(L.isOlderThanWeeks(newsAt('x', '2026-10-05'), '2026-11-08', 4), false);
+  assert.equal(L.isOlderThanWeeks(newsAt('x', '2026-10-05'), '2026-11-09', 4), true);
+  assert.equal(L.isOlderThanWeeks(newsAt('x', '2026-10-04'), today), true); // 週の数を省くと NEWS_KEEP_WEEKS(4)
+  assert.equal(L.NEWS_KEEP_WEEKS, 4);
+  assert.equal(L.isOlderThanWeeks(newsAt('x', '2026-10-19'), today, 1), true);
+  assert.equal(L.isOlderThanWeeks(newsAt('x', 'あ'), today, 4), false);
+  assert.equal(L.isOlderThanWeeks(newsAt('x', '2026-10-05'), 'あ', 4), false);
+});
+
+test('時事問題: 問題の形(id は news:、選択肢は4つで正解を含む、出典がつく、難易度なしでも有効)。同じシードなら同じ並び', () => {
   const q1 = L.makeNewsQuestion(NEWS_OK, L.createRng(7));
   const q2 = L.makeNewsQuestion(NEWS_OK, L.createRng(7));
   assert.deepEqual(q1, q2);
   assert.equal(q1.id, 'news:2026-10-16-sample');
   assert.equal(q1.type, 'news');
+  assert.equal(q1.archived, false);
+  assert.equal(q1.difficulty, undefined);
   assert.equal(L.validateQuestion(q1), null);
   assert.deepEqual([...q1.choices].sort(), ['答え', '誤り1', '誤り2', '誤り3'].sort());
   assert.equal(q1.sources[0].url, 'https://example.com/a');
-  assert.equal(q1.validUntil, '2026-11-14');
   q1.sources[0].url = 'x';
   assert.equal(NEWS_OK.sources[0].url, 'https://example.com/a'); // 元のデータを書き換えない
+  const arch = L.makeNewsQuestion(NEWS_OK, L.createRng(7), true);
+  assert.equal(arch.archived, true);
+  assert.equal(arch.id, q1.id); // 過去へ移っても id は同じ(出題済みの印が引き継がれる)
+  assert.equal(L.validateQuestion(arch), null);
+  // 難易度のあるほかの種類は、これまでどおり難易度が必須
+  assert.match(L.validateQuestion({ ...L.buildDeck('term', 1)[0], difficulty: undefined }), /difficulty/);
 });
 
-test('時事問題: 今は問題が空で、モード一覧には出ず、「全部まぜ」にも入らない。問題が入ったあとも、データは検査を通る', () => {
+test('時事問題: モード「時事」「時事(過去)」。「全部まぜ」には入らない。データは検査を通り、id は両方の配列をまたいで重複しない', () => {
   assert.ok(L.MODES.includes('news') && L.MODE_LABELS.news === '時事');
+  assert.ok(L.MODES.includes('newsArchive') && L.MODE_LABELS.newsArchive === '時事(過去)');
+  assert.deepEqual(L.WEEK_MODES, ['news', 'newsArchive']);
   assert.equal(L.NEWS_PUBLIC, L.NEWS_QUESTIONS.length > 0);
-  const ids = new Set(L.NEWS_QUESTIONS.map((n) => n.id));
-  assert.equal(ids.size, L.NEWS_QUESTIONS.length, 'id の重複');
-  for (const n of L.NEWS_QUESTIONS) assert.equal(L.validateNewsItem(n), null);
-  assert.equal(L.buildPool('news', L.createRng(1)).length, 0); // 「今日」が決まっていないあいだは出ない
+  assert.equal(L.NEWS_ARCHIVE_PUBLIC, L.NEWS_ARCHIVE.length > 0);
+  const all = [...L.NEWS_QUESTIONS, ...L.NEWS_ARCHIVE];
+  assert.equal(new Set(all.map((n) => n.id)).size, all.length, 'id の重複');
+  for (const n of all) assert.equal(L.validateNewsItem(n), null);
+  assert.equal(L.buildPool('news', L.createRng(1)).length, L.NEWS_QUESTIONS.length);
+  assert.equal(L.buildPool('newsArchive', L.createRng(1)).length, L.NEWS_ARCHIVE.length);
   assert.ok(L.buildPool('all', L.createRng(1)).every((q) => q.type !== 'news'));
-  assert.deepEqual(L.DIFFICULTY_FILTERS.includes('all'), true);
+  assert.ok(L.buildPool('news', L.createRng(1)).every((q) => q.type === 'news' && q.archived === false));
+  assert.equal(L.categoryLabel({ type: 'news', archived: true }), '時事(過去)');
+  assert.equal(L.categoryLabel({ type: 'news', archived: false }), '時事');
 });
 
-test('時事問題: 「今日」を決めると、期間の内の問題だけがモード「時事」の出題に入る(終わったら元に戻す)', () => {
+// NEWS_QUESTIONS / NEWS_ARCHIVE を、決めた問題に差し替えた DATA/LOGIC の評価結果(本物のデータは毎週増えて移るので、テストは頼らない)
+function patchedLogic({ questions, archive }) {
+  let html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const arr = (name, items) => {
+    html = html.replace(new RegExp(`const ${name} = \\[[\\s\\S]*?\\];`), () => `const ${name} = [${items.map((n) => JSON.stringify(n)).join(',')}];`);
+  };
+  if (questions) arr('NEWS_QUESTIONS', questions);
+  if (archive) arr('NEWS_ARCHIVE', archive);
+  const block = (name) => html.match(new RegExp(`// ==${name}-START==([\\s\\S]*?)// ==${name}-END==`))[1];
+  const lookup = new Function(block('DATA') + '\n' + block('LOGIC') + '\nreturn (name) => eval(name);')();
+  return new Proxy({}, { get: (_, name) => lookup(String(name)) });
+}
+
+test('時事問題: 週で絞る(buildPool・roundSize・buildDeck・poolIds・refreshSeen)。難易度は見ない', () => {
+  const P = patchedLogic({ questions: [
+    newsAt('w-a', '2026-10-13'), newsAt('w-b', '2026-10-18'), newsAt('w-c', '2026-10-14'),
+    newsAt('w-d', '2026-10-06'), newsAt('w-e', '2026-09-16'), newsAt('w-f', '2026-09-17'),
+  ] });
+  const weeks = P.newsWeeks(P.NEWS_QUESTIONS);
+  assert.equal(weeks.length, 3);
+  assert.equal(weeks.reduce((a, w) => a + w.count, 0), P.NEWS_QUESTIONS.length);
+  for (const w of weeks) {
+    const pool = P.buildPool('news', P.createRng(1), 'all', w.start);
+    assert.equal(pool.length, w.count, w.start);
+    assert.ok(pool.every((q) => P.weekStartOf(q.date) === w.start));
+    assert.equal(P.roundSize('news', 'all', w.start), Math.min(P.ROUND_SIZE, w.count));
+    const deck = P.buildDeck('news', 5, 'all', null, w.start);
+    assert.equal(deck.length, Math.min(P.ROUND_SIZE, w.count));
+    assert.ok(deck.every((q) => P.weekStartOf(q.date) === w.start));
+    assert.deepEqual(P.buildDeck('news', 5, 'all', null, w.start), deck);
+    assert.deepEqual(P.poolIds('news', 'all', w.start).sort(), pool.map((q) => q.id).sort());
+  }
+  assert.equal(P.buildPool('news', P.createRng(1), 'hard').length, P.NEWS_QUESTIONS.length); // 難易度では絞らない
+  assert.equal(P.buildPool('news', P.createRng(1), 'all', '2026-01-05').length, 0); // 問題のない週
+  // 「全部の週」と同じ並びを、週の指定なしでも作る
+  assert.deepEqual(P.buildDeck('news', 3), P.buildDeck('news', 3, 'all', null, 'all'));
+  // 出題済みの印は、その週の範囲だけで新しい周回にする
+  const w0 = weeks[0].start;
+  const ids = P.poolIds('news', 'all', w0);
+  const seen = new Set([...ids, 'forecast:x']);
+  const next = P.refreshSeen(seen, 'news', 'all', w0);
+  assert.ok(ids.every((id) => !next.has(id)) && next.has('forecast:x'));
+  if (weeks.length >= 2) {
+    const seen2 = new Set(ids);
+    assert.equal(P.refreshSeen(seen2, 'news', 'all', 'all'), seen2); // 全部の週は、まだ全部は出題済みでない
+  }
+});
+
+test('時事問題: 過去の問題(NEWS_ARCHIVE)に問題を入れたときの出題(差し替えた評価結果で確かめる)', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  assert.ok(html.includes('setNewsToday('), '画面の起動時に「今日」を決める');
-  // 差し替えた問題で、buildPool が使う activeNews の経路を確かめる
-  const pool = L.activeNews('2026-10-20', [NEWS_OK]).map((n) => L.makeNewsQuestion(n, L.createRng(1)));
-  assert.equal(pool.length, 1);
-  assert.equal(L.validateQuestion(pool[0]), null);
+  const arch = [newsAt('old-a', '2026-09-08'), newsAt('old-b', '2026-09-10'), newsAt('old-c', '2026-09-16')];
+  const body = arch.map((n) => JSON.stringify(n)).join(',');
+  const patched = html.replace(/const NEWS_ARCHIVE = \[[\s\S]*?\];/, () => `const NEWS_ARCHIVE = [${body}];`);
+  assert.notEqual(patched, html);
+  const block = (name) => patched.match(new RegExp(`// ==${name}-START==([\\s\\S]*?)// ==${name}-END==`))[1];
+  {
+    const A = (() => {
+      const lookup = new Function(block('DATA') + '\n' + block('LOGIC') + '\nreturn (name) => eval(name);')();
+      return new Proxy({}, { get: (_, name) => lookup(String(name)) });
+    })();
+    assert.equal(A.NEWS_ARCHIVE_PUBLIC, true);
+    assert.equal(A.modeEntries(A.defaultStats()).map((e) => e.mode).pop(), 'newsArchive'); // 「時事(過去)」は、いちばん後ろ
+    const e = A.modeEntries(A.defaultStats()).find((x) => x.mode === 'newsArchive');
+    assert.equal(e.size, 3);
+    assert.equal(e.period, '9/8〜9/16');
+    assert.equal(A.modeSubText(e), '正答率 -　3問　期間 9/8〜9/16');
+    const pool = A.buildPool('newsArchive', A.createRng(1));
+    assert.equal(pool.length, 3);
+    assert.ok(pool.every((q) => q.archived === true && q.type === 'news' && A.validateQuestion(q) === null));
+    assert.deepEqual(A.buildPool('newsArchive', A.createRng(1), 'all', '2026-09-07').map((q) => q.id).sort(), ['news:old-a', 'news:old-b']);
+    assert.equal(A.roundSize('newsArchive', 'all', '2026-09-14'), 1);
+    assert.equal(A.buildPool('news', A.createRng(1)).length, A.NEWS_QUESTIONS.length); // 「時事」には過去の問題が入らない
+    assert.ok(A.buildPool('all', A.createRng(1)).every((q) => q.type !== 'news'));
+    assert.equal(A.statsKey('newsArchive', 'hard'), 'newsArchive');
+    assert.equal(A.formatShareText('newsArchive', 2, 3, 'all', '2026-09-07'), '株トレーダーへの道(時事(過去)・9/7〜9/13)で 3問中2問正解!');
+  }
+});
+
+test('時事問題: 成績のキーは news・newsArchive だけ(週・難易度で分けない)。難易度別・モード別の集計に混ざらない', () => {
+  assert.ok(L.STATS_KEYS.includes('news') && L.STATS_KEYS.includes('newsArchive'));
+  assert.ok(!L.STATS_KEYS.some((k) => k.startsWith('news:') || k.startsWith('newsArchive:')));
+  let st = L.defaultStats();
+  st = L.updateStats(st, L.statsKey('news', 'hard'), 6, 10);
+  st = L.updateStats(st, L.statsKey('newsArchive', 'all'), 4, 5);
+  st = L.updateStats(st, 'term:hard', 8, 10);
+  const s = L.summarizeStats(st, []);
+  const by = (m) => s.byMode.find((x) => x.mode === m);
+  assert.deepEqual([by('news').correct, by('news').total], [6, 10]); // 6倍に数えない
+  assert.deepEqual([by('newsArchive').correct, by('newsArchive').total], [4, 5]);
+  assert.deepEqual(s.byLevel.map((l) => [l.level, l.total]), [['easy', 0], ['normal', 0], ['hard', 10], ['expert', 0], ['master', 0]]); // 時事は難易度別に入らない
+  // 古い保存データ(news と news:hard など)も読める。news:hard は捨てる
+  const parsed = L.parseStats(JSON.stringify({ best: { news: 3, 'news:hard': 9 }, played: { news: { correct: 3, total: 5 } } }));
+  assert.equal(parsed.best.news, 3);
+  assert.equal(parsed.best['news:hard'], undefined);
+  assert.equal(parsed.best.newsArchive, 0);
+  // ラウンドの記録に、時事(過去)を入れられる
+  const h = L.appendHistory([], { mode: 'newsArchive', difficulty: 'all', correct: 3, total: 5, at: 1 });
+  assert.equal(h.length, 1);
+  assert.equal(L.summarizeStats(L.defaultStats(), h).recent[0].modeLabel, '時事(過去)');
+});
+
+test('時事問題: 画面の骨組み(週の選択・期間の表示・難易度の星を出さない・起動時に「今日」を決めない)', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.ok(html.includes('function showWeekSelect(mode)'));
+  assert.ok(html.includes("if (WEEK_MODES.includes(mode)) { showWeekSelect(mode); return; }"));
+  assert.ok(html.includes('いま出している期間'));
+  assert.ok(html.includes('data-start-week'));
+  assert.ok(!html.includes('setNewsToday'));
+  assert.throws(() => L.isNewsActive, ReferenceError, 'isNewsActive は、いらなくなったので消した');
+  assert.ok(html.includes('これは過去の問題だよ'));
 });
 
 test('categoryLabel: 問題の種類ごとにカテゴリ名を返す(画面の「カテゴリ」に出す)', () => {

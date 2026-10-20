@@ -91,6 +91,11 @@ h1.title .ttl-en { font-size: 16px; font-weight: 600; letter-spacing: .05em; col
 .step-btn:hover { background: var(--accent-soft); }
 .step-btn:focus-visible { outline: 3px solid #ffd60a; outline-offset: 1px; box-shadow: 0 0 0 5px #000; }
 .prev-row { margin: -4px 0 8px; }
+/* 背の低い画面では、進捗の帯(1〜10)があるので、進捗の棒を省いて、問題と選択肢を最初の画面に入れる */
+@media (max-height: 720px) {
+  .bar { display: none; }
+  .head { margin-bottom: 8px; }
+}
 .step.ok { background: var(--good-bg); border-color: var(--good-edge); color: var(--good); }
 .step.ng { background: var(--bad-bg); border-color: var(--bad-edge); color: var(--bad); }
 .step.now { border: 2px solid var(--accent); color: var(--text); padding: 1px 0 2px; }
@@ -4621,9 +4626,9 @@ function chartColors() {
 }
 
 // canvas を、親の幅(左右の余白 pad を除く)に合わせて用意する。高さは幅 × ratio
-function prepareCanvas(canvas, pad, ratio) {
+function prepareCanvas(canvas, pad, ratio, maxH = Infinity) {
   const w = canvas.parentElement.clientWidth - pad * 2;
-  const h = Math.round(w * ratio);
+  const h = Math.round(Math.min(w * ratio, maxH));
   const dpr = window.devicePixelRatio || 1;
   canvas.style.width = `${w}px`;
   canvas.style.height = `${h}px`;
@@ -4661,9 +4666,21 @@ function drawPriceChart(canvas, example) {
   }
 }
 
+// 出題の画面で、選択肢の下の端が画面の下に収まるように、チャートの高さを決める(下限は 110px)。
+// 選択肢の下の端 B(いまのチャートの高さ h0 のとき)から、h ≤ 画面の高さ - 12 - B + h0
+const CHART_MIN_H = 100;
+function fitChartHeight(canvas) {
+  const choices = app.querySelector('.choices');
+  if (!choices) return Infinity;
+  const bottom = choices.getBoundingClientRect().bottom + window.scrollY;
+  const h0 = canvas.getBoundingClientRect().height;
+  return Math.max(CHART_MIN_H, Math.floor(window.innerHeight - 12 - bottom + h0));
+}
+
 function renderChart(canvas, chart, reveal) {
   const colors = chartColors();
-  const { ctx, w, h } = prepareCanvas(canvas, 8, 0.55);
+  // 出題の画面では、選択肢まで最初の画面(ファーストビュー)に入るように、チャートの高さを画面に合わせて低くする
+  const { ctx, w, h } = prepareCanvas(canvas, 8, 0.55, reveal || screen !== 'question' ? Infinity : fitChartHeight(canvas));
   if (chart.kind === 'candles') drawCandles(ctx, w, h, chart.candles, colors);
   else drawLines(ctx, w, h, chart, reveal, colors);
 }
@@ -4859,10 +4876,10 @@ function showQuestion() {
   app.innerHTML = `${header()}
     <p class="q">${esc(q.question)}</p>
     ${hasChart ? '<div class="chart"><canvas id="chart"></canvas></div>' : ''}
+    <div class="choices${q.choices.length === 4 ? ' grid2' : ''}">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
     ${q.type === 'candle' ? '<p class="note">赤の中空(白ぬき)が陽線(上昇)、青の塗りつぶしが陰線(下落)だよ。</p>' : ''}
     ${priceNote(q)}
-    ${maNote(q)}
-    <div class="choices${q.choices.length === 4 ? ' grid2' : ''}">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`;
+    ${maNote(q)}`;
   if (hasChart) drawQuestionChart(q, false);
   else redraw = null;
   bindLeave();

@@ -41,7 +41,8 @@
     <dt>運営者</dt>
     <dd>個人(GitHub アカウント: <a href="https://github.com/rikyui90-lab" target="_blank" rel="noopener">rikyui90-lab</a>)</dd>
     <dt>連絡先・削除や訂正の依頼</dt>
-    <dd><a href="https://github.com/rikyui90-lab/research/issues" target="_blank" rel="noopener">GitHub の Issues</a> に書いてね(公開の場所なので、個人情報は書かないでね)。内容を確認して、必要なら訂正や削除をするよ。</dd>
+    <dd>メール: <span id="mail">rikyui90 [アットマーク] gmail.com</span>(迷惑メール対策のため、JavaScript が使えるときだけ、リンクにしているよ)</dd>
+    <dd><a href="https://github.com/rikyui90-lab/research/issues" target="_blank" rel="noopener">GitHub の Issues</a> でも受け付けているよ(公開の場所なので、個人情報は書かないでね)。内容を確認して、必要なら訂正や削除をするよ。</dd>
   </dl>
 </div>
 
@@ -71,14 +72,27 @@
 </ul>
 
 <h2 id="takedown">削除や訂正の依頼</h2>
-<p>このサイトの内容について、権利の侵害や、事実の誤りに気づいたら、<a href="https://github.com/rikyui90-lab/research/issues" target="_blank" rel="noopener">GitHub の Issues</a> で、次のことを教えてね。確認して、必要な対応をするよ。</p>
+<p>このサイトの内容について、権利の侵害や、事実の誤りに気づいたら、上のメールか、<a href="https://github.com/rikyui90-lab/research/issues" target="_blank" rel="noopener">GitHub の Issues</a> で、次のことを教えてね。確認して、必要な対応をするよ。</p>
 <ul>
   <li>該当のページ(URL)や、問題の内容</li>
   <li>どこが、どう違うか(権利の侵害なら、その理由)</li>
 </ul>
 
-<p class="note" style="margin-top:32px">最終更新: 2026年10月20日</p>
+<p class="note" style="margin-top:32px">最終更新: 2026年10月20日(連絡先のメールを追加)</p>
 <a class="back" href="index.html">← 株トレーダーへの道に戻る</a>
 </main>
+<script>
+// メールアドレスを、ページのソースにそのまま書かない(迷惑メールの自動収集を減らすため)
+(function () {
+  var user = 'rikyui90', host = ['gmail', 'com'].join('.');
+  var addr = user + '@' + host;
+  var el = document.getElementById('mail');
+  if (!el) return;
+  var a = document.createElement('a');
+  a.href = 'mailto:' + addr;
+  a.textContent = addr;
+  el.replaceWith(a);
+})();
+</script>
 </body>
 </html>

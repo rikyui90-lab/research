@@ -64,7 +64,7 @@ python .claude/skills/fushoji-page/scripts/build_pages.py fushoji/companies.json
 - 株価は Yahoo Finance の非公式 API から取得する。ネットワークの許可が要る。
 - `.github/workflows/update-pages.yml` が平日 16:30 JST に再生成し、`main` へ `github-actions[bot]` が直接コミットする(「株価を自動更新 YYYY-MM-DD」)。そのため、`fushoji/` 配下の差分は、手元で生成したものより `main` 側のほうが新しいことが多い。作業前に `main` を取り込む。
 - リポジトリ直下の `fushoji-stock-trend.html` は旧版。使わない・直さない。
-- 公開リポジトリ。`companies.json` などに個人情報や認証情報を入れない。
+- 公開リポジトリ。`companies.json` などに個人情報や認証情報を入れない。(例外: 連絡先のメールアドレスは、ユーザーの指示で `stock-quiz/about.html` にだけ載せている。迷惑メール対策に、JavaScript で組み立てている。ほかの場所には書かない)
 - GitHub Pages は `main` のルートから公開。URL は `https://rikyui90-lab.github.io/research/fushoji/`(株クイズは `.../research/stock-quiz/`)。
 
 ## Web ページのデザイン

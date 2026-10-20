@@ -635,7 +635,7 @@ const MODES = ['all', 'pattern', 'candle', 'term', 'forecast', 'news', 'newsArch
 const WEEK_MODES = ['news', 'newsArchive'];
 // 株価予想モードを画面に出すか(false にすると、モード一覧と「全部まぜ」から外れる)
 const FORECAST_PUBLIC = true;
-// 時事問題(週替わりで足していく問題)。「全部まぜ」には入れず、モード「時事」(新しい4週間ぶん)と「時事(過去)」(それより古いもの)で出る。
+// 時事問題(週替わりで足していく問題)。「全部まぜ」には入れず、モード「時事」(月に1回の移動の前までの問題。4〜8週間ぶん)と「時事(過去)」(4週より古くなって移されたもの)で出る。
 // 難易度はない。1週間(月曜〜日曜)ごとに選んで遊べる。週は date(出来事の日)で決まる。
 // 毎月の最初の月曜に、自動更新(.github/workflows/weekly-news.yml)が、4週より古い問題を NEWS_QUESTIONS から NEWS_ARCHIVE へ移す(scripts/news-quiz/archive-news.mjs)。
 // 1問の形(必須かどうかは validateNewsItem が確かめる。書き方は設計書 §12):
@@ -3765,14 +3765,15 @@ function byWeek(items, week = 'all') {
   return week === 'all' ? items : items.filter((n) => weekStartOf(n.date) === week);
 }
 
-// 出来事の日の最小〜最大から作る、いま出している期間: { from, to, weeks, label }。問題がなければ null
+// 出来事の日の最小〜最大から作る、いま出している期間: { from, to, weeks(またぐ週の数), label(例 9/22〜10/18) }。問題がなければ null
 function newsPeriod(items) {
   const dates = items.map((n) => n.date).filter(isRealIsoDate).sort();
   if (!dates.length) return null;
   const from = dates[0];
   const to = dates[dates.length - 1];
   const weeks = (isoDayNumber(weekStartOf(to)) - isoDayNumber(weekStartOf(from))) / 7 + 1;
-  return { from, to, weeks, label: `${formatMonthDay(from)}〜${formatMonthDay(to)}(${weeks}週間)` };
+  // label は暦の幅だけ(始まりと終わりが同じ日なら1日だけ)。weeks は、その幅がまたぐ週の数
+  return { from, to, weeks, label: from === to ? formatMonthDay(from) : `${formatMonthDay(from)}〜${formatMonthDay(to)}` };
 }
 
 // 出来事の日が、today の属する週の月曜から数えて weeks 週より前の週にあるか(週単位。同じ週の中では分けない)
@@ -4363,6 +4364,11 @@ function modeEntries(stats, difficulty = 'all') {
 
 function modeSubText(entry) {
   if (entry.size === 0) return 'この難易度の問題は、まだないよ';
+  // 時事系は、週で絞るので、最高点(分母が10問のまま、選んだ週と合わない)は出さない
+  if (WEEK_MODES.includes(entry.mode)) {
+    const base = `正答率 ${entry.rate === null ? '-' : `${entry.rate}%`}　${entry.size}問`;
+    return entry.period ? `${base}　期間 ${entry.period}` : base;
+  }
   const base = `最高 ${entry.best} / ${entry.size}　正答率 ${entry.rate === null ? '-' : `${entry.rate}%`}　${entry.size}問`;
   return entry.period ? `${base}　期間 ${entry.period}` : base;
 }
@@ -4784,7 +4790,7 @@ function showStart() {
   game = null; // 途中のラウンドは捨てる(成績にも残さない)
   screen = 'start';
   const rows = modeEntries(stats).map((e) => {
-    return `<button class="choice" data-mode="${e.mode}">${MODE_LABELS[e.mode]}<small>${modeSubText(e)}</small></button>`;
+    return `<button class="choice" data-mode="${e.mode}">${MODE_LABELS[e.mode]}<small>${esc(modeSubText(e))}</small></button>`;
   }).join('');
   // 広い画面では、カテゴリと成績は左の一覧にある。狭い画面(左が閉じている)では、右にも出す
   const controls = wide
@@ -4814,8 +4820,8 @@ function showWeekSelect(mode) {
   const periodHtml = period
     ? `<p class="lead"><b>${mode === 'newsArchive' ? '過去の問題の期間' : 'いま出している期間'}: ${esc(period.label)}</b></p>` : '';
   const kind = mode === 'newsArchive'
-    ? '<p class="note">月に1回、4週より古い時事問題がここに移るよ。いまは状況が変わっているかもしれないよ。</p>'
-    : '<p class="note">新しい4週間ぶんの時事問題だよ。4週より古いものは、月に1回、「時事(過去)」に移るよ。</p>';
+    ? '<p class="note">4週より古い時事問題が、月に1回(月の最初の月曜)、ここに移るよ。いまは状況が変わっているかもしれないよ。</p>'
+    : '<p class="note">4週より古い問題は、月に1回(月の最初の月曜)、「時事(過去)」に移るよ。そのため、4〜8週間ぶんの問題が入っていることがあるよ。</p>';
   app.innerHTML = `<h1 class="title">${MODE_LABELS[mode]}</h1>
     ${periodHtml}
     <p class="lead">遊ぶ週を選んでね(月曜〜日曜)。時事問題に難易度はないよ。1回 ${ROUND_SIZE} 問だよ。</p>
@@ -4842,7 +4848,7 @@ function showCategory(mode) {
     const e = modeEntries(stats, d).find((x) => x.mode === mode);
     const name = d === 'all' ? 'すべて' : DIFFICULTY_LABELS[d];
     const aria = d === 'all' ? 'すべて' : starsAria(d);
-    return `<button class="choice" data-start-diff="${d}" aria-label="${aria}"${e.size === 0 ? ' aria-disabled="true"' : ''}>${name}<small>${modeSubText(e)}</small></button>`;
+    return `<button class="choice" data-start-diff="${d}" aria-label="${aria}"${e.size === 0 ? ' aria-disabled="true"' : ''}>${name}<small>${esc(modeSubText(e))}</small></button>`;
   }).join('');
   app.innerHTML = `<h1 class="title">${MODE_LABELS[mode]}</h1>
     <p class="lead">難易度を選んでね。1回 ${ROUND_SIZE} 問だよ(絞ると、少なくなることがあるよ)。</p>

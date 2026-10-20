@@ -3477,7 +3477,7 @@ test('株価予想のデータ: 全部まぜの候補に20問ぶん加わり、�
   assert.equal(L.buildPool('all', L.createRng(1)).filter((q) => q.type === 'forecast').length, 20);
   // 時事問題(NEWS_QUESTIONS)の出典名に「Yahoo!ファイナンス」などが入ることがあるので、時事の配列は除いて調べる
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
-    .replace(/const NEWS_QUESTIONS = \[[\s\S]*?\n\];/, '');
+    .replace(/const NEWS_(?:QUESTIONS|ARCHIVE) = \[[\s\S]*?\];/g, ''); // 過去の問題(NEWS_ARCHIVE)へ移ったあとも同じ
   assert.ok(!html.includes('株価データ: Yahoo Finance')); // 画面には取得元の表示を出さない(2026-10-16に消した)
   assert.ok(!html.includes('Yahoo!ファイナンス'));
   assert.ok(!html.includes('調整後終値'));
@@ -3634,16 +3634,20 @@ test('フレーム: モードの数字(全部まぜは出さない。難易度�
   let stats = L.defaultStats();
   stats = L.updateStats(stats, L.statsKey('term', 'easy'), 3, 4);
   const entries = L.modeEntries(stats, 'easy');
-  assert.deepEqual(entries.map((e) => e.mode), ['pattern', 'candle', 'term', 'forecast', 'news']); // 時事は問題が入っているあいだだけ、時事(過去)は過去の問題が入っているあいだだけ出る(NEWS_PUBLIC・NEWS_ARCHIVE_PUBLIC)
+  const newsModes = [...(L.NEWS_PUBLIC ? ['news'] : []), ...(L.NEWS_ARCHIVE_PUBLIC ? ['newsArchive'] : [])]; // 時事は問題が入っているあいだだけ、時事(過去)は過去の問題が入っているあいだだけ出る(NEWS_PUBLIC・NEWS_ARCHIVE_PUBLIC)
+  assert.deepEqual(entries.map((e) => e.mode), ['pattern', 'candle', 'term', 'forecast', ...newsModes]);
   const term = entries.find((e) => e.mode === 'term');
   assert.equal(term.best, 3);
   assert.equal(term.rate, 75);
   assert.equal(term.size, L.roundSize('term', 'easy'));
   assert.equal(L.modeEntries(L.defaultStats(), 'all')[0].rate, null);
-  assert.deepEqual(loadLogic({ forecastPublic: false }).modeEntries(stats, 'easy').map((e) => e.mode), ['pattern', 'candle', 'term', 'news']);
+  assert.deepEqual(loadLogic({ forecastPublic: false }).modeEntries(stats, 'easy').map((e) => e.mode), ['pattern', 'candle', 'term', ...newsModes]);
   assert.equal(L.modeSubText({ size: 0, best: 0, rate: null }), 'この難易度の問題は、まだないよ');
   assert.equal(L.modeSubText({ size: 10, best: 7, rate: 65 }), '最高 7 / 10　正答率 65%　10問');
   assert.match(L.modeSubText({ size: 10, best: 0, rate: null }), /正答率 -/);
+  // 時事系は、最高点を出さない(分母が選んだ週と合わないため)
+  assert.equal(L.modeSubText({ mode: 'news', size: 4, best: 1, rate: 50, period: '9/18〜10/16' }), '正答率 50%　4問　期間 9/18〜10/16');
+  assert.ok(!L.modeSubText({ mode: 'newsArchive', size: 2, best: 1, rate: null, period: '' }).includes('最高'));
   // 状態の検査を通る(本体が実際に送る形)
   assert.ok(L.sanitizeNavState({ screen: 'start', difficulty: 'easy', modes: entries }));
 });
@@ -3731,9 +3735,9 @@ test('週の計算: 期間ラベルと、週の一覧(新しい週から。問�
 
 test('週の計算: いま出している期間(出来事の日の最小〜最大と、週の数)', () => {
   assert.equal(L.newsPeriod([]), null);
-  assert.deepEqual(L.newsPeriod([newsAt('a', '2026-10-13')]), { from: '2026-10-13', to: '2026-10-13', weeks: 1, label: '10/13〜10/13(1週間)' });
+  assert.deepEqual(L.newsPeriod([newsAt('a', '2026-10-13')]), { from: '2026-10-13', to: '2026-10-13', weeks: 1, label: '10/13' }); // 始まりと終わりが同じ日なら1日だけ
   const p = L.newsPeriod([newsAt('a', '2026-09-22'), newsAt('b', '2026-10-18'), newsAt('c', '2026-10-01')]);
-  assert.equal(p.label, '9/22〜10/18(4週間)');
+  assert.equal(p.label, '9/22〜10/18'); // 括弧で週の数は付けない(暦の幅だけ)
   assert.equal(p.weeks, 4);
   assert.equal(L.newsPeriod([newsAt('a', '2026-10-18'), newsAt('b', '2026-10-19')]).weeks, 2); // 日曜と月曜で週が変わる
 });
@@ -3796,34 +3800,51 @@ test('時事問題: モード「時事」「時事(過去)」。「全部まぜ�
   assert.equal(L.categoryLabel({ type: 'news', archived: false }), '時事');
 });
 
+// NEWS_QUESTIONS / NEWS_ARCHIVE を、決めた問題に差し替えた DATA/LOGIC の評価結果(本物のデータは毎週増えて移るので、テストは頼らない)
+function patchedLogic({ questions, archive }) {
+  let html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const arr = (name, items) => {
+    html = html.replace(new RegExp(`const ${name} = \\[[\\s\\S]*?\\];`), () => `const ${name} = [${items.map((n) => JSON.stringify(n)).join(',')}];`);
+  };
+  if (questions) arr('NEWS_QUESTIONS', questions);
+  if (archive) arr('NEWS_ARCHIVE', archive);
+  const block = (name) => html.match(new RegExp(`// ==${name}-START==([\\s\\S]*?)// ==${name}-END==`))[1];
+  const lookup = new Function(block('DATA') + '\n' + block('LOGIC') + '\nreturn (name) => eval(name);')();
+  return new Proxy({}, { get: (_, name) => lookup(String(name)) });
+}
+
 test('時事問題: 週で絞る(buildPool・roundSize・buildDeck・poolIds・refreshSeen)。難易度は見ない', () => {
-  const weeks = L.newsWeeks(L.NEWS_QUESTIONS);
-  assert.ok(weeks.length >= 1);
-  assert.equal(weeks.reduce((a, w) => a + w.count, 0), L.NEWS_QUESTIONS.length);
+  const P = patchedLogic({ questions: [
+    newsAt('w-a', '2026-10-13'), newsAt('w-b', '2026-10-18'), newsAt('w-c', '2026-10-14'),
+    newsAt('w-d', '2026-10-06'), newsAt('w-e', '2026-09-16'), newsAt('w-f', '2026-09-17'),
+  ] });
+  const weeks = P.newsWeeks(P.NEWS_QUESTIONS);
+  assert.equal(weeks.length, 3);
+  assert.equal(weeks.reduce((a, w) => a + w.count, 0), P.NEWS_QUESTIONS.length);
   for (const w of weeks) {
-    const pool = L.buildPool('news', L.createRng(1), 'all', w.start);
+    const pool = P.buildPool('news', P.createRng(1), 'all', w.start);
     assert.equal(pool.length, w.count, w.start);
-    assert.ok(pool.every((q) => L.weekStartOf(q.date) === w.start));
-    assert.equal(L.roundSize('news', 'all', w.start), Math.min(L.ROUND_SIZE, w.count));
-    const deck = L.buildDeck('news', 5, 'all', null, w.start);
-    assert.equal(deck.length, Math.min(L.ROUND_SIZE, w.count));
-    assert.ok(deck.every((q) => L.weekStartOf(q.date) === w.start));
-    assert.deepEqual(L.buildDeck('news', 5, 'all', null, w.start), deck);
-    assert.deepEqual(L.poolIds('news', 'all', w.start).sort(), pool.map((q) => q.id).sort());
+    assert.ok(pool.every((q) => P.weekStartOf(q.date) === w.start));
+    assert.equal(P.roundSize('news', 'all', w.start), Math.min(P.ROUND_SIZE, w.count));
+    const deck = P.buildDeck('news', 5, 'all', null, w.start);
+    assert.equal(deck.length, Math.min(P.ROUND_SIZE, w.count));
+    assert.ok(deck.every((q) => P.weekStartOf(q.date) === w.start));
+    assert.deepEqual(P.buildDeck('news', 5, 'all', null, w.start), deck);
+    assert.deepEqual(P.poolIds('news', 'all', w.start).sort(), pool.map((q) => q.id).sort());
   }
-  assert.equal(L.buildPool('news', L.createRng(1), 'hard').length, L.NEWS_QUESTIONS.length); // 難易度では絞らない
-  assert.equal(L.buildPool('news', L.createRng(1), 'all', '2026-01-05').length, 0); // 問題のない週
+  assert.equal(P.buildPool('news', P.createRng(1), 'hard').length, P.NEWS_QUESTIONS.length); // 難易度では絞らない
+  assert.equal(P.buildPool('news', P.createRng(1), 'all', '2026-01-05').length, 0); // 問題のない週
   // 「全部の週」と同じ並びを、週の指定なしでも作る
-  assert.deepEqual(L.buildDeck('news', 3), L.buildDeck('news', 3, 'all', null, 'all'));
+  assert.deepEqual(P.buildDeck('news', 3), P.buildDeck('news', 3, 'all', null, 'all'));
   // 出題済みの印は、その週の範囲だけで新しい周回にする
   const w0 = weeks[0].start;
-  const ids = L.poolIds('news', 'all', w0);
+  const ids = P.poolIds('news', 'all', w0);
   const seen = new Set([...ids, 'forecast:x']);
-  const next = L.refreshSeen(seen, 'news', 'all', w0);
+  const next = P.refreshSeen(seen, 'news', 'all', w0);
   assert.ok(ids.every((id) => !next.has(id)) && next.has('forecast:x'));
   if (weeks.length >= 2) {
     const seen2 = new Set(ids);
-    assert.equal(L.refreshSeen(seen2, 'news', 'all', 'all'), seen2); // 全部の週は、まだ全部は出題済みでない
+    assert.equal(P.refreshSeen(seen2, 'news', 'all', 'all'), seen2); // 全部の週は、まだ全部は出題済みでない
   }
 });
 
@@ -3831,7 +3852,7 @@ test('時事問題: 過去の問題(NEWS_ARCHIVE)に問題を入れたときの�
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const arch = [newsAt('old-a', '2026-09-08'), newsAt('old-b', '2026-09-10'), newsAt('old-c', '2026-09-16')];
   const body = arch.map((n) => JSON.stringify(n)).join(',');
-  const patched = html.replace('const NEWS_ARCHIVE = [];', `const NEWS_ARCHIVE = [${body}];`);
+  const patched = html.replace(/const NEWS_ARCHIVE = \[[\s\S]*?\];/, () => `const NEWS_ARCHIVE = [${body}];`);
   assert.notEqual(patched, html);
   const block = (name) => patched.match(new RegExp(`// ==${name}-START==([\\s\\S]*?)// ==${name}-END==`))[1];
   {
@@ -3840,11 +3861,11 @@ test('時事問題: 過去の問題(NEWS_ARCHIVE)に問題を入れたときの�
       return new Proxy({}, { get: (_, name) => lookup(String(name)) });
     })();
     assert.equal(A.NEWS_ARCHIVE_PUBLIC, true);
-    assert.deepEqual(A.modeEntries(A.defaultStats()).map((e) => e.mode).slice(-2), ['news', 'newsArchive']);
+    assert.equal(A.modeEntries(A.defaultStats()).map((e) => e.mode).pop(), 'newsArchive'); // 「時事(過去)」は、いちばん後ろ
     const e = A.modeEntries(A.defaultStats()).find((x) => x.mode === 'newsArchive');
     assert.equal(e.size, 3);
-    assert.equal(e.period, '9/8〜9/16(2週間)');
-    assert.equal(A.modeSubText(e), '最高 0 / 3　正答率 -　3問　期間 9/8〜9/16(2週間)');
+    assert.equal(e.period, '9/8〜9/16');
+    assert.equal(A.modeSubText(e), '正答率 -　3問　期間 9/8〜9/16');
     const pool = A.buildPool('newsArchive', A.createRng(1));
     assert.equal(pool.length, 3);
     assert.ok(pool.every((q) => q.archived === true && q.type === 'news' && A.validateQuestion(q) === null));

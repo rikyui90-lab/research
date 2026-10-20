@@ -46,7 +46,7 @@ node --test --test-name-pattern="<名前の一部>" stock-quiz/tests/logic.test.
 - 新しい項目には必ず `DIFFICULTY_BY_ID` に難易度を入れる(表にないものはテストが不備として検出する)。
 - 見た目が近い項目は `CONFUSABLE_PAIRS` に組を足す。正解と紛らわしい組は、間違いの選択肢から除外される。
 - `pattern` の問題はパターン定義から自動生成される。`candle` / `term` だけ手書き。`pattern` の `outlook` は答え合わせで見せる値動き(`up` / `down` / `flat` / `either`)で、`either` は三角持ち合い・拡大三角形・エリオット推進5波(上・下)の4つ(続きの点線を描かない。理由は設計書 §5)。このうち三角持ち合い・拡大三角形には、過去の統計(`OUTLOOK_STATS`、実務家の集計)を答え合わせに添える。
-- 時事問題は `NEWS_QUESTIONS`(DATA ブロック。新しい4週間ぶん)に足す。4週より古いものは、月初の自動更新が `NEWS_ARCHIVE`(同じ形。モード「時事(過去)」)へ移す。**時事問題には難易度がない**(`difficulty`・`validFrom`・`validUntil` は書かない・見ない)。画面では、難易度の代わりに**週(月曜〜日曜。`date` が属する週)を選ぶ**(時事系は `WEEK_MODES`。`buildPool` などの `week` 引数、`weekStartOf` など LOGIC の週の関数)。成績の保存キーは `news` / `newsArchive`。形・出典の必須などの決まりは、設計書の §12 と `validateNewsItem` を読む。「全部まぜ」には入れない。`NEWS_ARCHIVE` が空のあいだ、「時事(過去)」は画面に出ない。
+- 時事問題は `NEWS_QUESTIONS`(DATA ブロック。月に1回しか移さないので、4〜8週間ぶん)に足す。4週より古いものは、月初の自動更新が `NEWS_ARCHIVE`(同じ形。モード「時事(過去)」)へ移す。**時事問題には難易度がない**(`difficulty`・`validFrom`・`validUntil` は書かない・見ない)。画面では、難易度の代わりに**週(月曜〜日曜。`date` が属する週)を選ぶ**(時事系は `WEEK_MODES`。`buildPool` などの `week` 引数、`weekStartOf` など LOGIC の週の関数)。成績の保存キーは `news` / `newsArchive`。形・出典の必須などの決まりは、設計書の §12 と `validateNewsItem` を読む。「全部まぜ」には入れない。`NEWS_ARCHIVE` が空のあいだ、「時事(過去)」は画面に出ない。
 - チャートはシード付き乱数で作る。同じシードなら同じ絵になることをテストが見ているので、乱数の消費順を変えない。
 - 保存キーは、難易度「すべて」ならモード名、それ以外は `モード名:難易度`。難易度なしの古い保存データは「すべて」として読む(互換を壊さない)。
 - `localStorage` のキーは3つ: 成績 `stockQuiz.stats.v1`、出題済みの問題の id `stockQuiz.seen.v1`(未出題を優先して出す)、ラウンドの記録 `stockQuiz.history.v1`(成績画面用、30件まで)。どれも、壊れていたら空として読み、遊べるようにする。

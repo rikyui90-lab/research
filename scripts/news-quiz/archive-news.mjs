@@ -15,15 +15,18 @@ function splitItems(body) {
   const lines = body.split(/\r?\n/);
   const items = [];
   let cur = null;
+  let comments = []; // 要素のすぐ前に続くコメント行(その要素と一緒に動かす)
   lines.forEach((line, i) => {
     if (cur) {
       cur.lines.push(line);
       if (/^ {2}\},?\s*$/.test(line)) { items.push(cur); cur = null; }
       return;
     }
-    if (/^ {2}\{\s*$/.test(line)) { cur = { lines: [line] }; return; }
+    if (/^ {2}\{\s*$/.test(line)) { cur = { lines: [...comments, line], lead: comments.length }; comments = []; return; }
     // 配列の外側の行は、空行・コメントだけを許す(最初の行は `[` の直後の空)
-    if (line.trim() === '' || /^\s*\/\//.test(line)) return;
+    if (/^\s*\/\//.test(line)) { comments.push(line); return; }
+    comments = [];
+    if (line.trim() === '') return;
     throw new Error(`NEWS の配列に想定外の行がある(${i + 1}行目): ${line.slice(0, 40)}`);
   });
   if (cur) throw new Error('NEWS の配列の要素が閉じていない');
@@ -62,6 +65,7 @@ export function archiveHtml(html, ids) {
       cur = true;
       idx++;
       drop = takeSet.has(items[idx]);
+      if (drop) out.length -= items[idx].lead; // すぐ前のコメント行も、一緒に消す
       if (!drop) out.push(line);
       continue;
     }

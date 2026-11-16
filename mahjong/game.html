@@ -35,15 +35,15 @@ a{color:inherit}
 .rbadge{background:var(--red);color:#fff;border-radius:6px;padding:0 8px;font-size:14px;font-weight:700}
 .tag{font-size:14px;color:var(--mute)}
 /* 卓 */
-.tw{position:relative;width:100%;max-width:600px;margin:0 auto;overflow:hidden;border-radius:22px}
-.table{position:absolute;left:0;top:0;width:600px;height:600px;transform-origin:0 0;border-radius:22px;
- background:radial-gradient(70% 70% at 50% 50%,#177a5b,#0f5c45 70%,#0b4636);box-shadow:inset 0 0 0 10px #5b3a21,inset 0 0 0 13px #3e2614,0 10px 30px rgba(0,0,0,.3)}
+.felt{max-width:600px;margin:0 auto;border-radius:22px;background:radial-gradient(70% 60% at 50% 45%,#177a5b,#0f5c45 70%,#0b4636);box-shadow:inset 0 0 0 10px #5b3a21,inset 0 0 0 13px #3e2614,0 10px 30px rgba(0,0,0,.3);padding-bottom:16px}
+.tw{position:relative;width:100%;overflow:hidden;border-radius:22px 22px 0 0}
+.table{position:absolute;left:0;top:0;width:600px;height:600px;transform-origin:0 0}
 .area{position:absolute;width:180px;height:210px;display:flex;flex-direction:column}
 .a0{left:210px;top:390px}.a2{left:210px;top:0;transform:rotate(180deg)}
 .a3{left:15px;top:195px;transform:rotate(90deg)}.a1{left:405px;top:195px;transform:rotate(-90deg)}
 .area .riv{display:flex;flex-wrap:wrap;align-content:flex-start;gap:1px 2px;padding:6px 3px 0;width:180px}
 .corner{position:absolute;width:190px;height:190px;display:flex;flex-wrap:wrap;justify-content:flex-end;align-content:flex-end;gap:4px;padding:18px}
-.k0{right:0;bottom:0}.k2{left:0;top:0;transform:rotate(180deg)}.k3{left:0;bottom:0;transform:rotate(90deg)}.k1{right:0;top:0;transform:rotate(-90deg)}
+.k0{display:none}.k2{left:0;top:0;transform:rotate(180deg)}.k3{left:0;bottom:0;transform:rotate(90deg)}.k1{right:0;top:0;transform:rotate(-90deg)}
 .center{position:absolute;left:210px;top:210px;width:180px;height:180px;border-radius:14px;background:#0a3b2d;box-shadow:inset 0 2px 8px rgba(0,0,0,.5);color:#e9f1ec}
 .cl{position:absolute;left:50%;top:50%;width:150px;display:flex;justify-content:center;align-items:center;gap:8px;font-weight:700;font-size:15px}
 .cl b{font-size:22px;color:#e9f1ec}.cl.now b{color:#ffd43b}
@@ -67,7 +67,8 @@ a{color:inherit}
 .meld{display:inline-flex;gap:2px;align-items:flex-end}
 button.t{border:0;padding:0;cursor:pointer;font:inherit;transition:transform .12s}button.t:hover:not(:disabled){transform:translateY(-5px)}
 button.t:disabled{cursor:default}
-.hand{--w:clamp(30px,6.4vw,46px);margin:14px 0 4px}.hand .t{--w:inherit}.hand .meld .t{--w:calc(var(--w)*.8)}
+.hand{--w:clamp(33px,6.4vw,37px);margin:0;padding:4px 18px 0;justify-content:center;min-height:70px}
+.hand .meld{margin-left:12px}.hand .t{--w:inherit}.hand .meld .t{--w:calc(var(--w)*.8)}
 .t.drawn{margin-left:12px}
 /* 操作 */
 .ctrl{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
@@ -95,15 +96,16 @@ ruby{ruby-position:over}rt{font-size:13px;font-family:"Hiragino Sans","Noto Sans
 <div class="bar" id="mInfo" aria-live="polite"></div>
 <div class="board" id="mBoard"></div>
 <div class="ctrl"><button id="mBeg" aria-pressed="true">初心者モード（アドバイス）：オン</button></div>
-<div class="tw" id="tw"><div class="table" id="tbl" role="img" aria-label="卓。中央の表示と、4人の捨て牌">
+<div class="felt"><div class="tw" id="tw"><div class="table" id="tbl" role="img" aria-label="卓。中央の表示と、4人の捨て牌">
  <div class="area a2"><div class="riv" id="r2"></div></div><div class="area a3"><div class="riv" id="r3"></div></div>
  <div class="area a1"><div class="riv" id="r1"></div></div><div class="area a0"><div class="riv" id="r0"></div></div>
  <div class="corner k2" id="k2"></div><div class="corner k3" id="k3"></div><div class="corner k1" id="k1"></div><div class="corner k0" id="k0"></div>
  <div class="center" id="ctr"></div>
 </div></div>
+<div class="tiles hand" id="mHand" aria-label="あなたの手牌"></div>
+</div>
 <p id="mMsg" aria-live="polite"></p>
 <div id="mAdv" aria-live="polite"></div>
-<div class="tiles hand" id="mHand"></div>
 <div class="ctrl" id="mAct"></div>
 <div id="mRes" aria-live="polite"></div>
 <div class="lbl">対局の長さ</div>

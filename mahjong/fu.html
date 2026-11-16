@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>麻雀 符計算</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="band hero sub"><div class="wrap"><a class="site" href="./">麻雀 役と点数の教室</a></div></header>
+
+<nav aria-label="ページ"><div class="wrap"><a href="./">メニュー</a><a href="basics.html">基本とルール</a><a href="yaku.html">役一覧</a><a href="yaku-quiz.html">役クイズ</a><a href="fu.html" aria-current="page">符計算</a><a href="points.html">点数計算</a><a href="score-quiz.html">点数クイズ</a><a href="nanikiru.html">何切る問題</a><a href="solo.html">一人麻雀</a><a href="game.html">CPU対局</a></div></nav>
+
+<section id="fu" class="band"><div class="wrap">
+<h1>符計算</h1>
+<p class="lead">基本は20符（副底）。そこに下の符を足し、1の位を切り上げます。七対子は常に25符、ピンフはツモ20符・ロン30符です。</p>
+<div class="calc">
+<div>
+<div class="lbl">アガリ方</div>
+<div class="ctrl" id="fuWin"></div>
+<div class="lbl">門前かどうか</div>
+<div class="ctrl" id="fuMen"></div>
+<div class="lbl">面子（4つ）</div>
+<div class="rows" id="fuSets"></div>
+<div class="lbl" style="margin-top:12px">雀頭</div>
+<div class="rows" id="fuPair"></div>
+<div class="lbl" style="margin-top:12px">待ち</div>
+<div class="rows" id="fuWait"></div>
+</div>
+<div class="res" aria-live="polite">
+<div class="sub">合計</div>
+<div class="big" id="fuBig">30符</div>
+<div class="sub" id="fuNote"></div>
+<ol id="fuSteps"></ol>
+<p style="margin-top:14px"><button class="btn" id="fuSend" style="background:#f3efe2;color:#0f5c45">この符で点数を計算 ↓</button></p>
+</div>
+</div>
+<div class="scroll" style="margin-top:22px"><table>
+<thead><tr><th>面子の符</th><th>中張牌（2〜8）</th><th>么九牌（1・9・字）</th></tr></thead>
+<tbody>
+<tr><td style="text-align:left">明刻（ポン）</td><td>2</td><td>4</td></tr>
+<tr><td style="text-align:left">暗刻</td><td>4</td><td>8</td></tr>
+<tr><td style="text-align:left">明槓</td><td>8</td><td>16</td></tr>
+<tr><td style="text-align:left">暗槓</td><td>16</td><td>32</td></tr>
+</tbody></table></div>
+<p class="note" style="margin-top:8px">その他：門前ロン +10、ツモ +2（ピンフツモは除く）、役牌の雀頭 +2（連風牌は+4のルールが多い）、カンチャン・ペンチャン・単騎待ち +2。順子は0符。ロンで出来た刻子は明刻扱い。</p>
+</div></section>
+
+<footer><div class="wrap">一般的なリーチ麻雀（アリアリ）のルールに基づく内容です。連風牌の雀頭、ダブル役満、切り上げ満貫などは場のルールを確認してください。</div></footer>
+<script src="mahjong.js"></script>
+</body>
+</html>

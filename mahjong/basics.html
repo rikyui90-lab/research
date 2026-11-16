@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>麻雀 基本とルール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="band hero sub"><div class="wrap"><a class="site" href="./">麻雀 役と点数の教室</a></div></header>
+
+<nav aria-label="ページ"><div class="wrap"><a href="./">メニュー</a><a href="basics.html" aria-current="page">基本とルール</a><a href="yaku.html">役一覧</a><a href="yaku-quiz.html">役クイズ</a><a href="fu.html">符計算</a><a href="points.html">点数計算</a><a href="score-quiz.html">点数クイズ</a><a href="nanikiru.html">何切る問題</a><a href="solo.html">一人麻雀</a><a href="game.html">CPU対局</a></div></nav>
+
+<section id="basics" class="band"><div class="wrap">
+<h1>まずは基本</h1>
+<p class="lead">点数は「役で翻（ハン）を数える → 符（フ）を数える → 翻と符から点数を出す」の3段階で決まります。</p>
+<div class="flow">
+<div><b>① 役を確認</b>アガリには役が最低1つ必要。ドラは役ではないので、ドラだけではアガれません。</div>
+<div><b>② 翻を合計</b>役の翻数 ＋ ドラ・赤ドラ・裏ドラの枚数。</div>
+<div><b>③ 符を計算</b>基本20符に、面子・雀頭・待ち・アガリ方の符を足して10符単位に切り上げ。</div>
+<div><b>④ 点数を出す</b>基本点 ＝ 符 × 2<sup>翻+2</sup>。子は×4、親は×6（100点単位に切り上げ）。</div>
+</div>
+<h3>牌の種類（34種×4枚）</h3>
+<div class="rows" style="margin:12px 0 18px" id="allTiles"></div>
+<h3>用語</h3>
+<dl class="terms">
+<dt>順子（シュンツ）</dt><dd>同じ種類の連続した3枚。例：1-2-3マン。字牌では作れません。</dd>
+<dt>刻子（コーツ）</dt><dd>同じ牌3枚。自分で揃えたら暗刻（アンコー）、ポンしたら明刻（ミンコー）。</dd>
+<dt>槓子（カンツ）</dt><dd>同じ牌4枚。面子1つとして数えます。</dd>
+<dt>雀頭（ジャントウ）</dt><dd>同じ牌2枚の対子（トイツ）。アガリ形に1つ必要。</dd>
+<dt>么九牌（ヤオチュー）</dt><dd>1・9の数牌（老頭牌）と字牌。2〜8は中張牌（チュンチャン）。</dd>
+<dt>門前（メンゼン）</dt><dd>チー・ポン・明槓をしていない状態。門前限定の役や、鳴くと翻が下がる役（食い下がり）があります。</dd>
+<dt>ロン / ツモ</dt><dd>他家の捨て牌でアガるのがロン、自分で引いてアガるのがツモ。</dd>
+<dt>親 / 子</dt><dd>親（東家）のアガリは子の1.5倍。</dd>
+</dl>
+</div></section>
+
+<section id="rules" class="band"><div class="wrap">
+<h2>基本ルール</h2>
+<p class="lead">4人で遊び、持ち点（ふつうは25,000点）を取り合います。いちばん多く点を持って終わった人が勝ちです。</p>
+<div class="grid">
+<article class="card"><h3>ゲームの区切り</h3><p>親（東家）が1周するまでを「東場」、もう1周を「南場」といい、東場と南場をあわせて「半荘（ハンチャン）」と呼びます。東場だけで終わる遊び方は「東風戦」です。</p><p>1回のアガリまたは流局を「局」と呼びます。親がアガるか、流局のとき親がテンパイしていれば、親が続きます（連荘）。そうでなければ親は右隣（反時計回り）の人に移ります。</p></article>
+<article class="card"><h3>1局の流れ</h3><p>各自13枚ずつ配られ（親から始まる）、自分の番が来たら山から1枚引き（ツモ）、1枚捨てます（打牌）。これを反時計回りに続けます。</p><p>14枚目でアガリの形になればツモ、他の人が捨てた牌でアガリの形になればロンを宣言します。山がなくなると流局です。</p></article>
+<article class="card"><h3>鳴き（ポン・チー・カン）</h3><p>他の人の捨て牌をもらって面子を作ることを「鳴き」といいます。ポン（同じ牌3枚）とカン（4枚）は誰からでも、チー（順子）は左隣（上家）からだけできます。</p><p>同時に声がかかったら、ロン ＞ ポン・カン ＞ チーの順に優先されます。鳴くと門前ではなくなり、リーチや門前限定の役が使えません。</p></article>
+<article class="card"><h3>リーチ</h3><p>門前（鳴いていない）でテンパイしたら、「リーチ」と言って1,000点棒を出し、捨て牌を横に向けます。以後は手を変えられず、ツモった牌がアガリ牌でなければそのまま捨てます。</p><p>アガると裏ドラも見られます。持ち点が1,000点未満のときや、山が少ないとき（残り4枚未満が多い）はできません。</p></article>
+<article class="card"><h3>フリテン</h3><p>自分の待ち牌を自分で捨てていると、その待ちではロンできません（ツモならアガれます）。</p><p>他の人が捨てたアガリ牌を見逃した場合も、次の自分の番まではロンできません。リーチ後に見逃すと、その局はずっとロンできません。</p></article>
+<article class="card"><h3>ドラ</h3><p>山の一部（王牌）でめくった「ドラ表示牌」の次の牌がドラで、1枚につき1翻増えます。数牌は 9 の次が 1、風牌は 東→南→西→北→東、三元牌は 白→發→中→白 の順です。</p><p>ドラは役ではないので、ドラだけではアガれません。カンをするとドラが1枚増えます。</p></article>
+<article class="card"><h3>流局のとき</h3><p>山がなくなって誰もアガれなかったときは、テンパイしている人がノーテンの人から合計3,000点を受け取ります（ノーテン罰符）。全員テンパイ・全員ノーテンなら払いはありません。</p></article>
+<article class="card"><h3>積み棒と供託</h3><p>連荘や流局のたびに「本場」が1つ増え、アガった人は1本場につき300点を多くもらいます（ツモなら各自100点ずつ）。</p><p>リーチで出した1,000点棒は場に残り、次にアガった人がもらいます。</p></article>
+</div>
+<p class="note" style="margin-top:12px">細かいルール（喰いタン、後付け、途中流局など）は遊ぶ場によって違います。始める前に確認しましょう。</p>
+</div></section>
+
+<footer><div class="wrap">一般的なリーチ麻雀（アリアリ）のルールに基づく内容です。連風牌の雀頭、ダブル役満、切り上げ満貫などは場のルールを確認してください。</div></footer>
+<script src="mahjong.js"></script>
+</body>
+</html>

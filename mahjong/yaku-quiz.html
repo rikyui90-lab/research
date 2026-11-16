@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>麻雀 役クイズ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="band hero sub"><div class="wrap"><a class="site" href="./">麻雀 役と点数の教室</a></div></header>
+
+<nav aria-label="ページ"><div class="wrap"><a href="./">メニュー</a><a href="basics.html">基本とルール</a><a href="yaku.html">役一覧</a><a href="yaku-quiz.html" aria-current="page">役クイズ</a><a href="fu.html">符計算</a><a href="points.html">点数計算</a><a href="score-quiz.html">点数クイズ</a><a href="nanikiru.html">何切る問題</a><a href="solo.html">一人麻雀</a><a href="game.html">CPU対局</a></div></nav>
+
+<section id="yquiz" class="band"><div class="wrap">
+<h1>役クイズ</h1>
+<p class="lead">10問で役を覚えましょう。牌の並びから役を当てる問題、翻数、鳴いても成り立つか、読み方の4種類が出ます。</p>
+<div class="ctrl" id="yqMode"></div>
+<div class="card" style="max-width:720px">
+<div class="hd"><h3 id="yqNo"></h3><span class="tag" id="yqScore"></span></div>
+<p id="yqQ" style="margin-top:8px;font-size:18px;font-weight:700"></p>
+<div id="yqHand"></div>
+<div class="opts" id="yqOpts"></div>
+<div aria-live="polite" id="yqExp"></div>
+<button class="btn" id="yqNext">次の問題</button>
+</div>
+</div></section>
+
+<footer><div class="wrap">一般的なリーチ麻雀（アリアリ）のルールに基づく内容です。連風牌の雀頭、ダブル役満、切り上げ満貫などは場のルールを確認してください。</div></footer>
+<script src="mahjong.js"></script>
+</body>
+</html>

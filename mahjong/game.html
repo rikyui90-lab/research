@@ -76,7 +76,12 @@ button.t:disabled{cursor:default}
 .ctrl button[aria-pressed=true]{background:var(--felt);color:#fff;border-color:var(--felt)}
 .btn{background:var(--felt);color:#fff;border-color:var(--felt);font-weight:700}
 button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #000;outline-offset:3px;box-shadow:0 0 0 3px #ffd43b}
-#mMsg{font-weight:700;margin:6px 0 0;min-height:1.6em}
+#mMsg{font-weight:700;margin:6px 0 0;min-height:1.6em;color:#f3efe2;text-align:center;padding:0 18px}
+.acts{justify-content:center;min-height:52px;margin:4px 0;padding:0 18px}
+.felt .ctrl button{background:#f7f2e2;color:#17201c;border:2px solid #3e2614;font-weight:700}
+.felt .ctrl .btn{background:#ffd43b;color:#17201c;border-color:#17201c}
+.felt .ctrl button[aria-pressed=true]{background:#c8102e;color:#fff;border-color:#fff}
+.felt button:focus-visible{outline:3px solid #000;outline-offset:2px;box-shadow:0 0 0 6px #ffd43b}
 .adv{border:2px solid #e2a300;background:light-dark(#fff8e1,#2a2410);border-radius:12px;padding:12px 14px;margin:10px 0}.adv p{margin:4px 0}.adv .hd{font-size:18px}
 .adv table{border-collapse:collapse;margin-top:6px;font-size:16px}.adv td{padding:2px 12px 2px 0;white-space:nowrap}
 .t.rec{outline:4px solid #e2a300;outline-offset:2px}.rtag{display:block;text-align:center;font-size:13px;font-weight:700;color:#8a5a00}
@@ -102,11 +107,11 @@ ruby{ruby-position:over}rt{font-size:13px;font-family:"Hiragino Sans","Noto Sans
  <div class="corner k2" id="k2"></div><div class="corner k3" id="k3"></div><div class="corner k1" id="k1"></div><div class="corner k0" id="k0"></div>
  <div class="center" id="ctr"></div>
 </div></div>
+<p id="mMsg" aria-live="polite"></p>
+<div class="ctrl acts" id="mAct"></div>
 <div class="tiles hand" id="mHand" aria-label="あなたの手牌"></div>
 </div>
-<p id="mMsg" aria-live="polite"></p>
 <div id="mAdv" aria-live="polite"></div>
-<div class="ctrl" id="mAct"></div>
 <div id="mRes" aria-live="polite"></div>
 <div class="lbl">対局の長さ</div>
 <div class="ctrl" id="mLen"></div>

@@ -41,6 +41,19 @@ p{margin:0 0 12px;max-width:68ch}
 .t b{font-size:calc(var(--w)*.5)}.t i{font-style:normal;font-size:calc(var(--w)*.34);margin-top:2px}
 .t.m i{color:var(--red)}.t.p b,.t.p i{color:#1f4fa0}.t.s b,.t.s i{color:#13804f}
 .t.z b{font-size:calc(var(--w)*.62)}.t.e b{color:#1d2a44}.t.g b{color:#13804f}.t.r b{color:var(--red)}
+button.t{border:0;padding:0;cursor:pointer;font:inherit;transition:transform .12s}
+button.t:hover{transform:translateY(-4px)}
+.big-t .t{--w:clamp(34px,6.4vw,48px)}
+.t.sm{--w:24px}.t.pick{transform:translateY(-8px)}
+.t.drawn{margin-left:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:4px 0 12px;font-weight:700}
+.bar span{white-space:nowrap}
+.verd{font-size:20px;font-weight:800;margin:12px 0 4px}
+.seat{border-top:1px solid var(--line);padding:10px 0}.seat .sh{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-size:16px}
+.seat .pt{font-weight:800;white-space:nowrap}.rbadge{background:var(--red);color:#fff;border-radius:6px;padding:0 8px;font-size:14px;font-weight:700}
+.t.rii{transform:rotate(90deg);margin:0 6px}.t.last{outline:3px solid var(--red);outline-offset:1px}
+.t.win{outline:3px solid #e2a300;outline-offset:1px}
+.mres{background:var(--chip);border-radius:12px;padding:14px;margin-top:12px}
 .t.w b{width:60%;height:62%;border:2px solid #4f7fc4;border-radius:3px}
 nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;gap:4px;overflow-x:auto;padding:6px max(5vw,16px)}
@@ -55,7 +68,8 @@ section{border-bottom:1px solid var(--line);scroll-margin-top:56px}
 .han{flex:none;font-weight:700;font-size:13px;padding:2px 10px;border-radius:999px;background:var(--felt);color:#fff;white-space:nowrap}
 .han.ym{background:var(--red)}
 .tag{font-size:15px;color:var(--mute)}
-.ruby{font-size:14px;color:var(--mute);margin-left:6px}
+ruby{ruby-position:over}rt{font-size:13px;font-family:"Hiragino Sans","Noto Sans JP",sans-serif;font-weight:600;color:var(--mute);letter-spacing:0}
+.card h3{font-size:22px;line-height:1.5}.res rt,.mres rt{color:inherit;opacity:.85}
 .flow{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));counter-reset:f;margin:18px 0}
 .flow div{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--felt);border-radius:10px;padding:12px 14px;font-size:16px}
 .flow b{display:block;font-size:17px}
@@ -102,7 +116,7 @@ footer{padding:28px max(5vw,16px);font-size:14px;color:var(--mute)}
 </div></header>
 
 <nav><div class="wrap">
-<a href="#basics">基本</a><a href="#yaku">役一覧</a><a href="#fu">符計算</a><a href="#points">点数計算</a><a href="#table">早見表</a><a href="#quiz">クイズ</a>
+<a href="#basics">基本</a><a href="#rules">ルール</a><a href="#yaku">役一覧</a><a href="#fu">符計算</a><a href="#points">点数計算</a><a href="#table">早見表</a><a href="#quiz">クイズ</a><a href="#nanikiru">何切る</a><a href="#game">一人麻雀</a><a href="#match">CPU対局</a>
 </div></nav>
 
 <section id="basics" class="band"><div class="wrap">
@@ -127,6 +141,22 @@ footer{padding:28px max(5vw,16px);font-size:14px;color:var(--mute)}
 <dt>ロン / ツモ</dt><dd>他家の捨て牌でアガるのがロン、自分で引いてアガるのがツモ。</dd>
 <dt>親 / 子</dt><dd>親（東家）のアガリは子の1.5倍。</dd>
 </dl>
+</div></section>
+
+<section id="rules" class="band"><div class="wrap">
+<h2>基本ルール</h2>
+<p class="lead">4人で遊び、持ち点（ふつうは25,000点）を取り合います。いちばん多く点を持って終わった人が勝ちです。</p>
+<div class="grid">
+<article class="card"><h3>ゲームの区切り</h3><p>親（東家）が1周するまでを「東場」、もう1周を「南場」といい、東場と南場をあわせて「半荘（ハンチャン）」と呼びます。東場だけで終わる遊び方は「東風戦」です。</p><p>1回のアガリまたは流局を「局」と呼びます。親がアガるか、流局のとき親がテンパイしていれば、親が続きます（連荘）。そうでなければ親は右隣（反時計回り）の人に移ります。</p></article>
+<article class="card"><h3>1局の流れ</h3><p>各自13枚ずつ配られ（親から始まる）、自分の番が来たら山から1枚引き（ツモ）、1枚捨てます（打牌）。これを反時計回りに続けます。</p><p>14枚目でアガリの形になればツモ、他の人が捨てた牌でアガリの形になればロンを宣言します。山がなくなると流局です。</p></article>
+<article class="card"><h3>鳴き（ポン・チー・カン）</h3><p>他の人の捨て牌をもらって面子を作ることを「鳴き」といいます。ポン（同じ牌3枚）とカン（4枚）は誰からでも、チー（順子）は左隣（上家）からだけできます。</p><p>同時に声がかかったら、ロン ＞ ポン・カン ＞ チーの順に優先されます。鳴くと門前ではなくなり、リーチや門前限定の役が使えません。</p></article>
+<article class="card"><h3>リーチ</h3><p>門前（鳴いていない）でテンパイしたら、「リーチ」と言って1,000点棒を出し、捨て牌を横に向けます。以後は手を変えられず、ツモった牌がアガリ牌でなければそのまま捨てます。</p><p>アガると裏ドラも見られます。持ち点が1,000点未満のときや、山が少ないとき（残り4枚未満が多い）はできません。</p></article>
+<article class="card"><h3>フリテン</h3><p>自分の待ち牌を自分で捨てていると、その待ちではロンできません（ツモならアガれます）。</p><p>他の人が捨てたアガリ牌を見逃した場合も、次の自分の番まではロンできません。リーチ後に見逃すと、その局はずっとロンできません。</p></article>
+<article class="card"><h3>ドラ</h3><p>山の一部（王牌）でめくった「ドラ表示牌」の次の牌がドラで、1枚につき1翻増えます。数牌は 9 の次が 1、風牌は 東→南→西→北→東、三元牌は 白→發→中→白 の順です。</p><p>ドラは役ではないので、ドラだけではアガれません。カンをするとドラが1枚増えます。</p></article>
+<article class="card"><h3>流局のとき</h3><p>山がなくなって誰もアガれなかったときは、テンパイしている人がノーテンの人から合計3,000点を受け取ります（ノーテン罰符）。全員テンパイ・全員ノーテンなら払いはありません。</p></article>
+<article class="card"><h3>積み棒と供託</h3><p>連荘や流局のたびに「本場」が1つ増え、アガった人は1本場につき300点を多くもらいます（ツモなら各自100点ずつ）。</p><p>リーチで出した1,000点棒は場に残り、次にアガった人がもらいます。</p></article>
+</div>
+<p class="note" style="margin-top:12px">細かいルール（喰いタン、後付け、途中流局など）は遊ぶ場によって違います。始める前に確認しましょう。</p>
 </div></section>
 
 <section id="yaku" class="band"><div class="wrap">
@@ -215,6 +245,52 @@ footer{padding:28px max(5vw,16px);font-size:14px;color:var(--mute)}
 </div>
 </div></section>
 
+<section id="nanikiru" class="band"><div class="wrap">
+<h2>何切る問題</h2>
+<p class="lead">14枚の手牌から1枚を捨てます。いちばんアガりに近づく牌を押してください。答えると、切る牌ごとの向聴数（テンパイまであと何枚か）と受け入れ枚数（形が進む牌の数）を表示します。</p>
+<div class="card">
+<div class="hd"><h3 id="nkTitle"></h3><span class="tag" id="nkScore"></span></div>
+<p id="nkQ" style="margin-top:8px"></p>
+<div class="tiles big-t" id="nkHand" style="margin:14px 0 6px"></div>
+<div aria-live="polite"><p class="verd" id="nkVerd"></p><p id="nkExp"></p></div>
+<div class="scroll" id="nkTblWrap" hidden><table><thead><tr><th>切る牌</th><th>向聴数</th><th>受け入れ</th><th>受け入れる牌</th></tr></thead><tbody id="nkTbl"></tbody></table></div>
+<div class="ctrl" style="margin-top:14px"><button id="nkPrev">前の問題</button><button class="btn" id="nkNext">次の問題</button></div>
+<p class="note">受け入れ枚数は、自分の手牌にある牌だけを除いて数えています（捨て牌やドラ表示牌は考えません）。</p>
+</div>
+</div></section>
+
+<section id="game" class="band"><div class="wrap">
+<h2>一人麻雀</h2>
+<p class="lead">山から1枚引くたびに1枚捨てて、18巡以内にツモでアガりを目指します。東場の親（東家）として遊びます。牌を押すと、その牌を捨てます。</p>
+<div class="card">
+<div class="bar" aria-live="polite"><span id="gTurn"></span><span id="gShan"></span><span id="gWall"></span></div>
+<div class="tiles big-t" id="gHand" style="margin:6px 0"></div>
+<div class="ctrl"><button id="gHint" aria-pressed="false">ヒントを表示</button><button class="btn" id="gNew">新しく始める</button></div>
+<p id="gHintTxt" hidden></p>
+<div aria-live="polite"><p class="verd" id="gVerd"></p><div id="gRes"></div></div>
+<div class="lbl">捨て牌</div>
+<div class="tiles" id="gRiver" style="margin-top:6px;min-height:40px"></div>
+<p class="note">アガリの役は、門前清自摸和・断么九・役牌・混一色・清一色・七対子・対々和の形（四暗刻）・大三元・字一色・国士無双を判定します。平和や一盃口などは判定しません。</p>
+</div>
+</div></section>
+
+<section id="match" class="band"><div class="wrap">
+<h2>CPU対局</h2>
+<p class="lead">あなたとCPU 3人の4人で対戦します。4人はそれぞれ東・南・西・北の席に座り、東の席の人が親です。親は局ごとに反時計回りに移り、東場と南場を1周ずつ回ると終わり（半荘戦）。途中で誰かの持ち点がマイナスになったら、その時点で終わります（トビ）。</p>
+<p class="note">持ち点は25,000点。役と符は自動で数えます。この対局では鳴き（ポン・チー・カン）と赤ドラはありません。オーラスで親がトップでも続けます。</p>
+<div class="card">
+<div class="bar" id="mInfo"></div>
+<div id="mSeats"></div>
+<div class="seat"><div class="sh" id="mMe"></div><div class="tiles" id="mMyRiv" style="margin:6px 0 10px;min-height:40px"></div>
+<div class="tiles big-t" id="mHand"></div>
+<p id="mMsg" aria-live="polite" style="margin:8px 0 0;font-weight:700"></p>
+<div class="ctrl" id="mAct"></div>
+<div id="mRes" aria-live="polite"></div>
+</div>
+<div class="ctrl" id="mLen"></div><div class="ctrl"><button id="mNew">この長さで最初から対局する</button></div>
+</div>
+</div></section>
+
 <footer><div class="wrap">一般的なリーチ麻雀（アリアリ）のルールに基づく内容です。連風牌の雀頭、ダブル役満、切り上げ満貫などは場のルールを確認してください。</div></footer>
 
 <script>
@@ -274,6 +350,12 @@ const Y=[
 ['四槓子','スーカンツ',13,13,'槓子を4組。',null],
 ['天和','テンホー',13,0,'親が配牌の時点でアガっている。',null],
 ['地和','チーホー',13,0,'子が最初のツモ（鳴きが入る前）でアガる。',null]];
+const RD={};Y.forEach(y=>RD[y[0]]=y[1]);
+Object.assign(RD,{'門前清自摸和':'メンゼンツモ','役牌':'ヤクハイ','場風':'バカゼ','自風':'ジカゼ','白':'ハク','發':'ハツ','中':'チュン','東':'トン','南':'ナン','西':'シャー','北':'ペー',
+ '裏ドラ':'ウラドラ','ダブ東':'ダブトン','満貫':'マンガン','跳満':'ハネマン','倍満':'バイマン','三倍満':'サンバイマン','役満':'ヤクマン','数え役満':'カゾエヤクマン','海底摸月':'ハイテイツモ','河底撈魚':'ホウテイロン'});
+const rb=nm=>{const m=nm.match(/^(.+?)(（.*）)?$/),base=m[1],tail=m[2]||'';
+ const one=w=>RD[w]?`<ruby>${w}<rt>${RD[w]}</rt></ruby>`:w;
+ return base.split(' ').map(one).join(' ')+tail};
 let hf='all',oo=false,q='';
 const HF=[['all','すべて'],[1,'1翻'],[2,'2翻'],[3,'3翻'],[6,'6翻'],[13,'役満']];
 $('hanFilter').innerHTML=HF.map(([v,l])=>`<button data-v="${v}" aria-pressed="${v==='all'}">${l}</button>`).join('');
@@ -282,7 +364,7 @@ const renderY=()=>{
  $('yakuList').innerHTML=list.map(([n,r,h,o,d,ex])=>{
   const ym=h===13,badge=ym?'役満':h+'翻';
   const nk=o===0?'門前限定':o===h?'鳴いてもOK':`鳴き −1翻（${o}翻）`;
-  return `<article class="card"><div class="hd"><h3>${n}<span class="ruby">${r}</span></h3><span class="han${ym?' ym':''}">${badge}</span></div>
+  return `<article class="card"><div class="hd"><h3>${rb(n)}</h3><span class="han${ym?' ym':''}">${badge}</span></div>
   <div class="tag">${nk}</div><p>${d}</p>${ex?`<div class="tiles" style="gap:2px 0">${tiles(ex)}</div>`:'<div class="note">状況で成立する役（牌の形は問わない）</div>'}</article>`}).join('')||'<p>該当する役がありません。</p>';
  $('yakuCount').textContent=`${list.length}件を表示中`;
 };
@@ -365,7 +447,7 @@ const calcP=()=>{
 calcP();
 $('fuSend').onclick=()=>{P.f=fuNow;setFu(fuNow);calcP();$('points').scrollIntoView({behavior:'smooth'})};
 $('limits').innerHTML=[['5翻','満貫',5],['6〜7翻','跳満',6],['8〜10翻','倍満',8],['11〜12翻','三倍満',11],['13翻以上','数え役満',13]]
- .map(([h,l,v])=>`<tr><td style="text-align:center">${h}</td><td style="text-align:center">${l}</td><td>${n(score(v,30,0,0).t)}</td><td>${n(score(v,30,1,0).t)}</td></tr>`).join('');
+ .map(([h,l,v])=>`<tr><td style="text-align:center">${h}</td><td style="text-align:center">${rb(l)}</td><td>${n(score(v,30,0,0).t)}</td><td>${n(score(v,30,1,0).t)}</td></tr>`).join('');
 
 // 早見表
 const T={oya:0,ts:0};
@@ -400,6 +482,278 @@ $('qOpts').onclick=e=>{const b=e.target.closest('button');if(!b||cur.done)return
  $('qScore').textContent=`${qs} / ${qa} 問正解`};
 $('qNext').onclick=newQ;
 newQ();
+
+// ===== 牌効率エンジン（向聴数・受け入れ）=====
+const NM=i=>i<27?(i%9+1)+'mps'[Math.floor(i/9)]:HON[i-26];
+const tileI=(i,cls='',tag='span',attr='')=>{const s=i<27?'mps'[Math.floor(i/9)]:'z',num=i<27?i%9+1:i-26;
+ const h=tile(num,s);return h.replace('<span class="t',`<${tag} ${attr} class="t ${cls}`).replace(/<\/span>$/,`</${tag}>`)};
+const toIdx=str=>parse(str).map(([n,s])=>({m:0,p:9,s:18,z:27}[s]+n-1));
+const cnt=a=>{const c=Array(34).fill(0);a.forEach(i=>c[i]++);return c};
+const normalSh=c=>{const dfs=(i,m,t)=>{while(i<34&&!c[i])i++;if(i>=34)return 2*m+Math.min(t,4-m);let r=0;
+  if(c[i]>=3){c[i]-=3;r=Math.max(r,dfs(i,m+1,t));c[i]+=3}
+  if(i<27&&i%9<=6&&c[i+1]&&c[i+2]){c[i]--;c[i+1]--;c[i+2]--;r=Math.max(r,dfs(i,m+1,t));c[i]++;c[i+1]++;c[i+2]++}
+  if(c[i]>=2){c[i]-=2;r=Math.max(r,dfs(i,m,t+1));c[i]+=2}
+  if(i<27&&i%9<=7&&c[i+1]){c[i]--;c[i+1]--;r=Math.max(r,dfs(i,m,t+1));c[i]++;c[i+1]++}
+  if(i<27&&i%9<=6&&c[i+2]){c[i]--;c[i+2]--;r=Math.max(r,dfs(i,m,t+1));c[i]++;c[i+2]++}
+  c[i]--;r=Math.max(r,dfs(i,m,t));c[i]++;return r};
+ let b=8-dfs(0,0,0);for(let i=0;i<34;i++)if(c[i]>=2){c[i]-=2;b=Math.min(b,7-dfs(0,0,0));c[i]+=2}return b};
+const chiiSh=c=>{let p=0,k=0;c.forEach(x=>{if(x)k++;if(x>=2)p++});return 6-p+Math.max(0,7-k)};
+const YAO=[0,8,9,17,18,26,27,28,29,30,31,32,33];
+const kokuSh=c=>{let k=0,p=0;YAO.forEach(i=>{if(c[i])k++;if(c[i]>=2)p=1});return 13-k-p};
+const shan=c=>Math.min(normalSh(c),chiiSh(c),kokuSh(c));
+// 14枚から切る牌ごとの向聴数と受け入れ。seen: 見えている枚数（手牌以外）
+const discards=(c,seen)=>{const out=[];
+ for(let d=0;d<34;d++)if(c[d]){c[d]--;const sh=shan(c);let n=0;const ts=[];
+  for(let t=0;t<34;t++){if(c[t]>=4)continue;c[t]++;if(shan(c)<sh){const r=4-(c[t]-1)-(t===d?1:0)-(seen?seen[t]:0);if(r>0){n+=r;ts.push(t)}}c[t]--}
+  out.push({d,sh,n,ts});c[d]++}
+ return out.sort((a,b)=>a.sh-b.sh||b.n-a.n)};
+const shTxt=s=>s<0?'アガリ':s===0?'テンパイ':s+'向聴';
+
+// ===== 何切る問題 =====
+const NK=[
+['待ちの良さ','134m456p234s789s55s','テンパイの取り方は2通りあります。どちらがアガりやすい？','1m','1mを切ると34mの両面待ち（2m・5m、8枚）。4mを切ると13mのカンチャン待ち（2mだけ、4枚）。待ちが2種類ある両面待ちのほうが、アガれる牌が倍あります。'],
+['3面待ち','23456m678p345s99s1p','つながりのない牌を探しましょう。','1p','1pはどこともつながっていない牌。1pを切ると23456mの5枚つながった形が残り、1m・4m・7mの3面待ち（11枚）になります。2mや6mを切ってもテンパイしません。'],
+['ノベタン','1234m567p345s678s9p','テンパイの取り方は3通りあります。','9p','9pを切ると1234mの「ノベタン」で、1mか4mでアガれます（6枚）。1mや4mを切ると9pの単騎待ち（3枚）。4枚つながった形は、両端どちらでもアガれます。'],
+['5枚の連続形','13m45m78p234s99s456p','テンパイできる切り方は1つだけです。','1m','1mを切ると3m45mが345mの面子になり、筒子は45678pの5枚つながった形。待ちは3p・6p・9pの3面待ち（11枚）です。'],
+['6667の形','22m345m67p66p789s11z','筒子の6667をよく見ましょう。','7p','7pを切ると666pが刻子になり、22mと東東のシャンポン待ちでテンパイします（4枚）。ほかの牌を切るとテンパイになりません。同じ牌が3枚あるときは、刻子として見る目も持ちましょう。'],
+['テンパイ取り','234m6m8m345p678s9p1z1z','テンパイできる牌があります。','9p','9pを切ると68mのカンチャン（7m待ち）でテンパイし、リーチをかけられます。8mを切って良い形を待つほうが受け入れは多いですが、初心者のうちはまずテンパイを取るのが基本です。'],
+['七対子','1133m55p77p2s22s6s9s1z','対子がたくさんあります。七対子を目指しましょう。','2s','七対子では同じ牌の3枚目は使えません。2sを切れば、6s・9s・東のどれかが重なればテンパイ（9枚）。ほかを切ると受け入れは6枚に減ります。'],
+['孤立した字牌','12m456p345s78s99s6p3z','つながりのない牌は2枚。どちらを切る？','3z','西は同じ牌が来ないと使えません。6pは456pとくっついて、6pが重なれば雀頭、3pを引けば3456pのような形になり役に立ちます。西切りの受け入れ16枚に対して、6p切りは13枚です。'],
+['使いにくい端の牌','2m45m789p345s567s9p1p','つながりの弱い牌を探しましょう。','1p','2mは45mとくっついて（3m・6mで形が良くなる）、9pは789pとくっついて雀頭の候補になります。1pだけがどことも関係のない牌です。1p切りの受け入れは20枚で、いちばん多くなります。']];
+let nk=0;const nkDone=Array(NK.length).fill(null);
+const nkRender=()=>{const [th,h,q,ans,ex]=NK[nk],idx=toIdx(h).sort((a,b)=>a-b),done=nkDone[nk];
+ $('nkTitle').textContent=`第${nk+1}問　${th}`;$('nkQ').textContent=q;
+ $('nkScore').textContent=`${nkDone.filter(x=>x===true).length} / ${nkDone.filter(x=>x!==null).length} 問正解`;
+ $('nkHand').innerHTML=idx.map(i=>tileI(i,'','button',`data-i="${i}" aria-label="${NM(i)}を切る"`)).join('');
+ $('nkPrev').disabled=nk===0;$('nkNext').textContent=nk===NK.length-1?'最初の問題へ':'次の問題';
+ if(done===null){$('nkVerd').textContent='';$('nkExp').textContent='';$('nkTblWrap').hidden=true;return}
+ const ai=toIdx(ans)[0];
+ $('nkVerd').textContent=(done?'✓ 正解！':'✗ 残念')+`　答えは ${NM(ai)} 切り`;$('nkExp').textContent=ex;
+ const r=discards(cnt(idx));$('nkTblWrap').hidden=false;
+ $('nkTbl').innerHTML=r.map(x=>`<tr${x.d===ai?' style="font-weight:800"':''}><td style="text-align:left">${x.d===ai?'★ ':''}${NM(x.d)}</td><td>${shTxt(x.sh)}</td><td>${x.n}枚</td><td style="text-align:left;white-space:normal">${x.ts.map(NM).join(' ')}</td></tr>`).join('');
+};
+$('nkHand').onclick=e=>{const b=e.target.closest('button');if(!b||nkDone[nk]!==null)return;
+ nkDone[nk]=+b.dataset.i===toIdx(NK[nk][3])[0];nkRender()};
+$('nkPrev').onclick=()=>{if(nk>0){nk--;nkRender()}};
+$('nkNext').onclick=()=>{nk=(nk+1)%NK.length;nkRender()};
+nkRender();
+
+// ===== 一人麻雀 =====
+const G={};let hint=false;
+const gNew=()=>{const w=[];for(let i=0;i<34;i++)for(let k=0;k<4;k++)w.push(i);
+ for(let i=w.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[w[i],w[j]]=[w[j],w[i]]}
+ G.wall=w.slice(14);G.hand=w.slice(0,13).sort((a,b)=>a-b);G.draw=null;G.river=[];G.turn=0;G.over=false;
+ $('gVerd').textContent='';$('gRes').innerHTML='';gDraw()};
+const gDraw=()=>{G.turn++;G.draw=G.wall.shift();
+ const c=cnt([...G.hand,G.draw]);if(shan(c)===-1){gWin(c);return}gRender()};
+const yaku=c=>{const L=[],has=f=>c.some((x,i)=>x&&f(i));
+ if(kokuSh(c)===-1)return[['国士無双',13]];
+ const norm=normalSh(c)===-1,chii=!norm&&chiiSh(c)===-1;
+ const allKo=norm&&c.every(x=>x===0||x===2||x===3)&&c.filter(x=>x===2).length===1;
+ const ym=[];if(allKo)ym.push(['四暗刻',13]);
+ if([31,32,33].every(i=>c[i]>=3))ym.push(['大三元',13]);
+ if(!has(i=>i<27))ym.push(['字一色',13]);
+ if(ym.length)return ym;
+ L.push(['門前清自摸和',1]);
+ if(chii)L.push(['七対子',2]);
+ if(!has(i=>YAO.includes(i)))L.push(['断么九',1]);
+ if(norm){if(c[27]>=3)L.push(['ダブ東（場風・自風）',2]);[[31,'白'],[32,'發'],[33,'中']].forEach(([i,n])=>{if(c[i]>=3)L.push(['役牌 '+n,1])})}
+ const suits=[0,1,2].filter(s=>c.slice(s*9,s*9+9).some(x=>x));
+ if(suits.length===1)L.push(has(i=>i>=27)?['混一色',3]:['清一色',6]);
+ return L};
+const gWin=c=>{G.over=true;const y=yaku(c),h=y.reduce((a,b)=>a+b[1],0);
+ $('gVerd').textContent=`ツモ！ ${G.turn}巡目でアガリました`;
+ const lim=h>=13?'役満':h>=11?'三倍満':h>=8?'倍満':h>=6?'跳満':h>=5?'満貫':'';
+ $('gRes').innerHTML=`<ul>${y.map(([nm,v])=>`<li>${rb(nm)}　${v>=13?rb('役満'):v+'翻'}</li>`).join('')}</ul><p><b>合計 ${h>=13?rb('役満'):h+'翻'}</b>${lim?`（親の${rb(lim)}：${n(score(h,30,1,1).e)}オール）`:'。ドラは数えていません。符を数えて、上の「点数計算」で点数を出してみましょう。'}</p>`;
+ gRender()};
+const gRender=()=>{
+ const all=G.draw===null?G.hand:[...G.hand,G.draw];const c=cnt(all);
+ $('gTurn').textContent=`${Math.min(G.turn,18)} / 18 巡目`;$('gWall').textContent=`山 残り${G.wall.length}枚`;
+ const cs=shan(c);$('gShan').textContent=G.draw===null?shTxt(cs):cs===-1?'アガリ':'切ると '+shTxt(discards(c)[0].sh);
+ $('gHand').innerHTML=G.hand.map((i,k)=>tileI(i,'','button',`data-k="${k}" aria-label="${NM(i)}を切る"${G.over?' disabled':''}`)).join('')+
+  (G.draw===null?'':tileI(G.draw,'drawn','button',`data-k="d" aria-label="ツモった${NM(G.draw)}を切る"${G.over?' disabled':''}`));
+ $('gRiver').innerHTML=G.river.map(i=>tileI(i,'sm')).join('');
+ const ht=$('gHintTxt');ht.hidden=!hint||G.over;
+ if(hint&&!G.over){const seen=cnt(G.river),best=discards(c,seen)[0];ht.textContent=`おすすめ：${NM(best.d)}切り（${shTxt(best.sh)}・受け入れ${best.n}枚）`}
+};
+$('gHand').onclick=e=>{const b=e.target.closest('button');if(!b||G.over)return;
+ let out;if(b.dataset.k==='d'){out=G.draw}else{out=G.hand.splice(+b.dataset.k,1)[0];G.hand.push(G.draw);G.hand.sort((a,b)=>a-b)}
+ G.draw=null;G.river.push(out);
+ if(G.turn>=18||!G.wall.length){G.over=true;const s=shan(cnt(G.hand));
+  $('gVerd').textContent=s===0?'流局：テンパイでした（あと1枚！）':`流局：${s}向聴でした`;
+  $('gRes').innerHTML='<p>ヒントを表示して、受け入れの多い切り方を見比べてみましょう。</p>';gRender();return}
+ gDraw()};
+$('gHint').onclick=e=>{hint=!hint;e.target.setAttribute('aria-pressed',hint);gRender()};
+$('gNew').onclick=gNew;
+gNew();
+
+// ===== CPU対局（鳴きなし・東風戦）=====
+const NXT=i=>i<27?(i%9===8?i-8:i+1):i<31?(i===30?27:i+1):(i===33?31:i+1);
+const PN=['あなた','下家CPU','対面CPU','上家CPU'],WN=['東','南','西','北'];
+const decomp=c=>{const out=[];
+ for(let p=0;p<34;p++)if(c[p]>=2){c[p]-=2;const ms=[];
+  const rec=()=>{let i=0;while(i<34&&!c[i])i++;if(i===34){out.push({pair:p,ms:ms.slice()});return}
+   if(c[i]>=3){c[i]-=3;ms.push(['k',i]);rec();ms.pop();c[i]+=3}
+   if(i<27&&i%9<=6&&c[i+1]&&c[i+2]){c[i]--;c[i+1]--;c[i+2]--;ms.push(['s',i]);rec();ms.pop();c[i]++;c[i+1]++;c[i+2]++}};
+  rec();c[p]+=2}
+ return out};
+const isY=i=>YAO.includes(i);
+// 門前の和了形を評価。ctx: tsumo,riichi,ipp,seat,round,last,oya,dora[],ura[]
+const bestHand=(c,w,ctx)=>{
+ const tl=[];c.forEach((x,i)=>{for(let k=0;k<x;k++)tl.push(i)});
+ const suits=[0,1,2].filter(u=>c.slice(u*9,u*9+9).some(x=>x)),hon=tl.some(i=>i>=27);
+ const ymCommon=()=>{const y=[];
+  if(tl.every(i=>i>=27))y.push('字一色');
+  if(tl.every(i=>[19,20,21,23,25,32].includes(i)))y.push('緑一色');
+  if(tl.every(i=>[0,8,9,17,18,26].includes(i)))y.push('清老頭');
+  if(suits.length===1&&!hon){const u=suits[0]*9,need=[3,1,1,1,1,1,1,1,3];if(need.every((v,k)=>c[u+k]>=v))y.push('九蓮宝燈')}
+  return y};
+ const base=()=>{const y=[];if(ctx.riichi)y.push(['立直',1]);if(ctx.ipp)y.push(['一発',1]);if(ctx.tsumo)y.push(['門前清自摸和',1]);
+  if(ctx.last)y.push([ctx.tsumo?'海底摸月':'河底撈魚',1]);if(!tl.some(isY))y.push(['断么九',1]);
+  if(suits.length===1)y.push(hon?['混一色',3]:['清一色',6]);return y};
+ const cands=[];
+ const fin=(y,fu,ym)=>{if(ym&&ym.length){cands.push({yaku:ym.map(n=>[n,13]),han:13,fu:0,ym:true});return}
+  const yh=y.reduce((a,b)=>a+b[1],0);if(!yh)return;
+  let d=0;ctx.dora.forEach(t=>d+=c[NXT(t)]);let u=0;if(ctx.riichi)ctx.ura.forEach(t=>u+=c[NXT(t)]);
+  const yy=y.slice();if(d)yy.push(['ドラ',d]);if(u)yy.push(['裏ドラ',u]);
+  cands.push({yaku:yy,han:yh+d+u,fu,ym:false})};
+ if(kokuSh(c)===-1)fin([],0,['国士無双']);
+ if(chiiSh(c)===-1){const y=base().concat([['七対子',2]]);if(tl.every(isY)&&hon&&!tl.every(i=>i>=27))y.push(['混老頭',2]);
+  const ym=ymCommon().filter(n=>n==='字一色');fin(y,25,ym)}
+ decomp(c).forEach(d=>{
+  const pl=[];if(d.pair===w)pl.push([-1,'tanki']);
+  d.ms.forEach((m,j)=>{if(m[0]==='k'&&m[1]===w)pl.push([j,'shanpon']);
+   if(m[0]==='s'&&w>=m[1]&&w<=m[1]+2){const q=w-m[1];pl.push([j,q===1?'kanchan':(q===0&&m[1]%9===6)||(q===2&&m[1]%9===0)?'penchan':'ryanmen'])}});
+  pl.forEach(([j,wt])=>{
+   const ks=d.ms.filter(m=>m[0]==='k').map(m=>m[1]),ss=d.ms.filter(m=>m[0]==='s').map(m=>m[1]).sort((a,b)=>a-b);
+   const anko=d.ms.filter((m,k)=>m[0]==='k'&&!(k===j&&!ctx.tsumo)).length;
+   const ym=ymCommon();if(anko===4)ym.push('四暗刻');if([31,32,33].every(t=>ks.includes(t)))ym.push('大三元');
+   const wk=ks.filter(t=>t>=27&&t<=30).length;if(wk===4)ym.push('大四喜');else if(wk===3&&d.pair>=27&&d.pair<=30)ym.push('小四喜');
+   if(ym.length){fin([],0,ym);return}
+   const y=base(),yhp=d.pair>=31||d.pair===ctx.round||d.pair===ctx.seat;
+   const pin=ss.length===4&&!yhp&&wt==='ryanmen';if(pin)y.push(['平和',1]);
+   let pk=0;for(let k=0;k<ss.length-1;k++)if(ss[k]===ss[k+1]){pk++;k++}
+   if(pk===2)y.push(['二盃口',3]);else if(pk===1)y.push(['一盃口',1]);
+   ks.forEach(t=>{if(t>=31)y.push(['役牌 '+HON[t-26],1]);if(t===ctx.round)y.push(['場風 '+HON[t-26],1]);if(t===ctx.seat)y.push(['自風 '+HON[t-26],1])});
+   if(ss.some(t=>t<9&&ss.includes(t+9)&&ss.includes(t+18)))y.push(['三色同順',2]);
+   if([0,9,18].some(u=>ss.includes(u)&&ss.includes(u+3)&&ss.includes(u+6)))y.push(['一気通貫',2]);
+   const allY=d.ms.every(m=>m[0]==='k'?isY(m[1]):m[1]%9===0||m[1]%9===6)&&isY(d.pair);
+   if(allY&&ss.length)y.push(hon?['混全帯么九',2]:['純全帯么九',3]);
+   if(ks.length===4)y.push(['対々和',2]);if(anko===3)y.push(['三暗刻',2]);
+   if(ks.some(t=>t<9&&ks.includes(t+9)&&ks.includes(t+18)))y.push(['三色同刻',2]);
+   if(ks.filter(t=>t>=31).length===2&&d.pair>=31)y.push(['小三元',2]);
+   if(tl.every(isY))y.push(['混老頭',2]);
+   let fu;
+   if(pin)fu=ctx.tsumo?20:30;
+   else{let f=20+(ctx.tsumo?2:10);
+    d.ms.forEach((m,k)=>{if(m[0]==='k'){let v=isY(m[1])?8:4;if(k===j&&!ctx.tsumo)v/=2;f+=v}});
+    if(d.pair>=31)f+=2;if(d.pair===ctx.round)f+=2;if(d.pair===ctx.seat)f+=2;
+    if(['kanchan','penchan','tanki'].includes(wt))f+=2;fu=Math.ceil(f/10)*10}
+   fin(y,fu)})});
+ if(!cands.length)return null;
+ cands.forEach(x=>x.sc=score(x.han,x.fu,ctx.oya,ctx.tsumo));
+ return cands.sort((a,b)=>b.sc.t-a.sc.t||b.han-a.han)[0]};
+
+const MT={};let mGen=0,mTm=null;
+const mLater=(f,ms)=>{const g=mGen;clearTimeout(mTm);mTm=setTimeout(()=>{if(g===mGen)f()},ms)};
+const sw=p=>(p-MT.dealer+4)%4;
+let mLen=8;seg('mLen',[[8,'半荘戦（東場・南場）'],[4,'東風戦（東場のみ）']],8,v=>{mLen=v});
+const RW=k=>WN[Math.floor(Math.min(k,MT.len-1)/4)]+(Math.min(k,MT.len-1)%4+1)+'局';
+const mNewGame=()=>{Object.assign(MT,{len:mLen,pts:[25000,25000,25000,25000],kyoku:0,dealer:0,honba:0,kyotaku:0,over:false});mKyoku()};
+const mKyoku=()=>{mGen++;const w=[];for(let i=0;i<34;i++)for(let k=0;k<4;k++)w.push(i);
+ for(let i=w.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[w[i],w[j]]=[w[j],w[i]]}
+ Object.assign(MT,{dead:w.slice(0,14),wall:w.slice(14),hands:[[],[],[],[]],riv:[[],[],[],[]],rii:[-1,-1,-1,-1],ipp:[0,0,0,0],tf:[0,0,0,0],pf:[0,0,0,0],
+  cur:MT.dealer,draw:null,phase:'wait',res:null,rmode:false,pend:null,last:null,canTsumo:null});
+ MT.dora=[MT.dead[4]];MT.ura=[MT.dead[5]];
+ for(let r=0;r<13;r++)for(let p=0;p<4;p++)MT.hands[(MT.dealer+p)%4].push(MT.wall.shift());
+ MT.hands.forEach(h=>h.sort((a,b)=>a-b));
+ MT.msg=`${RW(MT.kyoku)} ${MT.honba}本場。親（東家）は${PN[MT.dealer]}です。`;mRender();mLater(mDraw,600)};
+const mEval=(p,t,tsumo)=>{const c=cnt([...MT.hands[p],t]);if(shan(c)!==-1)return null;
+ const r=bestHand(c,t,{tsumo,riichi:MT.rii[p]>=0,ipp:!!MT.ipp[p],seat:27+sw(p),round:27+Math.floor(MT.kyoku/4),last:!MT.wall.length,oya:p===MT.dealer,dora:MT.dora,ura:MT.ura});
+ if(r)r.tile=t;return r};
+const waitsOf=h=>{const c=cnt(h),o=[];for(let t=0;t<34;t++){if(c[t]>=4)continue;c[t]++;if(shan(c)===-1)o.push(t);c[t]--}return o};
+const furi=q=>MT.tf[q]||MT.pf[q]||waitsOf(MT.hands[q]).some(t=>MT.riv[q].includes(t));
+const mDraw=()=>{const p=MT.cur;
+ if(!MT.wall.length){mRyu();return}
+ MT.draw=MT.wall.shift();if(MT.rii[p]<0)MT.tf[p]=0;
+ const ev=mEval(p,MT.draw,true);
+ if(p===0){MT.phase='act';MT.canTsumo=ev;MT.msg=ev?'ツモでアガれます！':MT.rii[0]>=0?'リーチ中：ツモ切りします':'あなたの番です。捨てる牌を選んでください。';mRender();
+  if(MT.rii[0]>=0&&!ev)mLater(()=>mDiscard(0,'d',false),700);return}
+ if(ev){mWin(p,ev,-1);return}
+ MT.msg=`${PN[p]}の番`;mRender();const [k,dec]=cpuChoose(p);mLater(()=>mDiscard(p,k,dec),420)};
+const cpuChoose=p=>{if(MT.rii[p]>=0)return['d',false];
+ const c=cnt([...MT.hands[p],MT.draw]),seen=Array(34).fill(0);MT.riv.forEach(r=>r.forEach(t=>seen[t]++));MT.dora.forEach(t=>seen[t]++);
+ const ds=discards(c,seen);let pick=ds[0];
+ const th=[0,1,2,3].filter(q=>q!==p&&MT.rii[q]>=0);
+ if(th.length&&pick.sh>=1){const safe=ds.filter(x=>th.every(q=>MT.riv[q].includes(x.d)));if(safe.length)pick=safe[0]}
+ const dec=pick.sh===0&&MT.pts[p]>=1000&&MT.wall.length>=4;
+ return[MT.draw===pick.d?'d':MT.hands[p].indexOf(pick.d),dec]};
+const mDiscard=(p,k,dec)=>{const h=MT.hands[p];let out;
+ if(k==='d')out=MT.draw;else{out=h.splice(k,1)[0];h.push(MT.draw);h.sort((a,b)=>a-b)}
+ MT.draw=null;if(!dec&&MT.ipp[p])MT.ipp[p]=0;
+ MT.riv[p].push(out);MT.last=[p,MT.riv[p].length-1];
+ if(dec){MT.rii[p]=MT.riv[p].length-1;MT.pts[p]-=1000;MT.kyotaku++;MT.ipp[p]=1;MT.msg=`${PN[p]}がリーチ！`}
+ else if(p!==0)MT.msg=`${PN[p]}が ${NM(out)} を捨てました`;
+ MT.phase='wait';MT.rmode=false;MT.canTsumo=null;mRender();mRon(p,out,1)};
+const mRon=(p,t,k)=>{
+ for(;k<4;k++){const q=(p+k)%4,ev=mEval(q,t,false);if(!ev)continue;
+  if(furi(q)){if(q===0)MT.msg=`${NM(t)}でアガリの形ですが、フリテンのためロンできません。`;continue}
+  if(q===0){MT.phase='ron';MT.pend={p,t,k,ev};MT.msg=`${PN[p]}の ${NM(t)} でロンできます！`;mRender();return}
+  mWin(q,ev,p);return}
+ MT.cur=(p+1)%4;mLater(mDraw,MT.cur===0?300:420)};
+const mWin=(w,ev,from)=>{mGen++;const oya=w===MT.dealer,hb=MT.honba,s=ev.sc,pay=[0,0,0,0];
+ if(from>=0){pay[from]=s.t+300*hb}else for(let q=0;q<4;q++)if(q!==w)pay[q]=(oya?s.e:q===MT.dealer?s.o:s.k)+100*hb;
+ let got=0;pay.forEach((v,q)=>{MT.pts[q]-=v;got+=v});got+=MT.kyotaku*1000;MT.pts[w]+=got;
+ MT.res={type:'win',w,from,ev,got,hand:MT.hands[w].slice(),kyo:MT.kyotaku};MT.kyotaku=0;
+ if(oya)MT.honba++;else{MT.dealer=(MT.dealer+1)%4;MT.kyoku++;MT.honba=0}
+ MT.phase='end';MT.draw=null;MT.msg='';mRender()};
+const mRyu=()=>{mGen++;const ten=[0,1,2,3].map(p=>shan(cnt(MT.hands[p]))===0),nt=ten.filter(Boolean).length;
+ if(nt&&nt<4)ten.forEach((x,p)=>MT.pts[p]+=x?3000/nt:-3000/(4-nt));
+ MT.res={type:'ryu',ten};const dt=ten[MT.dealer];MT.honba++;if(!dt){MT.dealer=(MT.dealer+1)%4;MT.kyoku++}
+ MT.phase='end';MT.msg='';mRender()};
+const riv=p=>MT.riv[p].map((t,k)=>tileI(t,'sm'+(k===MT.rii[p]?' rii':'')+(MT.last&&MT.last[0]===p&&MT.last[1]===k?' last':''))).join('');
+const seatHead=p=>`<span><b>${PN[p]}</b>（${WN[sw(p)]}家${p===MT.dealer?'・親':''}）</span><span class="pt">${n(MT.pts[p])}点</span>${MT.rii[p]>=0?'<span class="rbadge">リーチ</span>':''}`;
+const mRender=()=>{
+ $('mInfo').innerHTML=`<span>${RW(MT.kyoku)} ${MT.honba}本場</span><span>供託 ${MT.kyotaku}本</span><span>山 残り${MT.wall.length}枚</span><span style="display:flex;align-items:center;gap:6px">ドラ表示 ${MT.dora.map(t=>tileI(t,'sm')).join('')}</span>`;
+ $('mSeats').innerHTML=[2,3,1].map(p=>`<div class="seat"><div class="sh">${seatHead(p)}${MT.cur===p&&MT.phase==='wait'?'<span class="tag">考え中…</span>':''}</div><div class="tiles" style="margin-top:6px;min-height:30px">${riv(p)}</div></div>`).join('');
+ $('mMe').innerHTML=seatHead(0);$('mMyRiv').innerHTML=riv(0);
+ const act=MT.phase==='act',ri=MT.rii[0]>=0,h=MT.hands[0];
+ const tenOK=k=>{const a=[...h,MT.draw];a.splice(k==='d'?a.length-1:k,1);return shan(cnt(a))===0};
+ const canR=act&&!ri&&MT.pts[0]>=1000&&MT.wall.length>=4&&[...h.keys(),'d'].some(tenOK);
+ const dis=k=>!act||ri||(MT.rmode&&!tenOK(k));
+ $('mHand').innerHTML=h.map((t,k)=>tileI(t,'','button',`data-k="${k}" aria-label="${NM(t)}を切る"${dis(k)?' disabled':''}`)).join('')+
+  (MT.draw!==null&&MT.cur===0?tileI(MT.draw,'drawn','button',`data-k="d" aria-label="ツモった${NM(MT.draw)}を切る"${dis('d')?' disabled':''}`):'');
+ let b='';
+ if(act&&MT.canTsumo)b+='<button class="btn" data-a="tsumo">ツモ</button>'+(ri?'<button data-a="giri">ツモ切り</button>':'');
+ if(canR)b+=`<button data-a="riichi" aria-pressed="${MT.rmode}">${MT.rmode?'リーチをやめる':'リーチ'}</button>`;
+ if(MT.phase==='ron')b+='<button class="btn" data-a="ron">ロン</button><button data-a="pass">見逃す</button>';
+ $('mAct').innerHTML=b;
+ $('mMsg').textContent=MT.rmode?'リーチ：テンパイが残る牌だけを選べます。':MT.msg||'';
+ $('mRes').innerHTML=MT.phase==='end'?resHtml():'';
+};
+const resHtml=()=>{const r=MT.res;let x='<div class="mres">';
+ if(r.type==='win'){const e=r.ev,lim=LIM(e.sc.b);
+  x+=`<p class="verd">${PN[r.w]}の${r.from<0?'ツモ':'ロン'}！</p><div class="tiles">${r.hand.map(t=>tileI(t,'sm')).join('')}<span style="width:8px"></span>${tileI(e.tile,'sm win')}</div>
+  <ul>${e.yaku.map(([nm,v])=>`<li>${rb(nm)}　${v>=13?rb('役満'):v+'翻'}</li>`).join('')}</ul>
+  <p><b>${e.ym?rb('役満'):`${e.han}翻${e.fu}符`}${lim?'（'+rb(lim)+'）':''}</b>　${PN[r.w]}が ${n(r.got)}点を受け取りました${r.from>=0?`（${PN[r.from]}から）`:''}。</p>`;
+  if(MT.rii[r.w]>=0)x+=`<div class="note" style="display:flex;gap:6px;align-items:center">裏ドラ表示 ${MT.ura.map(t=>tileI(t,'sm')).join('')}</div>`}
+ else x+=`<p class="verd">流局</p><p>${r.ten.map((v,p)=>`${PN[p]}：${v?'テンパイ':'ノーテン'}`).join('　')}</p>`;
+ const fin=MT.kyoku>=MT.len||MT.pts.some(v=>v<0);
+ if(fin){const rk=[0,1,2,3].sort((a,b)=>MT.pts[b]-MT.pts[a]||a-b);
+  x+=`<p class="verd">対局終了</p><ol>${rk.map(p=>`<li>${PN[p]}　${n(MT.pts[p])}点</li>`).join('')}</ol><p><b>あなたは${rk.indexOf(0)+1}位でした。</b>${MT.pts.some(v=>v<0)?'（持ち点がマイナスになった人が出たため終了）':''}</p><button class="btn" data-a="new">もう一度対局する</button>`}
+ else x+='<button class="btn" data-a="next">次の局へ</button>';
+ return x+'</div>'};
+$('mHand').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled||MT.phase!=='act')return;
+ const k=b.dataset.k==='d'?'d':+b.dataset.k;mDiscard(0,k,MT.rmode)};
+$('match').addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(!b)return;const a=b.dataset.a;
+ if(a==='tsumo'&&MT.phase==='act'&&MT.canTsumo)mWin(0,MT.canTsumo,-1);
+ else if(a==='giri'&&MT.phase==='act')mDiscard(0,'d',false);
+ else if(a==='riichi'){MT.rmode=!MT.rmode;mRender()}
+ else if(a==='ron'&&MT.phase==='ron')mWin(0,MT.pend.ev,MT.pend.p);
+ else if(a==='pass'&&MT.phase==='ron'){MT.tf[0]=1;if(MT.rii[0]>=0)MT.pf[0]=1;const q=MT.pend;MT.phase='wait';MT.msg='見逃しました（次の自分の番までロンできません）';mRender();mRon(q.p,q.t,q.k+1)}
+ else if(a==='next')mKyoku();else if(a==='new')mNewGame()});
+$('mNew').onclick=mNewGame;
+mNewGame();
 }
 </script>
 </body>

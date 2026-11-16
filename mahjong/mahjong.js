@@ -10,15 +10,15 @@ const PIN={1:[[15,20,11,CR]],2:[[15,11,6,CG],[15,29,6,CB]],3:[[8,9,5,CB],[15,20,
  7:[[7,5,3.6,CG],[15,9,3.6,CG],[23,13,3.6,CG],[9,24,3.6,CR],[21,24,3.6,CR],[9,34,3.6,CR],[21,34,3.6,CR]],
  8:[6,15,24,33].flatMap(y=>[[9,y,4,CB],[21,y,4,CB]]),
  9:[[8,CB],[20,CR],[32,CG]].flatMap(([y,c])=>[7,15,23].map(x=>[x,y,3.7,c]))};
-const stick=(x,y,h,c)=>`<rect x="${x-1.8}" y="${y-h/2}" width="3.6" height="${h}" rx="1.6" fill="${c}"/><rect x="${x-1.8}" y="${y-.5}" width="3.6" height="1" fill="${IV}"/>`;
+const stick=(x,y,h,c,a=0)=>`<g${a?` transform="rotate(${a} ${x} ${y})"`:''}><rect x="${x-1.8}" y="${y-h/2}" width="3.6" height="${h}" rx="1.6" fill="${c}"/><rect x="${x-1.8}" y="${y-.5}" width="3.6" height="1" fill="${IV}"/></g>`;
 const SOU={2:[[15,11,CG],[15,29,CG]],3:[[15,11,CG],[9,29,CG],[21,29,CG]],4:[[9,11,CG],[21,11,CG],[9,29,CG],[21,29,CG]],
  5:[[8,11,CG],[22,11,CG],[15,20,CR],[8,29,CG],[22,29,CG]],6:[11,29].flatMap(y=>[7,15,23].map(x=>[x,y,CG])),
  7:[[15,7,CR,9]].concat([21,33].flatMap(y=>[7,15,23].map(x=>[x,y,CG,9]))),
- 8:[11,29].flatMap(y=>[6,12,18,24].map(x=>[x,y,CG])),
+ 8:[[4.5,11,CG,13,0],[11.3,11,CG,13,-22],[18.7,11,CG,13,22],[25.5,11,CG,13,0],[4.5,29,CG,13,0],[11.3,29,CG,13,22],[18.7,29,CG,13,-22],[25.5,29,CG,13,0]],
  9:[7,20,33].flatMap(y=>[7,15,23].map(x=>[x,y,x===15?CR:CG,10]))};
 const BIRD=`<ellipse cx="14" cy="23" rx="7" ry="9" fill="${CG}"/><path d="M8 28 L3 37 L11 31 Z M12 31 L10 39 L16 31 Z" fill="${CB}"/><circle cx="19" cy="11" r="4.5" fill="${CR}"/><path d="M23 10 L28 12 L23 13 Z" fill="#e2a300"/><circle cx="20" cy="10" r="1" fill="${IV}"/><path d="M11 19 Q15 24 12 30" stroke="${IV}" stroke-width="1.2" fill="none"/>`;
 const PIC={};
-const pic=(n,s)=>PIC[n+s]||(PIC[n+s]=`<svg viewBox="0 0 30 40" aria-hidden="true">${s==='p'?PIN[n].map(([x,y,r,c])=>dot(x,y,r,c)).join(''):n===1?BIRD:SOU[n].map(([x,y,c,h])=>stick(x,y,h||13,c)).join('')}</svg>`);
+const pic=(n,s)=>PIC[n+s]||(PIC[n+s]=`<svg viewBox="0 0 30 40" aria-hidden="true">${s==='p'?PIN[n].map(([x,y,r,c])=>dot(x,y,r,c)).join(''):n===1?BIRD:SOU[n].map(([x,y,c,h,a])=>stick(x,y,h||13,c,a)).join('')}</svg>`);
 const tile=(n,s)=>{
  if(s==='z')return `<span class="t z ${HC[n]}" aria-label="${HON[n]}"><b>${n===5?'':HON[n]}</b></span>`;
  if(s==='m')return `<span class="t m" aria-label="${n}マン"><b>${MAN[n]}</b><i>萬</i></span>`;

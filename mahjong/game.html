@@ -76,6 +76,9 @@ button.t:disabled{cursor:default}
 .btn{background:var(--felt);color:#fff;border-color:var(--felt);font-weight:700}
 button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #000;outline-offset:3px;box-shadow:0 0 0 3px #ffd43b}
 #mMsg{font-weight:700;margin:6px 0 0;min-height:1.6em}
+.adv{border:2px solid #e2a300;background:light-dark(#fff8e1,#2a2410);border-radius:12px;padding:12px 14px;margin:10px 0}.adv p{margin:4px 0}.adv .hd{font-size:18px}
+.adv table{border-collapse:collapse;margin-top:6px;font-size:16px}.adv td{padding:2px 12px 2px 0;white-space:nowrap}
+.t.rec{outline:4px solid #e2a300;outline-offset:2px}.rtag{display:block;text-align:center;font-size:13px;font-weight:700;color:#8a5a00}
 .mres{background:var(--chip);border-radius:12px;padding:14px;margin-top:12px}
 .verd{font-size:20px;font-weight:800;margin:4px 0}
 .note{font-size:14px;color:var(--mute)}
@@ -91,6 +94,7 @@ ruby{ruby-position:over}rt{font-size:13px;font-family:"Hiragino Sans","Noto Sans
 <header><h1>麻雀 CPU対局</h1><a class="back" href="./">← 役と点数の教室へ</a></header>
 <div class="bar" id="mInfo" aria-live="polite"></div>
 <div class="board" id="mBoard"></div>
+<div class="ctrl"><button id="mBeg" aria-pressed="true">初心者モード（アドバイス）：オン</button></div>
 <div class="tw" id="tw"><div class="table" id="tbl" role="img" aria-label="卓。中央の表示と、4人の捨て牌">
  <div class="area a2"><div class="riv" id="r2"></div></div><div class="area a3"><div class="riv" id="r3"></div></div>
  <div class="area a1"><div class="riv" id="r1"></div></div><div class="area a0"><div class="riv" id="r0"></div></div>
@@ -98,12 +102,14 @@ ruby{ruby-position:over}rt{font-size:13px;font-family:"Hiragino Sans","Noto Sans
  <div class="center" id="ctr"></div>
 </div></div>
 <p id="mMsg" aria-live="polite"></p>
+<div id="mAdv" aria-live="polite"></div>
 <div class="tiles hand" id="mHand"></div>
 <div class="ctrl" id="mAct"></div>
 <div id="mRes" aria-live="polite"></div>
 <div class="lbl">対局の長さ</div>
 <div class="ctrl" id="mLen"></div>
 <div class="ctrl"><button id="mNew">この長さで最初から対局する</button></div>
+<p class="note">初心者モードをオンにすると、あなたの番に「どの牌を切るとよいか」と理由が出て、おすすめの牌が黄色い枠で光ります。鳴けるときは、鳴くべきかどうかも教えます。</p>
 <p class="note">あなた（下）、下家（右）、対面（上）、上家（左）の4人で打ちます。東の席の人が親で、東場・南場を1周ずつ回るか、誰かの持ち点がマイナスになったら終わりです。鳴けるときは「ポン」「チー」「カン」のボタンが出ます（チーは上家の捨て牌だけ）。黄色い枠は直前の捨て牌、薄い牌は鳴かれた牌、横向きの牌はリーチ宣言牌です。赤ドラ、槍槓、喰い替えの制限はありません。</p>
 </div>
 <script>
@@ -194,7 +200,7 @@ const score=(h,f,oya,ts)=>{const b=base(h,f);
  if(oya){const e=up(b*2);return{b,t:e*3,s:n(e)+'オール',e}}
  const k=up(b),o=up(b*2);return{b,t:k*2+o,s:n(k)+' / '+n(o),k,o}};
 // ===== 牌効率エンジン（向聴数・受け入れ）=====
-const NM=i=>i<27?(i%9+1)+'mps'[Math.floor(i/9)]:HON[i-26];
+const NM=i=>i<27?(i%9+1)+'萬筒索'[Math.floor(i/9)]:HON[i-26];
 const tileI=(i,cls='',tag='span',attr='')=>{const s=i<27?'mps'[Math.floor(i/9)]:'z',num=i<27?i%9+1:i-26;
  const h=tile(num,s);return h.replace('<span class="t',`<${tag} ${attr} class="t ${cls}`).replace(/<\/span>$/,`</${tag}>`)};
 const toIdx=str=>parse(str).map(([n,s])=>({m:0,p:9,s:18,z:27}[s]+n-1));
@@ -412,7 +418,46 @@ const mRyu=()=>{mGen++;const ten=[0,1,2,3].map(p=>shan(cnt(MT.hands[p]),K(p))===
 const riv=p=>MT.riv[p].map((t,k)=>tileI(t,'rv'+(k===MT.rii[p]?' rii':'')+(MT.called[p].includes(k)?' called':'')+(MT.last&&MT.last[0]===p&&MT.last[1]===k?' last':''))).join('');
 const meldHtml=(ms,cls='sm')=>ms.map(m=>`<span class="meld">${meldTiles(m).map((t,i)=>m.type==='ankan'&&(i===0||i===3)?tileI(t,cls+' back'):tileI(t,cls)).join('')}</span>`).join('');
 const now=p=>MT.cur===p&&MT.phase!=='end';
+// ===== 初心者モードのアドバイス =====
+let beg=true;try{beg=localStorage.getItem('mjBeginner')!=='0'}catch(e){}
+const seenCnt=()=>{const s=Array(34).fill(0);MT.riv.forEach(r=>r.forEach(t=>s[t]++));MT.dora.forEach(t=>s[t]++);MT.melds.forEach(ms=>ms.forEach(m=>meldTiles(m).forEach(t=>s[t]++)));return s};
+const shTxt2=s=>s===0?'テンパイ':`${s}向聴（テンパイまであと${s}枚）`;
+const advice=()=>{const none={html:'',rec:null};if(!beg)return none;
+ const box=h=>`<div class="adv">${h}</div>`;
+ if(MT.phase==='ron')return{html:box('<p class="hd"><b>ロンを押してアガりましょう！</b></p><p>捨てられた牌でアガリの形になり、役もあります。</p>'),rec:null};
+ if(MT.phase==='call'){const t=MT.pend.t,rows=[];let good=null;
+  MT.pend.op.forEach(o=>{const lab=CALLN[o.type]+(o.type==='chi'?' '+[o.t,o.t+1,o.t+2].map(NM).join(''):'');
+   if(o.type==='minkan'){rows.push(`<p>「${lab}」：ドラが1つ増えますが、手は進みません。慣れるまではしなくて大丈夫です。</p>`);return}
+   const used=o.type==='pon'?[t,t]:[o.t,o.t+1,o.t+2].filter(x=>x!==t),nm={type:o.type,t:o.type==='chi'?o.t:t};
+   const imp=improves(0,used,nm),yk=yakuPath(0,nm),yh=o.type==='pon'&&isYH(0,t);
+   let v;if(yh){v='役牌の刻子になり、1翻の役が確定します。<b>おすすめ</b>';good=good||lab}
+   else if(imp&&yk){v='手が進み、役（タンヤオ・ホンイツなど）も目指せます。<b>おすすめ</b>';good=good||lab}
+   else if(!yk)v='鳴くと役がなくなるおそれがあります（役がないとアガれません）。';
+   else v='鳴いても手は進みません。';
+   rows.push(`<p>「${lab}」：${v}</p>`)});
+  const head=good?`おすすめ：<b>「${good}」</b>`:'おすすめ：<b>スルー（鳴かない）</b>';
+  return{html:box(`<p class="hd">${head}</p>${rows.join('')}${good?'':'<p>鳴かずに門前のままなら、テンパイしたときにリーチができます。</p>'}`),rec:null}}
+ if(!(MT.phase==='act'&&MT.cur===0))return none;
+ if(MT.canTsumo)return{html:box('<p class="hd"><b>「ツモ」を押してアガりましょう！</b></p>'),rec:null};
+ if(MT.rii[0]>=0)return{html:box('<p>リーチ中は手を変えられないので、引いた牌をそのまま捨てます。</p>'),rec:null};
+ const k=K(0),ds=discards(cnt(handAll(0)),seenCnt(),k),th=[1,2,3].filter(q=>MT.rii[q]>=0);
+ const safe=th.length?ds.filter(x=>th.every(q=>MT.riv[q].includes(x.d))):[];
+ let best=ds[0],defend=false;if(th.length&&best.sh>=2&&safe.length){defend=true;best=safe[0]}
+ const L=[];
+ if(defend)L.push(`${th.map(q=>PN[q]).join('と')}がリーチしています。あなたはまだテンパイから遠い（${ds[0].sh}向聴）ので、無理に進めず守りましょう。<b>${NM(best.d)}</b>はリーチした人がすでに捨てた牌（現物）なので、この牌でロンされることはありません。`);
+ else if(best.sh===0){L.push(`切ると<b>テンパイ</b>！待ちは ${best.ts.map(NM).join('・')}（残り${best.n}枚）です。`);
+  if(MT.rmode)L.push('リーチを選びました。おすすめの牌を切ると、リーチになります。');
+  else if(men(0)&&MT.pts[0]>=1000&&MT.wall.length>=4)L.push('「リーチ」を押してから切りましょう。リーチは1翻の役になるので、役がない手でもアガれるようになります。')}
+ else L.push(`切ると${shTxt2(best.sh)}。次に引いて手が進む牌は ${best.ts.length}種類・${best.n}枚あります。いちばん多くの牌を待てる切り方です。`);
+ if(th.length&&!defend)L.push(`リーチしている人がいます。現物（当たらない牌）：${safe.length?safe.map(x=>NM(x.d)).join('・'):'手の中にはありません'}。`);
+ if(k&&!men(0)&&!yakuPath(0,MT.melds[0][k-1]))L.push('鳴いた手は役が必要です。役牌・タンヤオ・トイトイ・ホンイツなどを目指しましょう。');
+ const top=[];ds.forEach(x=>{if(top.length<3&&!top.some(y=>y.d===x.d))top.push(x)});
+ const tbl=defend?'':`<table aria-label="切る牌の比較">${top.map(x=>`<tr><td>${x.d===best.d?'★ ':''}${NM(x.d)}切り</td><td>${x.sh===0?'テンパイ':x.sh+'向聴'}</td><td>${x.sh===0?'待ち':'手が進む牌'} ${x.n}枚</td></tr>`).join('')}</table>`;
+ return{html:box(`<p class="hd">おすすめ：<b>${NM(best.d)}</b> を切る</p>${L.map(x=>`<p>${x}</p>`).join('')}${tbl}`),rec:best.d}};
+$('mBeg').onclick=e=>{beg=!beg;try{localStorage.setItem('mjBeginner',beg?'1':'0')}catch(err){}mRender()};
 const mRender=()=>{
+ const adv=advice();$('mAdv').innerHTML=adv.html;$('mBeg').setAttribute('aria-pressed',beg);$('mBeg').textContent='初心者モード（アドバイス）：'+(beg?'オン':'オフ');
+ const recK=adv.rec===null?null:(MT.draw===adv.rec&&MT.cur===0?'d':MT.hands[0].indexOf(adv.rec));
  $('mInfo').innerHTML=`<span>${RW(MT.kyoku)} ${MT.honba}本場</span><span>供託 ${MT.kyotaku}本</span><span>山 残り${MT.wall.length}枚</span><span class="dora">ドラ表示 ${MT.dora.map(t=>tileI(t,'sm')).join('')}</span>`;
  $('mBoard').innerHTML=[2,3,1,0].map(p=>`<div class="pl${now(p)?' now':''}"><span class="wd">${WN[sw(p)]}</span><span class="nm"><b>${PN[p]}</b>${p===MT.dealer?'（親）':''}</span><span class="pt">${n(MT.pts[p])}点</span>${MT.rii[p]>=0?'<span class="rbadge">リーチ</span>':''}${now(p)&&p&&MT.phase==='wait'?'<span class="tag">考え中…</span>':''}</div>`).join('');
  [0,1,2,3].forEach(p=>{$('r'+p).innerHTML=riv(p);$('k'+p).innerHTML=meldHtml(MT.melds[p],'sm')});
@@ -422,8 +467,8 @@ const mRender=()=>{
  const tenOK=k=>{const a=[...h];if(hasD)a.push(MT.draw);a.splice(k==='d'?a.length-1:k,1);return shan(cnt(a),K(0))===0};
  const canR=act&&hasD&&!ri&&men(0)&&MT.pts[0]>=1000&&MT.wall.length>=4&&[...h.keys(),'d'].some(tenOK);
  const dis=k=>!act||ri||(MT.rmode&&!tenOK(k));
- $('mHand').innerHTML=h.map((t,k)=>tileI(t,'','button',`data-k="${k}" aria-label="${NM(t)}を切る"${dis(k)?' disabled':''}`)).join('')+
-  (hasD?tileI(MT.draw,'drawn','button',`data-k="d" aria-label="ツモった${NM(MT.draw)}を切る"${dis('d')?' disabled':''}`):'')+
+ $('mHand').innerHTML=h.map((t,k)=>tileI(t,k===recK?'rec':'','button',`data-k="${k}" aria-label="${NM(t)}を切る${k===recK?'（おすすめ）':''}"${dis(k)?' disabled':''}`)).join('')+
+  (hasD?tileI(MT.draw,'drawn'+(recK==='d'?' rec':''),'button',`data-k="d" aria-label="ツモった${NM(MT.draw)}を切る${recK==='d'?'（おすすめ）':''}"${dis('d')?' disabled':''}`):'')+
   (K(0)?`<span class="meld" style="margin-left:14px" aria-label="鳴いた牌">${meldHtml(MT.melds[0],'')}</span>`:'');
  let b='';
  if(act&&MT.canTsumo)b+='<button class="btn" data-a="tsumo">ツモ</button>'+(ri?'<button data-a="giri">ツモ切り</button>':'');

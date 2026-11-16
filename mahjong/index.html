@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>麻雀 役と点数の教室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 落ち着いた手引き書。初心者に寄り添い、正確に。
+   IDEA: 雀卓の上で牌を並べて教わる、緑のラシャと象牙の牌。
+   PICTURE: 冒頭は大きく並べた和了形の14枚。各役にも実際の牌姿。
+   COLOUR and TYPE: ラシャ緑 / 象牙色の牌 / 中の赤。見出しと牌は Shippori Mincho B1。
+   LAYOUT: 緑の帯の冒頭 → 固定ナビ → 基本・役・符・点数・早見表・クイズを一続きに。 */
+:root{color-scheme:light dark;
+--bg:light-dark(#fbf8f0,#0d1613);--ink:light-dark(#17201c,#ece6d6);--mute:light-dark(#5b6660,#a6ab9f);
+--felt:#0f5c45;--felt2:#0b4636;--ivory:#f7f2e2;--red:#c8102e;--line:light-dark(#e3dccb,#25332d);
+--card:light-dark(#fff,#13201b);--ui:light-dark(#7d7562,#83918a);--chip:light-dark(#efe9da,#1c2b25)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3,.t,.big{font-family:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.1;margin:0 0 12px;text-wrap:balance}
+h2{font-size:clamp(26px,4vw,36px);line-height:1.15;margin:0 0 8px;text-wrap:balance}
+h3{font-size:19px;margin:0}
+p{margin:0 0 12px;max-width:68ch}
+.band{padding:clamp(28px,4vw,60px) max(5vw,16px)}
+.wrap{max-width:1180px;margin:0 auto}
+.hero{background:radial-gradient(120% 90% at 50% 20%,#167257,var(--felt) 55%,var(--felt2));color:#f3efe2}
+.hero p{color:#e3eee8}
+.hand{display:flex;flex-wrap:wrap;gap:clamp(8px,1.6vw,16px);margin:26px 0 10px;--w:clamp(30px,5.2vw,52px)}
+.grp{display:flex;flex-direction:column;align-items:center;gap:6px}
+.grp .tiles{display:flex;gap:2px}
+.grp small{font-size:14px;color:#e3eee8}
+.tiles{display:flex;flex-wrap:wrap;gap:2px}
+.t{--w:28px;width:var(--w);height:calc(var(--w)*1.36);border-radius:calc(var(--w)*.14);background:linear-gradient(#fffdf5,var(--ivory) 70%,#e7dfc6);
+ box-shadow:0 calc(var(--w)*.12) 0 #1d7a5c,0 calc(var(--w)*.16) 0 #0d4a37,0 calc(var(--w)*.2) 6px rgba(0,0,0,.35);margin-bottom:calc(var(--w)*.2);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;font-weight:800;color:#1b1b1b;user-select:none}
+.hand .t{--w:inherit}
+.t b{font-size:calc(var(--w)*.5)}.t i{font-style:normal;font-size:calc(var(--w)*.34);margin-top:2px}
+.t.m i{color:var(--red)}.t.p b,.t.p i{color:#1f4fa0}.t.s b,.t.s i{color:#13804f}
+.t.z b{font-size:calc(var(--w)*.62)}.t.e b{color:#1d2a44}.t.g b{color:#13804f}.t.r b{color:var(--red)}
+.t.w b{width:60%;height:62%;border:2px solid #4f7fc4;border-radius:3px}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:4px;overflow-x:auto;padding:6px max(5vw,16px)}
+nav a{flex:none;padding:10px 14px;border-radius:999px;color:var(--ink);text-decoration:none;font-weight:600;font-size:15px}
+nav a:hover,nav a:focus-visible{background:var(--chip);outline:none}
+section{border-bottom:1px solid var(--line);scroll-margin-top:56px}
+.lead{color:var(--mute)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card p{font-size:16px;margin:6px 0 10px}
+.hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.han{flex:none;font-weight:700;font-size:13px;padding:2px 10px;border-radius:999px;background:var(--felt);color:#fff;white-space:nowrap}
+.han.ym{background:var(--red)}
+.tag{font-size:15px;color:var(--mute)}
+.ruby{font-size:14px;color:var(--mute);margin-left:6px}
+.flow{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));counter-reset:f;margin:18px 0}
+.flow div{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--felt);border-radius:10px;padding:12px 14px;font-size:16px}
+.flow b{display:block;font-size:17px}
+dl.terms{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:12px 0 0;font-size:16px}
+dl.terms dt{font-weight:700}dl.terms dd{margin:0}
+.ctrl{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px}
+.ctrl button,.btn,select,input{font:inherit;font-size:16px;min-height:44px;border-radius:10px;border:1px solid var(--ui);background:var(--chip);color:var(--ink);padding:0 14px;cursor:pointer}
+.ctrl button:hover,select:hover{border-color:var(--ink)}
+.ctrl button[aria-pressed=true]{background:var(--felt);color:#fff;border-color:var(--felt)}
+.ctrl button:disabled{opacity:.35;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #000;outline-offset:3px;box-shadow:0 0 0 3px #ffd43b}
+.btn{background:var(--felt);color:#fff;border-color:var(--felt);font-weight:700}
+input[type=search]{width:min(100%,320px);cursor:text}
+.lbl{font-weight:700;font-size:16px;margin-top:6px}
+.calc{display:grid;gap:22px;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:start}
+.res{background:var(--felt);color:#f3efe2;border-radius:16px;padding:22px}
+.big{font-size:clamp(40px,7vw,64px);line-height:1;margin:6px 0 10px;font-weight:800}
+.res .sub{color:#e3eee8;font-size:16px}
+.res ol{margin:12px 0 0;padding-left:20px;font-size:16px;color:#f3efe2}
+.rows{display:grid;gap:8px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.row select{width:100%}
+table{border-collapse:collapse;width:100%;font-size:16px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:right;white-space:nowrap}
+th{background:var(--chip);text-align:center}
+td.na{color:var(--mute);text-align:center}td.lim{background:color-mix(in srgb,var(--red) 10%,var(--card));font-weight:700}
+.scroll{overflow-x:auto}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
+.opts button{font-size:20px;font-weight:700;min-height:56px}
+.opts button.ok{background:var(--felt);color:#fff}.opts button.ng{background:var(--red);color:#fff}
+.note{font-size:14px;color:var(--mute)}
+footer{padding:28px max(5vw,16px);font-size:14px;color:var(--mute)}
+@media(max-width:760px){.calc{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){table{font-size:14px}th,td{padding:6px 4px}dl.terms{grid-template-columns:1fr}dl.terms dd{margin-bottom:6px}.opts button{font-size:17px}}
+@media(prefers-reduced-motion:no-preference){.hero .t{animation:up .5s backwards}@keyframes up{from{transform:translateY(-14px);opacity:0}}}
+</style>
+</head>
+<body>
+<header class="band hero"><div class="wrap">
+<h1>麻雀 役と点数の教室</h1>
+<p>アガリの形、役の見分け方、符と点数の数え方を、牌を見ながら順番に覚えましょう。</p>
+<div class="hand" id="heroHand"></div>
+<p>例：タンヤオ・ピンフ。4つの面子（めんつ）と1つの雀頭（じゃんとう）で14枚。</p>
+</div></header>
+
+<nav><div class="wrap">
+<a href="#basics">基本</a><a href="#yaku">役一覧</a><a href="#fu">符計算</a><a href="#points">点数計算</a><a href="#table">早見表</a><a href="#quiz">クイズ</a>
+</div></nav>
+
+<section id="basics" class="band"><div class="wrap">
+<h2>まずは基本</h2>
+<p class="lead">点数は「役で翻（ハン）を数える → 符（フ）を数える → 翻と符から点数を出す」の3段階で決まります。</p>
+<div class="flow">
+<div><b>① 役を確認</b>アガリには役が最低1つ必要。ドラは役ではないので、ドラだけではアガれません。</div>
+<div><b>② 翻を合計</b>役の翻数 ＋ ドラ・赤ドラ・裏ドラの枚数。</div>
+<div><b>③ 符を計算</b>基本20符に、面子・雀頭・待ち・アガリ方の符を足して10符単位に切り上げ。</div>
+<div><b>④ 点数を出す</b>基本点 ＝ 符 × 2<sup>翻+2</sup>。子は×4、親は×6（100点単位に切り上げ）。</div>
+</div>
+<h3>牌の種類（34種×4枚）</h3>
+<div class="rows" style="margin:12px 0 18px" id="allTiles"></div>
+<h3>用語</h3>
+<dl class="terms">
+<dt>順子（シュンツ）</dt><dd>同じ種類の連続した3枚。例：1-2-3萬。字牌では作れません。</dd>
+<dt>刻子（コーツ）</dt><dd>同じ牌3枚。自分で揃えたら暗刻（アンコー）、ポンしたら明刻（ミンコー）。</dd>
+<dt>槓子（カンツ）</dt><dd>同じ牌4枚。面子1つとして数えます。</dd>
+<dt>雀頭（ジャントウ）</dt><dd>同じ牌2枚の対子（トイツ）。アガリ形に1つ必要。</dd>
+<dt>么九牌（ヤオチュー）</dt><dd>1・9の数牌（老頭牌）と字牌。2〜8は中張牌（チュンチャン）。</dd>
+<dt>門前（メンゼン）</dt><dd>チー・ポン・明槓をしていない状態。門前限定の役や、鳴くと翻が下がる役（食い下がり）があります。</dd>
+<dt>ロン / ツモ</dt><dd>他家の捨て牌でアガるのがロン、自分で引いてアガるのがツモ。</dd>
+<dt>親 / 子</dt><dd>親（東家）のアガリは子の1.5倍。</dd>
+</dl>
+</div></section>
+
+<section id="yaku" class="band"><div class="wrap">
+<h2>役一覧</h2>
+<p class="lead">牌姿は一例です。「門前限定」は鳴くと成立しない役、「鳴き −1翻」は鳴くと翻が1つ下がる役です。</p>
+<div class="ctrl" id="hanFilter"></div>
+<div class="ctrl"><input type="search" id="q" placeholder="役名・読みで検索（例：タンヤオ）" aria-label="役を検索">
+<button id="openOnly" aria-pressed="false">鳴いてもOKな役だけ</button></div>
+<div class="grid" id="yakuList"></div>
+<p class="note" id="yakuCount"></p>
+</div></section>
+
+<section id="fu" class="band"><div class="wrap">
+<h2>符計算</h2>
+<p class="lead">基本は20符（副底）。そこに下の符を足し、1の位を切り上げます。七対子は常に25符、ピンフはツモ20符・ロン30符です。</p>
+<div class="calc">
+<div>
+<div class="lbl">アガリ方</div>
+<div class="ctrl" id="fuWin"></div>
+<div class="lbl">門前かどうか</div>
+<div class="ctrl" id="fuMen"></div>
+<div class="lbl">面子（4つ）</div>
+<div class="rows" id="fuSets"></div>
+<div class="lbl" style="margin-top:12px">雀頭</div>
+<div class="rows" id="fuPair"></div>
+<div class="lbl" style="margin-top:12px">待ち</div>
+<div class="rows" id="fuWait"></div>
+</div>
+<div class="res" aria-live="polite">
+<div class="sub">合計</div>
+<div class="big" id="fuBig">30符</div>
+<div class="sub" id="fuNote"></div>
+<ol id="fuSteps"></ol>
+<p style="margin-top:14px"><button class="btn" id="fuSend" style="background:#f3efe2;color:#0f5c45">この符で点数を計算 ↓</button></p>
+</div>
+</div>
+<div class="scroll" style="margin-top:22px"><table>
+<thead><tr><th>面子の符</th><th>中張牌（2〜8）</th><th>么九牌（1・9・字）</th></tr></thead>
+<tbody>
+<tr><td style="text-align:left">明刻（ポン）</td><td>2</td><td>4</td></tr>
+<tr><td style="text-align:left">暗刻</td><td>4</td><td>8</td></tr>
+<tr><td style="text-align:left">明槓</td><td>8</td><td>16</td></tr>
+<tr><td style="text-align:left">暗槓</td><td>16</td><td>32</td></tr>
+</tbody></table></div>
+<p class="note" style="margin-top:8px">その他：門前ロン +10、ツモ +2（ピンフツモは除く）、役牌の雀頭 +2（連風牌は+4のルールが多い）、カンチャン・ペンチャン・単騎待ち +2。順子は0符。ロンで出来た刻子は明刻扱い。</p>
+</div></section>
+
+<section id="points" class="band"><div class="wrap">
+<h2>点数計算</h2>
+<p class="lead">翻と符を選ぶと点数と計算の過程を表示します。5翻以上は符に関係なく満貫以上です。</p>
+<div class="calc">
+<div>
+<div class="lbl">翻数（ドラ込み）</div><div class="ctrl" id="pHan"></div>
+<div class="lbl">符</div><div class="ctrl" id="pFu"></div>
+<div class="lbl">親 / 子</div><div class="ctrl" id="pOya"></div>
+<div class="lbl">アガリ方</div><div class="ctrl" id="pWin"></div>
+</div>
+<div class="res" aria-live="polite">
+<div class="sub" id="pHead"></div>
+<div class="big" id="pBig"></div>
+<div class="sub" id="pPay"></div>
+<ol id="pSteps"></ol>
+</div>
+</div>
+<div class="scroll" style="margin-top:22px"><table>
+<thead><tr><th>翻数</th><th>名称</th><th>子ロン</th><th>親ロン</th></tr></thead>
+<tbody id="limits"></tbody></table></div>
+<p class="note" style="margin-top:8px">4翻30符・3翻60符を満貫とする「切り上げ満貫」はルールによります。この教室では採用しない計算（7,700点 / 11,600点）です。</p>
+</div></section>
+
+<section id="table" class="band"><div class="wrap">
+<h2>点数早見表</h2>
+<p class="lead">よく出る1〜4翻の点数です。「—」はありえない組み合わせ。ツモは「子の支払い / 親の支払い」、親のツモは「オール（全員が同額）」。</p>
+<div class="ctrl" id="tOya"></div><div class="ctrl" id="tWin"></div>
+<div class="scroll"><table id="tbl"></table></div>
+</div></section>
+
+<section id="quiz" class="band"><div class="wrap">
+<h2>点数クイズ</h2>
+<p class="lead">条件を見て正しい点数を選びましょう。</p>
+<div class="card" style="max-width:640px">
+<div class="hd"><h3 id="qQ"></h3><span class="tag" id="qScore">0 / 0 問正解</span></div>
+<div class="opts" id="qOpts"></div>
+<p id="qExp" style="min-height:3em"></p>
+<button class="btn" id="qNext">次の問題</button>
+</div>
+</div></section>
+
+<footer><div class="wrap">一般的なリーチ麻雀（アリアリ）のルールに基づく内容です。連風牌の雀頭、ダブル役満、切り上げ満貫などは場のルールを確認してください。</div></footer>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const MAN='〇一二三四五六七八九',HON=['','東','南','西','北','白','發','中'],HC=['','e','e','e','e','w','g','r'];
+const tile=(n,s)=>{
+ if(s==='z')return `<span class="t z ${HC[n]}" aria-label="${HON[n]}"><b>${n===5?'':HON[n]}</b></span>`;
+ if(s==='m')return `<span class="t m" aria-label="${n}萬"><b>${MAN[n]}</b><i>萬</i></span>`;
+ return `<span class="t ${s}" aria-label="${n}${s==='p'?'筒':'索'}"><b>${n}</b><i>${s==='p'?'筒':'索'}</i></span>`;
+};
+const parse=str=>{const out=[];let buf=[];for(const c of str.replace(/\s/g,'')){if(/\d/.test(c))buf.push(+c);else{buf.forEach(n=>out.push([n,c]));buf=[]}}return out};
+const tiles=str=>str.split(' ').map(g=>`<span class="tiles">${parse(g).map(([n,s])=>tile(n,s)).join('')}</span>`).join('<span style="width:6px"></span>');
+
+$('heroHand').innerHTML=[['234m','順子'],['567m','順子'],['345p','順子'],['678s','順子'],['99s','雀頭']]
+ .map(([g,l])=>`<div class="grp"><div class="tiles">${parse(g).map(([n,s])=>tile(n,s)).join('')}</div><small>${l}</small></div>`).join('');
+$('allTiles').innerHTML=[['123456789m','萬子（マンズ）'],['123456789p','筒子（ピンズ）'],['123456789s','索子（ソーズ）'],['1234567z','字牌（風牌・三元牌）']]
+ .map(([g,l])=>`<div><div class="note">${l}</div><div class="tiles">${parse(g).map(([n,s])=>tile(n,s)).join('')}</div></div>`).join('');
+
+// h: 門前の翻, o: 鳴いた時の翻 (0=門前限定), 13=役満
+const Y=[
+['立直','リーチ',1,0,'門前でテンパイしたら1000点を出して宣言。以後は手を変えられません。',null],
+['一発','イッパツ',1,0,'リーチ後、1巡以内（間に鳴きが入らず）にアガる。',null],
+['門前清自摸和','メンゼンツモ',1,0,'門前の状態で、ツモでアガる。',null],
+['平和','ピンフ',1,0,'4面子すべて順子、雀頭が役牌でない、両面待ち。符がつかない形。','234m 567m 345p 678s 99s'],
+['断么九','タンヤオ',1,1,'2〜8の数牌だけで作る。鳴いてもOK（喰いタン）のルールが一般的。','234m 456m 678p 345s 55s'],
+['一盃口','イーペーコー',1,0,'同じ種類・同じ並びの順子を2組。','112233m 456p 789s 55s'],
+['役牌','ヤクハイ',1,1,'三元牌（白發中）、場風、自風の刻子。1組につき1翻。','555z 123m 456p 789s 11p'],
+['嶺上開花','リンシャンカイホー',1,1,'カンした後の補充牌（嶺上牌）でアガる。',null],
+['槍槓','チャンカン',1,1,'他家が加槓した牌でロンする。',null],
+['海底摸月','ハイテイ',1,1,'最後の牌をツモってアガる。',null],
+['河底撈魚','ホウテイ',1,1,'最後の捨て牌でロンする。',null],
+['ダブル立直','ダブリー',2,0,'最初のツモ番（鳴きが入る前）でリーチ。',null],
+['七対子','チートイツ',2,0,'対子を7組。同じ牌4枚は2組と数えない。符は25符固定。','11m 33m 55p 77p 22s 66s 77z'],
+['三色同順','サンショク',2,1,'萬子・筒子・索子で同じ数字の順子。','123m 123p 123s 678s 99p'],
+['一気通貫','イッツー',2,1,'同じ種類で123・456・789。','123m 456m 789m 345p 22s'],
+['混全帯么九','チャンタ',2,1,'すべての面子と雀頭に么九牌（1・9・字牌）を含む。','123m 789p 789s 111z 99s'],
+['対々和','トイトイ',2,2,'4面子すべて刻子（槓子）。','222m 555p 888s 333z 77p'],
+['三暗刻','サンアンコー',2,2,'暗刻を3組。鳴いた面子があってもOK。','222m 555p 888s 345s 77p'],
+['三色同刻','サンショクドーコー',2,2,'萬子・筒子・索子で同じ数字の刻子。','333m 333p 333s 456s 88m'],
+['三槓子','サンカンツ',2,2,'槓子を3組。',null],
+['小三元','ショウサンゲン',2,2,'三元牌のうち2つが刻子、1つが雀頭。役牌2翻も付くので実質4翻。','555z 666z 77z 123m 456p'],
+['混老頭','ホンロートー',2,2,'1・9・字牌だけで作る。対々和か七対子と複合。','111m 999p 111z 222z 99s'],
+['二盃口','リャンペーコー',3,0,'一盃口を2組。七対子とは複合しない。','112233m 445566p 77s'],
+['純全帯么九','ジュンチャン',3,2,'すべての面子と雀頭に1か9を含む（字牌なし）。','123m 789m 123p 999s 11s'],
+['混一色','ホンイツ',3,2,'1種類の数牌と字牌だけで作る。','123m 345m 777m 222z 99m'],
+['清一色','チンイツ',6,5,'1種類の数牌だけで作る。','123s 234s 456s 789s 55s'],
+['国士無双','コクシムソウ',13,0,'13種類の么九牌を1枚ずつ＋そのうち1つを対子。','19m 19p 19s 1234567z 1m'],
+['四暗刻','スーアンコー',13,0,'暗刻を4組。ロンで刻子が完成するとトイトイ三暗刻になる点に注意。','222m 555p 888s 333z 77p'],
+['大三元','ダイサンゲン',13,13,'白・發・中すべてを刻子に。','555z 666z 777z 123m 99p'],
+['字一色','ツーイーソー',13,13,'字牌だけで作る。','111z 222z 333z 555z 77z'],
+['小四喜','ショウスーシー',13,13,'風牌のうち3つが刻子、1つが雀頭。','111z 222z 333z 44z 123m'],
+['大四喜','ダイスーシー',13,13,'東南西北すべてを刻子に（ダブル役満のルールも）。','111z 222z 333z 444z 55m'],
+['緑一色','リューイーソー',13,13,'索子の2・3・4・6・8と發だけで作る。','234s 234s 666s 888s 66z'],
+['清老頭','チンロートー',13,13,'1と9の数牌だけで作る。','111m 999m 111p 999s 11s'],
+['九蓮宝燈','チューレンポートー',13,0,'1種類で1112345678999＋同じ種類の牌1枚。','1112345678999m 5m'],
+['四槓子','スーカンツ',13,13,'槓子を4組。',null],
+['天和','テンホー',13,0,'親が配牌の時点でアガっている。',null],
+['地和','チーホー',13,0,'子が最初のツモ（鳴きが入る前）でアガる。',null]];
+let hf='all',oo=false,q='';
+const HF=[['all','すべて'],[1,'1翻'],[2,'2翻'],[3,'3翻'],[6,'6翻'],[13,'役満']];
+$('hanFilter').innerHTML=HF.map(([v,l])=>`<button data-v="${v}" aria-pressed="${v==='all'}">${l}</button>`).join('');
+const renderY=()=>{
+ const list=Y.filter(y=>(hf==='all'||y[2]==hf)&&(!oo||y[3]>0)&&(!q||(y[0]+y[1]).includes(q)));
+ $('yakuList').innerHTML=list.map(([n,r,h,o,d,ex])=>{
+  const ym=h===13,badge=ym?'役満':h+'翻';
+  const nk=o===0?'門前限定':o===h?'鳴いてもOK':`鳴き −1翻（${o}翻）`;
+  return `<article class="card"><div class="hd"><h3>${n}<span class="ruby">${r}</span></h3><span class="han${ym?' ym':''}">${badge}</span></div>
+  <div class="tag">${nk}</div><p>${d}</p>${ex?`<div class="tiles" style="gap:2px 0">${tiles(ex)}</div>`:'<div class="note">状況で成立する役（牌の形は問わない）</div>'}</article>`}).join('')||'<p>該当する役がありません。</p>';
+ $('yakuCount').textContent=`${list.length}件を表示中`;
+};
+$('hanFilter').onclick=e=>{const b=e.target.closest('button');if(!b)return;hf=b.dataset.v==='all'?'all':+b.dataset.v;
+ [...$('hanFilter').children].forEach(x=>x.setAttribute('aria-pressed',x===b));renderY()};
+$('openOnly').onclick=e=>{oo=!oo;e.target.setAttribute('aria-pressed',oo);renderY()};
+$('q').oninput=e=>{q=e.target.value.trim();renderY()};
+renderY();
+
+// segmented control helper
+const seg=(el,opts,val,cb)=>{const box=$(el);
+ box.innerHTML=opts.map(([v,l])=>`<button data-v="${v}" aria-pressed="${v==val}">${l}</button>`).join('');
+ box.onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;
+  [...box.children].forEach(x=>x.setAttribute('aria-pressed',x===b));cb(isNaN(b.dataset.v)?b.dataset.v:+b.dataset.v)};
+ return v=>[...box.children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==v));};
+
+// 符計算
+const SETS=[[0,'順子 0符'],[2,'明刻・中張 2符'],[4,'明刻・么九 4符'],[4.1,'暗刻・中張 4符'],[8,'暗刻・么九 8符'],[8.1,'明槓・中張 8符'],[16,'明槓・么九 16符'],[16.1,'暗槓・中張 16符'],[32,'暗槓・么九 32符']];
+const F={win:'ron',men:'men',sets:[0,0,0,0],pair:0,wait:0,chi:false};
+seg('fuWin',[['ron','ロン'],['tsumo','ツモ']],'ron',v=>{F.win=v;calcFu()});
+seg('fuMen',[['men','門前'],['open','鳴きあり'],['chi','七対子']],'men',v=>{F.men=v;calcFu()});
+$('fuSets').innerHTML=[0,1,2,3].map(i=>`<div class="row"><select data-i="${i}" aria-label="面子${i+1}">${SETS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>`).join('');
+$('fuPair').innerHTML=`<div class="row"><select id="pairSel" aria-label="雀頭"><option value="0">数牌・客風牌 0符</option><option value="2">役牌（三元牌・場風・自風）2符</option><option value="4">連風牌（場風かつ自風）4符</option></select></div>`;
+$('fuWait').innerHTML=`<div class="row"><select id="waitSel" aria-label="待ち"><option value="0">両面・シャンポン 0符</option><option value="2">カンチャン・ペンチャン・単騎 2符</option></select></div>`;
+$('fuSets').onchange=e=>{F.sets[+e.target.dataset.i]=Math.floor(+e.target.value);calcFu()};
+$('pairSel').onchange=e=>{F.pair=+e.target.value;calcFu()};
+$('waitSel').onchange=e=>{F.wait=+e.target.value;calcFu()};
+let fuNow=30;
+const calcFu=()=>{
+ const st=[],ts=F.win==='tsumo';let f,note='';
+ const dis=F.men==='chi';[...document.querySelectorAll('#fuSets select,#pairSel,#waitSel')].forEach(s=>s.disabled=dis);
+ if(dis){f=25;st.push('七対子は25符固定（切り上げなし）');note='七対子';}
+ else{
+  const men=F.men==='men',ex=F.sets.reduce((a,b)=>a+b,0)+F.pair+F.wait;
+  f=20;st.push('副底 20符');
+  if(men&&!ts){f+=10;st.push('門前ロン +10符')}
+  if(ts&&!(men&&ex===0)){f+=2;st.push('ツモ +2符')}
+  F.sets.forEach((v,i)=>v&&st.push(`面子${i+1} +${v}符`));
+  if(F.pair)st.push(`雀頭 +${F.pair}符`);if(F.wait)st.push(`待ち +${F.wait}符`);
+  f+=ex;const raw=f;f=Math.ceil(f/10)*10;
+  if(men&&ex===0){note=ts?'ピンフ・ツモ形（ツモ符なしで20符）':'ピンフ・ロン形';}
+  if(!men&&!ts&&raw===20){f=30;note='鳴いてロンで符がない形は30符とします';}
+  st.push(raw===f?`合計 ${f}符`:`合計 ${raw}符 → 切り上げて ${f}符`);
+ }
+ fuNow=f;$('fuBig').textContent=f+'符';$('fuNote').textContent=note;$('fuSteps').innerHTML=st.map(s=>`<li>${s}</li>`).join('');
+};
+calcFu();
+
+// 点数
+const LIM=b=>b>=8000?'役満':b>=6000?'三倍満':b>=4000?'倍満':b>=3000?'跳満':b>=2000?'満貫':'';
+const base=(h,f)=>h>=13?8000:h>=11?6000:h>=8?4000:h>=6?3000:h>=5?2000:Math.min(2000,f*2**(h+2));
+const up=x=>Math.ceil(x/100)*100,n=x=>x.toLocaleString('ja-JP');
+const score=(h,f,oya,ts)=>{const b=base(h,f);
+ if(!ts){const t=up(b*(oya?6:4));return{b,t,s:n(t)+'点'}}
+ if(oya){const e=up(b*2);return{b,t:e*3,s:n(e)+'オール',e}}
+ const k=up(b),o=up(b*2);return{b,t:k*2+o,s:n(k)+' / '+n(o),k,o}};
+const valid=(h,f,ts)=>h>=5||!((f===20&&!ts)||(f===25&&h<2));
+const P={h:3,f:30,oya:0,ts:0};
+const FUS=[20,25,30,40,50,60,70,80,90,100,110];
+seg('pHan',[...Array(13)].map((_,i)=>[i+1,(i+1)+'翻']),3,v=>{P.h=v;calcP()});
+const setFu=seg('pFu',FUS.map(f=>[f,f+'符']),30,v=>{P.f=v;calcP()});
+seg('pOya',[[0,'子'],[1,'親']],0,v=>{P.oya=v;calcP()});
+seg('pWin',[[0,'ロン'],[1,'ツモ']],0,v=>{P.ts=v;calcP()});
+const calcP=()=>{
+ [...$('pFu').children].forEach(b=>b.disabled=P.h>=5);
+ const who=(P.oya?'親':'子')+'の'+(P.ts?'ツモ':'ロン');
+ $('pHead').textContent=`${who}・${P.h}翻${P.h<5?' '+P.f+'符':''}`;
+ if(!valid(P.h,P.f,P.ts)){$('pBig').textContent='—';$('pPay').textContent='';
+  $('pSteps').innerHTML=`<li>${P.f===20?'20符のロンはありません（ピンフのロンは30符）。':'25符（七対子）は2翻以上です。'}</li>`;return}
+ const r=score(P.h,P.f,P.oya,P.ts),lim=LIM(r.b),st=[];
+ if(P.h<5){const raw=P.f*2**(P.h+2);st.push(`基本点 = ${P.f}符 × 2<sup>${P.h}+2</sup> = ${n(raw)}`);if(raw>2000)st.push('2,000を超えたので満貫（基本点2,000）')}
+ else st.push(`${P.h}翻は${lim}：基本点 ${n(r.b)}`);
+ if(!P.ts)st.push(`${n(r.b)} × ${P.oya?6:4} = ${n(r.b*(P.oya?6:4))} → 100点単位に切り上げ`);
+ else if(P.oya)st.push(`子3人がそれぞれ ${n(r.b)} × 2 = ${n(r.b*2)} → 切り上げて ${n(r.e)}点`);
+ else st.push(`子2人が ${n(r.b)} → ${n(r.k)}点、親が ${n(r.b)} × 2 → ${n(r.o)}点`);
+ $('pBig').textContent=P.ts?r.s:n(r.t)+'点';
+ $('pPay').textContent=(lim?lim+'　':'')+(P.ts?`合計 ${n(r.t)}点`:'放銃者が支払い');
+ $('pSteps').innerHTML=st.map(s=>`<li>${s}</li>`).join('');
+};
+calcP();
+$('fuSend').onclick=()=>{P.f=fuNow;setFu(fuNow);calcP();$('points').scrollIntoView({behavior:'smooth'})};
+$('limits').innerHTML=[['5翻','満貫',5],['6〜7翻','跳満',6],['8〜10翻','倍満',8],['11〜12翻','三倍満',11],['13翻以上','数え役満',13]]
+ .map(([h,l,v])=>`<tr><td style="text-align:center">${h}</td><td style="text-align:center">${l}</td><td>${n(score(v,30,0,0).t)}</td><td>${n(score(v,30,1,0).t)}</td></tr>`).join('');
+
+// 早見表
+const T={oya:0,ts:0};
+const drawT=()=>{
+ const rows=FUS.map(f=>`<tr><th>${f}符</th>${[1,2,3,4].map(h=>{
+  if(!valid(h,f,T.ts))return '<td class="na">—</td>';
+  const r=score(h,f,T.oya,T.ts);return `<td class="${r.b>=2000?'lim':''}">${T.ts?r.s:n(r.t)}${r.b>=2000?'<br><small>満貫</small>':''}</td>`}).join('')}</tr>`).join('');
+ $('tbl').innerHTML=`<thead><tr><th></th><th>1翻</th><th>2翻</th><th>3翻</th><th>4翻</th></tr></thead><tbody>${rows}</tbody>`;
+};
+seg('tOya',[[0,'子'],[1,'親']],0,v=>{T.oya=v;drawT()});
+seg('tWin',[[0,'ロン'],[1,'ツモ']],0,v=>{T.ts=v;drawT()});
+drawT();
+
+// クイズ
+let qs=0,qa=0,cur=null;
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const pick=(oya,ts)=>{for(;;){const h=rnd([1,2,2,3,3,4]),f=rnd([20,25,30,30,40,40,50,60,70]);if(valid(h,f,ts)&&base(h,f)<2000)return[h,f]}};
+const newQ=()=>{
+ const oya=Math.random()<.4?1:0,ts=Math.random()<.4?1:0,[h,f]=pick(oya,ts),ans=score(h,f,oya,ts).s;
+ const set=new Set([ans]);let guard=0;
+ while(set.size<4&&guard++<200){const[h2,f2]=pick(oya,ts);set.add(score(h2,f2,oya,ts).s)}
+ const opts=[...set].sort(()=>Math.random()-.5);
+ cur={h,f,oya,ts,ans,done:false};
+ $('qQ').textContent=`${oya?'親':'子'}・${ts?'ツモ':'ロン'}・${h}翻${f}符`;
+ $('qOpts').innerHTML=opts.map(o=>`<button>${o}</button>`).join('');$('qExp').textContent='';
+};
+$('qOpts').onclick=e=>{const b=e.target.closest('button');if(!b||cur.done)return;cur.done=true;qa++;
+ const ok=b.textContent===cur.ans;if(ok)qs++;
+ [...$('qOpts').children].forEach(x=>{if(x.textContent===cur.ans){x.classList.add('ok');x.textContent='✓ '+x.textContent}else if(x===b){x.classList.add('ng');x.textContent='✗ '+x.textContent}});
+ const raw=cur.f*2**(cur.h+2);
+ $('qExp').innerHTML=`${ok?'正解！':'不正解。'}基本点は ${cur.f}×2<sup>${cur.h+2}</sup> = ${n(raw)}。${cur.ts?(cur.oya?'子3人が×2ずつ':'子が×1、親が×2'):(cur.oya?'×6':'×4')}して100点単位に切り上げると <b>${cur.ans}</b>。`;
+ $('qScore').textContent=`${qs} / ${qa} 問正解`};
+$('qNext').onclick=newQ;
+newQ();
+}
+</script>
+</body>
+</html>

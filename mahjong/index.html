@@ -136,7 +136,7 @@ footer{padding:28px max(5vw,16px);font-size:14px;color:var(--mute)}
 <div class="rows" style="margin:12px 0 18px" id="allTiles"></div>
 <h3>用語</h3>
 <dl class="terms">
-<dt>順子（シュンツ）</dt><dd>同じ種類の連続した3枚。例：1-2-3萬。字牌では作れません。</dd>
+<dt>順子（シュンツ）</dt><dd>同じ種類の連続した3枚。例：1-2-3マン。字牌では作れません。</dd>
 <dt>刻子（コーツ）</dt><dd>同じ牌3枚。自分で揃えたら暗刻（アンコー）、ポンしたら明刻（ミンコー）。</dd>
 <dt>槓子（カンツ）</dt><dd>同じ牌4枚。面子1つとして数えます。</dd>
 <dt>雀頭（ジャントウ）</dt><dd>同じ牌2枚の対子（トイツ）。アガリ形に1つ必要。</dd>
@@ -325,8 +325,8 @@ const PIC={};
 const pic=(n,s)=>PIC[n+s]||(PIC[n+s]=`<svg viewBox="0 0 30 40" aria-hidden="true">${s==='p'?PIN[n].map(([x,y,r,c])=>dot(x,y,r,c)).join(''):n===1?BIRD:SOU[n].map(([x,y,c,h])=>stick(x,y,h||13,c)).join('')}</svg>`);
 const tile=(n,s)=>{
  if(s==='z')return `<span class="t z ${HC[n]}" aria-label="${HON[n]}"><b>${n===5?'':HON[n]}</b></span>`;
- if(s==='m')return `<span class="t m" aria-label="${n}萬"><b>${MAN[n]}</b><i>萬</i></span>`;
- return `<span class="t ${s}" aria-label="${n}${s==='p'?'筒':'索'}">${pic(n,s)}</span>`;
+ if(s==='m')return `<span class="t m" aria-label="${n}マン"><b>${MAN[n]}</b><i>萬</i></span>`;
+ return `<span class="t ${s}" aria-label="${n}${s==='p'?'ピン':'ソー'}">${pic(n,s)}</span>`;
 };
 const parse=str=>{const out=[];let buf=[];for(const c of str.replace(/\s/g,'')){if(/\d/.test(c))buf.push(+c);else{buf.forEach(n=>out.push([n,c]));buf=[]}}return out};
 const tiles=str=>str.split(' ').map(g=>`<span class="tiles">${parse(g).map(([n,s])=>tile(n,s)).join('')}</span>`).join('<span style="width:6px"></span>');

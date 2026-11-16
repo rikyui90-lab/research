@@ -143,8 +143,8 @@ const PIC={};
 const pic=(n,s)=>PIC[n+s]||(PIC[n+s]=`<svg viewBox="0 0 30 40" aria-hidden="true">${s==='p'?PIN[n].map(([x,y,r,c])=>dot(x,y,r,c)).join(''):n===1?BIRD:SOU[n].map(([x,y,c,h])=>stick(x,y,h||13,c)).join('')}</svg>`);
 const tile=(n,s)=>{
  if(s==='z')return `<span class="t z ${HC[n]}" aria-label="${HON[n]}"><b>${n===5?'':HON[n]}</b></span>`;
- if(s==='m')return `<span class="t m" aria-label="${n}萬"><b>${MAN[n]}</b><i>萬</i></span>`;
- return `<span class="t ${s}" aria-label="${n}${s==='p'?'筒':'索'}">${pic(n,s)}</span>`;
+ if(s==='m')return `<span class="t m" aria-label="${n}マン"><b>${MAN[n]}</b><i>萬</i></span>`;
+ return `<span class="t ${s}" aria-label="${n}${s==='p'?'ピン':'ソー'}">${pic(n,s)}</span>`;
 };
 const parse=str=>{const out=[];let buf=[];for(const c of str.replace(/\s/g,'')){if(/\d/.test(c))buf.push(+c);else{buf.forEach(n=>out.push([n,c]));buf=[]}}return out};
 const tiles=str=>str.split(' ').map(g=>`<span class="tiles">${parse(g).map(([n,s])=>tile(n,s)).join('')}</span>`).join('<span style="width:6px"></span>');
@@ -207,7 +207,7 @@ const score=(h,f,oya,ts)=>{const b=base(h,f);
  if(oya){const e=up(b*2);return{b,t:e*3,s:n(e)+'オール',e}}
  const k=up(b),o=up(b*2);return{b,t:k*2+o,s:n(k)+' / '+n(o),k,o}};
 // ===== 牌効率エンジン（向聴数・受け入れ）=====
-const NM=i=>i<27?(i%9+1)+'萬筒索'[Math.floor(i/9)]:HON[i-26];
+const NM=i=>i<27?(i%9+1)+['マン','ピン','ソー'][Math.floor(i/9)]:HON[i-26];
 const tileI=(i,cls='',tag='span',attr='')=>{const s=i<27?'mps'[Math.floor(i/9)]:'z',num=i<27?i%9+1:i-26;
  const h=tile(num,s);return h.replace('<span class="t',`<${tag} ${attr} class="t ${cls}`).replace(/<\/span>$/,`</${tag}>`)};
 const toIdx=str=>parse(str).map(([n,s])=>({m:0,p:9,s:18,z:27}[s]+n-1));

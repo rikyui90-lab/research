@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>麻雀 何切る問題</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="band hero sub"><div class="wrap"><a class="site" href="./">麻雀 役と点数の教室</a></div></header>
+
+<nav aria-label="ページ"><div class="wrap"><a href="./">メニュー</a><a href="basics.html">基本とルール</a><a href="yaku.html">役一覧</a><a href="yaku-quiz.html">役クイズ</a><a href="fu.html">符計算</a><a href="points.html">点数計算</a><a href="score-quiz.html">点数クイズ</a><a href="nanikiru.html" aria-current="page">何切る問題</a><a href="solo.html">一人麻雀</a><a href="game.html">CPU対局</a></div></nav>
+
+<section id="nanikiru" class="band"><div class="wrap">
+<h1>何切る問題</h1>
+<p class="lead">14枚の手牌から1枚を捨てます。いちばんアガりに近づく牌を押してください。答えると、切る牌ごとの向聴数（テンパイまであと何枚か）と受け入れ枚数（形が進む牌の数）を表示します。</p>
+<div class="card">
+<div class="hd"><h3 id="nkTitle"></h3><span class="tag" id="nkScore"></span></div>
+<p id="nkQ" style="margin-top:8px"></p>
+<div class="tiles big-t" id="nkHand" style="margin:14px 0 6px"></div>
+<div aria-live="polite"><p class="verd" id="nkVerd"></p><p id="nkExp"></p></div>
+<div class="scroll" id="nkTblWrap" hidden><table><thead><tr><th>切る牌</th><th>向聴数</th><th>受け入れ</th><th>受け入れる牌</th></tr></thead><tbody id="nkTbl"></tbody></table></div>
+<div class="ctrl" style="margin-top:14px"><button id="nkPrev">前の問題</button><button class="btn" id="nkNext">次の問題</button></div>
+<p class="note">牌の呼び方：「1マン」は萬子（マンズ）の1、「1ピン」は筒子（ピンズ）の1、「1ソー」は索子（ソーズ）の1です。「34マン」はマンズの3と4のことです。</p>
+<p class="note">受け入れ枚数は、自分の手牌にある牌だけを除いて数えています（捨て牌やドラ表示牌は考えません）。</p>
+</div>
+</div></section>
+
+<footer><div class="wrap">一般的なリーチ麻雀（アリアリ）のルールに基づく内容です。連風牌の雀頭、ダブル役満、切り上げ満貫などは場のルールを確認してください。</div></footer>
+<script src="mahjong.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>麻雀 一人麻雀</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="band hero sub"><div class="wrap"><a class="site" href="./">麻雀 役と点数の教室</a></div></header>
+
+<nav aria-label="ページ"><div class="wrap"><a href="./">メニュー</a><a href="basics.html">基本とルール</a><a href="yaku.html">役一覧</a><a href="yaku-quiz.html">役クイズ</a><a href="fu.html">符計算</a><a href="points.html">点数計算</a><a href="score-quiz.html">点数クイズ</a><a href="nanikiru.html">何切る問題</a><a href="solo.html" aria-current="page">一人麻雀</a><a href="game.html">CPU対局</a></div></nav>
+
+<section id="game" class="band"><div class="wrap">
+<h1>一人麻雀</h1>
+<p class="lead">山から1枚引くたびに1枚捨てて、18巡以内にツモでアガりを目指します。東場の親（東家）として遊びます。牌を押すと、その牌を捨てます。</p>
+<div class="card">
+<div class="bar" aria-live="polite"><span id="gTurn"></span><span id="gShan"></span><span id="gWall"></span></div>
+<div class="tiles big-t" id="gHand" style="margin:6px 0"></div>
+<div class="ctrl"><button id="gHint" aria-pressed="false">ヒントを表示</button><button class="btn" id="gNew">新しく始める</button></div>
+<p id="gHintTxt" hidden></p>
+<div aria-live="polite"><p class="verd" id="gVerd"></p><div id="gRes"></div></div>
+<div class="lbl">捨て牌</div>
+<div class="tiles" id="gRiver" style="margin-top:6px;min-height:40px"></div>
+<p class="note">アガリの役は、門前清自摸和・断么九・役牌・混一色・清一色・七対子・対々和の形（四暗刻）・大三元・字一色・国士無双を判定します。平和や一盃口などは判定しません。</p>
+</div>
+</div></section>
+
+<footer><div class="wrap">一般的なリーチ麻雀（アリアリ）のルールに基づく内容です。連風牌の雀頭、ダブル役満、切り上げ満貫などは場のルールを確認してください。</div></footer>
+<script src="mahjong.js"></script>
+</body>
+</html>

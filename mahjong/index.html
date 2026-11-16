@@ -101,6 +101,8 @@ td.na{color:var(--mute);text-align:center}td.lim{background:color-mix(in srgb,va
 .scroll{overflow-x:auto}
 .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
 .opts button{font-size:20px;font-weight:700;min-height:56px}
+.yqx{background:var(--chip);border-radius:12px;padding:12px 14px;margin:6px 0 14px}.yqx p{margin:4px 0}
+.opts button rt{font-size:13px}.opts button.ok rt,.opts button.ng rt{color:#fff;opacity:.9}
 .opts button.ok{background:var(--felt);color:#fff}.opts button.ng{background:var(--red);color:#fff}
 .note{font-size:14px;color:var(--mute)}
 footer{padding:28px max(5vw,16px);font-size:14px;color:var(--mute)}
@@ -118,7 +120,7 @@ footer{padding:28px max(5vw,16px);font-size:14px;color:var(--mute)}
 </div></header>
 
 <nav><div class="wrap">
-<a href="#basics">基本</a><a href="#rules">ルール</a><a href="#yaku">役一覧</a><a href="#fu">符計算</a><a href="#points">点数計算</a><a href="#table">早見表</a><a href="#quiz">クイズ</a><a href="#nanikiru">何切る</a><a href="#game">一人麻雀</a><a href="game.html">CPU対局</a>
+<a href="#basics">基本</a><a href="#rules">ルール</a><a href="#yaku">役一覧</a><a href="#yquiz">役クイズ</a><a href="#fu">符計算</a><a href="#points">点数計算</a><a href="#table">早見表</a><a href="#quiz">クイズ</a><a href="#nanikiru">何切る</a><a href="#game">一人麻雀</a><a href="game.html">CPU対局</a>
 </div></nav>
 
 <section id="basics" class="band"><div class="wrap">
@@ -169,6 +171,20 @@ footer{padding:28px max(5vw,16px);font-size:14px;color:var(--mute)}
 <button id="openOnly" aria-pressed="false">鳴いてもOKな役だけ</button></div>
 <div class="grid" id="yakuList"></div>
 <p class="note" id="yakuCount"></p>
+</div></section>
+
+<section id="yquiz" class="band"><div class="wrap">
+<h2>役クイズ</h2>
+<p class="lead">10問で役を覚えましょう。牌の並びから役を当てる問題、翻数、鳴いても成り立つか、読み方の4種類が出ます。</p>
+<div class="ctrl" id="yqMode"></div>
+<div class="card" style="max-width:720px">
+<div class="hd"><h3 id="yqNo"></h3><span class="tag" id="yqScore"></span></div>
+<p id="yqQ" style="margin-top:8px;font-size:18px;font-weight:700"></p>
+<div id="yqHand"></div>
+<div class="opts" id="yqOpts"></div>
+<div aria-live="polite" id="yqExp"></div>
+<button class="btn" id="yqNext">次の問題</button>
+</div>
 </div></section>
 
 <section id="fu" class="band"><div class="wrap">
@@ -596,6 +612,54 @@ $('gHand').onclick=e=>{const b=e.target.closest('button');if(!b||G.over)return;
 $('gHint').onclick=e=>{hint=!hint;e.target.setAttribute('aria-pressed',hint);gRender()};
 $('gNew').onclick=gNew;
 gNew();
+
+
+// ===== 役クイズ =====
+const YQ={"平和": [1, ["平和"]], "断么九": [1, ["断么九", "平和"]], "一盃口": [0, ["平和", "一盃口"]], "役牌": [31, ["役牌 白"]], "七対子": [0, ["七対子"]], "三色同順": [0, ["平和", "三色同順"]], "一気通貫": [0, ["平和", "一気通貫"]], "混全帯么九": [0, ["場風 東", "混全帯么九"]], "対々和": [1, ["対々和", "三暗刻"]], "三暗刻": [20, ["断么九", "三暗刻"]], "三色同刻": [2, ["断么九", "三色同刻"]], "小三元": [31, ["役牌 白", "役牌 發", "小三元"]], "混老頭": [0, ["場風 東", "自風 南", "対々和", "三暗刻", "混老頭"]], "二盃口": [0, ["平和", "二盃口"]], "純全帯么九": [0, ["純全帯么九"]], "混一色": [0, ["混一色", "自風 南"]], "清一色": [18, ["清一色", "平和", "一気通貫"]], "国士無双": [0, ["国士無双"]], "四暗刻": [15, ["四暗刻"]], "大三元": [31, ["大三元"]], "字一色": [27, ["字一色"]], "小四喜": [27, ["小四喜"]], "大四喜": [27, ["大四喜"]], "緑一色": [19, ["緑一色"]], "清老頭": [0, ["清老頭"]], "九蓮宝燈": [0, ["九蓮宝燈"]]}; // 例の手のアガリ牌と、成り立つ役（ロン・門前・場風東・自風南で計算）
+const YQB=nm=>/^(役牌|場風|自風) /.test(nm)?'役牌':nm;
+const YQX={'三暗刻':['四暗刻'],'対々和':['四暗刻'],'二盃口':['一盃口'],'一盃口':['二盃口'],'純全帯么九':['混全帯么九'],'混全帯么九':['純全帯么九'],
+ '清一色':['混一色'],'混一色':['清一色'],'混老頭':['混全帯么九','純全帯么九'],'小三元':['大三元'],'大三元':['小三元'],'小四喜':['大四喜'],'大四喜':['小四喜'],'四暗刻':['三暗刻','対々和']};
+const YN=Object.fromEntries(Y.map(y=>[y[0],y]));
+const HANS=['1翻','2翻','3翻','6翻','役満'],NAKI=['鳴いてもOK','鳴くと1翻下がる','門前限定（鳴くと不可）'];
+const hanL=y=>y[2]===13?'役満':y[2]+'翻',nakiL=y=>y[3]===0?NAKI[2]:y[3]===y[2]?NAKI[0]:NAKI[1];
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+let yqMode='all',yq=null;
+const yqGen=(type,used)=>{
+ if(type==='hand'){const ks=shuf(Object.keys(YQ).filter(k=>!used.has('h'+k)));const k=ks[0];used.add('h'+k);
+  const [w,ys]=YQ[k],pr=new Set(ys.map(YQB)),ex=YQX[k]||[];
+  const pool=shuf(Y.filter(y=>y[5]&&y[0]!==k&&!pr.has(y[0])&&!ex.includes(y[0])).map(y=>y[0])).slice(0,3);
+  return{type,key:k,w,ys,q:'この手で成り立っている役はどれ？',opts:shuf([k,...pool]),ans:k,ruby:true}}
+ const y=shuf(Y.filter(y=>!used.has(type+y[0])))[0];used.add(type+y[0]);
+ if(type==='han'){const a=hanL(y);return{type,key:y[0],q:`「${rb(y[0])}」は何翻の役？（門前のとき）`,opts:HANS.filter(x=>x===a||Math.random()<.75).slice(0,4).concat(HANS.length?[]:[]),ans:a}}
+ if(type==='naki')return{type,key:y[0],q:`「${rb(y[0])}」は、ポンやチーをしても成り立つ？`,opts:NAKI.slice(),ans:nakiL(y)};
+ const others=shuf(Y.filter(z=>z[1]!==y[1]).map(z=>z[1])).slice(0,3);
+ return{type,key:y[0],q:`「${y[0]}」の読み方は？`,opts:shuf([y[1],...others]),ans:y[1]}};
+const yqStart=()=>{const types=yqMode==='all'?['hand','han','naki','read']:[yqMode],used=new Set(),qs=[];
+ for(let i=0;i<10;i++)qs.push(yqGen(types[yqMode==='all'?(i%4+Math.floor(Math.random()*4))%4:0],used));
+ qs.forEach(q=>{if(q.type==='han'){let o=HANS.filter(x=>x!==q.ans);o=shuf(o).slice(0,3).concat(q.ans);q.opts=HANS.filter(x=>o.includes(x))}});
+ yq={qs,i:0,ok:0,done:false};yqRender()};
+const yqRender=()=>{const q=yq.qs[yq.i];
+ if(yq.i>=yq.qs.length){$('yqNo').textContent='結果';$('yqQ').innerHTML=`10問中 ${yq.ok}問 正解！${yq.ok>=9?'役はばっちりです。':yq.ok>=6?'あと少し。役一覧で見直してみましょう。':'役一覧を見ながら、もう一度挑戦してみましょう。'}`;
+  $('yqHand').innerHTML='';$('yqOpts').innerHTML='';$('yqExp').innerHTML='';$('yqNext').textContent='もう一度（新しい10問）';return}
+ $('yqNo').textContent=`第${yq.i+1}問 / 10`;$('yqScore').textContent=`${yq.ok}問正解`;
+ $('yqQ').innerHTML=q.q;
+ if(q.type==='hand'){const a=toIdx(YN[q.key][5]).sort((x,y)=>x-y);a.splice(a.indexOf(q.w),1);
+  $('yqHand').innerHTML=`<div class="tiles big-t" style="margin:6px 0">${a.map(t=>tileI(t)).join('')}<span style="width:10px"></span>${tileI(q.w,'win')}</div><p class="note">門前でロン。黄色い枠がアガリ牌です（場風は東、自風は南）。</p>`}
+ else $('yqHand').innerHTML='';
+ $('yqOpts').innerHTML=q.opts.map((o,i)=>`<button data-i="${i}">${q.ruby?rb(o):o}</button>`).join('');
+ $('yqExp').innerHTML='';yq.done=false;$('yqNext').textContent=yq.i===9?'結果を見る':'次の問題';$('yqNext').disabled=true;
+};
+$('yqOpts').onclick=e=>{const b=e.target.closest('button');if(!b||yq.done)return;yq.done=true;
+ const q=yq.qs[yq.i],pick=q.opts[+b.dataset.i],ok=pick===q.ans;if(ok)yq.ok++;
+ [...$('yqOpts').children].forEach((x,i)=>{if(q.opts[i]===q.ans){x.classList.add('ok');x.insertAdjacentText('afterbegin','✓ ')}else if(x===b){x.classList.add('ng');x.insertAdjacentText('afterbegin','✗ ')}});
+ const y=YN[q.key];
+ let ex=`<p class="verd">${ok?'正解！':'残念！'}</p><p><b>${rb(y[0])}</b>　${hanL(y)}・${nakiL(y)}</p><p>${y[4]}</p>`;
+ if(q.type==='hand'){const all=[...new Set(q.ys.map(n=>rb(n)))];ex+=`<p>この手で成り立つ役：${all.join('、')}</p>`}
+ else if(y[5])ex+=`<div class="tiles" style="margin-top:6px">${tiles(y[5])}</div>`;
+ $('yqExp').innerHTML=`<div class="yqx">${ex}</div>`;$('yqScore').textContent=`${yq.ok}問正解`;$('yqNext').disabled=false};
+$('yqNext').onclick=()=>{if(yq.i>=yq.qs.length){yqStart();return}yq.i++;yqRender()};
+seg('yqMode',[['all','すべてまぜる'],['hand','牌の並びから役'],['han','翻数'],['naki','鳴き'],['read','読み方']],'all',v=>{yqMode=v;yqStart()});
+yqStart();
 
 }
 </script>
